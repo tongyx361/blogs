@@ -1059,7 +1059,7 @@ k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 
 此处，$`k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
 
-不难注意到 KL 估计样本值 $`k`$与 reward$`r`$在形式上的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。但两者不同的是$`k(s_{i, t'}, a_{i, t'})= \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$会随`$\pi_\theta$`变化而变化，而`$r(s_{i, t'}, a_{i, t'})`$ 不会。
+不难注意到 KL 估计样本值 $`k`$ 与 reward $`r`$ 在形式上的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。但两者不同的是 $`k(s_{i, t'}, a_{i, t'})= \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 会随 $`\pi_\theta`$ 变化而变化，而 $`r(s_{i, t'}, a_{i, t'})`$ 不会。
 
 类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等，具体可以参考 [UCB CS 285](https://rail.eecs.berkeley.edu/deeprlcourse/)。
 
