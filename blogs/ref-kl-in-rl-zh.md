@@ -49,7 +49,7 @@ L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t
 > Let $`r_t(\theta)`$ denote the probability ratio $`r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}`$, so $`r\left(\theta_{\text {old }}\right)=1`$. TRPO maximizes a "surrogate" objective
 
 ```math
-L^{C P I}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {eld }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left[r_t(\theta) \hat{A}_t\right] .
+L^{C P I}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left[r_t(\theta) \hat{A}_t\right] .
 ```
 
 > ...
@@ -758,14 +758,14 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 那么，有没有办法绕过这个困难呢？熟悉 off-policy PG 的朋友可能很容易想到，我们可以使用重要性采样（Importance Sampling, IS）来估计 $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$：
 
-$$
+```math
 \begin{aligned}
 \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta}}\left[\sum_{t=1}^{T} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{r e f}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
 & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[\frac{p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)}{p_{\theta_{old}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)} \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
 & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[ \left(\prod_{t=1}^{T} \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right) \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
 & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[ \exp \left(\sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right) \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
 \end{aligned}
-$$
+```
 
 代码则可以按如下方式改正：
 
