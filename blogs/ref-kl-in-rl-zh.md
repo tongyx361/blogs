@@ -618,9 +618,11 @@ def update_policy(self, data: DataProto):
 
 同样，这里的估计是错误的。
 
-## 思路 1: 先估计 KL over reference，再通过自动微分计算梯度
+## 思路 1: KL 散度估计作为 loss 项
 
 将 KL 作为 loss 项的设计背后，是一个自然的思路：先计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，再使用自动微分。
+
+将 KL 作为 loss 项时，通常有一个隐藏的假设，即对所有与 $\theta$ 相关的量，都计算梯度，也即默认不使用 nograd。这也是目前 OpenRLHF 与 verl 实现 KL 作为 loss 项的方式。
 
 如上文所说，几乎不可能直接计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，我们只能基于样本来估计，例如使用 Monte Carlo 估计
 
@@ -633,19 +635,9 @@ def update_policy(self, data: DataProto):
 
 其中，$`\left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,T}, \mathbf{a}_{i,T}\right) \sim p_{\theta}`$。
 
-对应的梯度则为
+上面还出现了 KL 散度的其他几种估计方法。
 
-```math
-\begin{aligned}
-\nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & \approx \frac{1}{N} \sum_{i=1}^{N}  \left(\sum_{t=1}^{T} \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})\right)
-\end{aligned}
-```
-
-可以看到，这实际上是 $\pi_\theta$ 的熵的梯度。
-
-可见，先估计 KL 散度再求梯度的方法并不合理。
-
-然而，上面还出现了 KL 散度的其他几种估计方法，我们不妨分析一番其梯度，以加深对问题的认识。
+我们先介绍这些估计方法，再来分析其梯度。
 
 ### 插曲：如何尽可能准确地估计 KL 散度
 
@@ -722,21 +714,50 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 > Here, the bias of k2 is much larger. k3 has even lower standard deviation than k2 while being unbiased, so it appears to be a strictly better estimator.
 
-### 各种 KL 估计方法直接自动微分求得的梯度
+### （on-policy 场景下）各种 KL 估计方法直接自动微分求得的梯度
 
-基于 k1 估计方法求得的梯度样本为
+#### 基于 k1 估计方法求得的梯度：期望为 0
 
-```math
-\nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
-```
-
-实际上与熵的梯度样本一致。这意味着减小 k1 估计值，等价于减小熵。
-
-基于 k2 估计方法求得的梯度样本为
+基于 k1 估计方法求得的梯度样本值为
 
 ```math
 \begin{aligned}
-  \nabla_{\theta} \frac{1}{2} \left(\log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)^2 = \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
+\nabla_{\theta} \sum_{t=1}^{T} \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} & = \nabla_{\theta} \sum_{t=1}^{T} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+& = \nabla_{\theta} \log \prod_{t=1}^{T} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+& = \nabla_{\theta} \log \prod_{t=1}^{T} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) + \nabla_{\theta} \log \prod_{t=1}^{T-1} p(s_{i,t+1} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}, a_{i,t}) + \nabla_{\theta} \log p(s_{i,1}) \\
+& = \nabla_{\theta} \log p(s_{i,1}) \prod_{t=1}^{T} \pi_{\theta}(a_{i,t}, s_{i,t+1} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \prod_{t=1}^{T-1} p(s_{i,t+1} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}, a_{i,t}) \\
+& = \nabla_{\theta} \log p_{\theta}(\tau)
+\end{aligned}
+```
+
+对应的梯度期望为：
+
+```math
+\begin{aligned}
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[\nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right] & = \sum_{\mathbf{\tau} \in \mathcal{T}} p_{\theta}(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \\
+& = \nabla_{\theta} \sum_{\mathbf{\tau} \in \mathcal{T}} p_{\theta}(\mathbf{\tau}) \\
+& = \nabla_{\theta} 1 \\
+& = 0
+\end{aligned}
+```
+
+所以基于 k1 估计方法求得的梯度期望为 0，平均意义上不会引起分布改变。
+
+也就是说，如果 on-policy 地优化 k1 估计方法导出的 loss，平均意义上不会引起分布改变。
+
+我们可以进一步考虑 off-policy 的场景，第一个 mini-batch 更新时梯度期望为 0，但由于随机性，仍然会略微改变分布，使得 $\pi_\theta != \pi_{\theta_{old}}$。
+
+随后的 mini-batch 中，再在样本 $\tau \sim p_{\theta_{old}}$ 上计算梯度，则梯度期望变为 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}} \left[\nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right]$，此时，减小 k1 估计值，就相当于增大来自采样分布 $p_{\theta_{old}}$ 的样本概率，即使模型向 $p_{\theta_{old}}$ 回退。
+
+有趣的是，其作用与 PPO 中的 KL penalty 类似。注意，这并非其本意，因为其最初的计算中使用了 $\pi_{ref}$。
+
+#### 基于 k2/k3 估计方法求得的梯度：暂时无法分辨其意义
+
+基于 k2 估计方法求得的梯度样本值为
+
+```math
+\begin{aligned}
+\nabla_{\theta} \sum_{t=1}^{T} \frac{1}{2} \left(\log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)^2 & = \sum_{t=1}^{T} \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
 \end{aligned}
 ```
 
@@ -744,16 +765,16 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 ```math
 \begin{aligned}
-& \nabla_{\theta} \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 - \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right) \\
-= & \frac{\nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
-= & \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 \right)\nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
-= & \left(\frac{1}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \frac{1}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
+& \nabla_{\theta}  \sum_{t=1}^{T} \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 - \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right) \\
+= & \sum_{t=1}^{T} \left(\frac{\nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})\right) \\
+= &  \sum_{t=1}^{T} \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 \right)\nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+= &  \sum_{t=1}^{T} \left(\frac{1}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \frac{1}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
 \end{aligned}
 ```
 
-基于 k2 和 k3 估计方法求得的样本，则较难分辨其意义。
+基于 k2 和 k3 估计方法求得的梯度样本较为复杂，难以分辨其意义。
 
-### 另一个问题：off-policy
+### 另一个问题：off-policy 场景下 KL 值的估计
 
 如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$ 时，我们会遇到一个困难：没有采样自当前策略 $\pi_\theta$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
 
@@ -939,6 +960,8 @@ p_{\theta_i}(s_{t+1} \mid s_1, \cdots, s_t, a_t) = p_{\theta_i}(s_{t+1} \mid s_t
 
 此时，我们可以利用 Markov 性质化简 KL 梯度估计式。
 
+#### 参考 PG 如何利用 Markov 性质化简梯度估计
+
 我们可以参考 MDP 建模的 PG 方法中利用 Markov 性质化简梯度估计式的技巧。
 
 PG 的表达式为：
@@ -988,6 +1011,8 @@ PG 的表达式为：
 \nabla_\theta J(\theta)=E_{\tau \sim p_\theta(\tau)}\left[\sum_{t=1}^T \left(\sum_{t'=t}^T r\left(\mathbf{s}_t, \mathbf{a}_t\right)\right)\nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t\right)\right]
 ```
 
+#### 利用 Markov 性质化简 KL 梯度估计性质化简 KL 梯度估计
+
 类似地，对于我们前面得到的 KL 梯度表达式：
 
 ```math
@@ -1028,9 +1053,11 @@ k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 
 此处，$`k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
 
-不难注意到 $`k`$ 与 $`r`$ 的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。
+不难注意到 KL 估计样本值 $`k`$ 与 reward $`r`$ 在形式上的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。但两者不同的是 $`k(s_{i, t'}, a_{i, t'})= \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 会随 $\pi_\theta$ 变化而变化，而 $`r(s_{i, t'}, a_{i, t'})`$ 不会。
 
 类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等，具体可以参考 [UCB CS 285](https://rail.eecs.berkeley.edu/deeprlcourse/)。
+
+注意，数学表达式中，各个值默认是不计算梯度的，只有 $\nabla_{\theta}$ 后的部分才计算梯度。所以不在 $\nabla_{\theta}$ 后的部分，但又与 $\theta$ 相关的值，需要使用 `torch.no_grad()` 显式地设置为不计算梯度。
 
 同样，要使用自动微分计算该梯度估计式，我们需要构造对应的 loss 函数：
 
@@ -1048,21 +1075,23 @@ off-policy 场景下，我们无法使用样本 $`\mathbf{\tau} \sim p_{\theta}`
 \begin{aligned}
 \nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & =  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t}) \right] \\
 & =  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}}\left[ \frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})} \sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t}) \right] \\
-& =  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}}\left[ \left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}\right) \sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t}) \right]
+& =  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}}\left[ \left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{a}_{t} | \mathbf{s}_{t})}{ \pi_{\theta_{old}}(\mathbf{a}_{t} | \mathbf{s}_{t})}\right) \sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t}) \right]
 \end{aligned}
 ```
 
 对应的 Monte Carlo 估计式为：
 
 ```math
-\nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] \approx \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}\right) \sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i, t}) \\
-= \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{T} \left(\left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}\right)\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i, t})
+\begin{aligned}
+\nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & \approx \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}{ \pi_{\theta_{old}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}\right) \sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i, t}) \\
+& = \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{T} \left(\left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}{ \pi_{\theta_{old}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i, t})
+\end{aligned}
 ```
 
 对应的 loss 函数为：
 
 ```math
-\mathcal{L}^{KL}_{\theta} = \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{T} \text{nograd}\left(\left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}\right)\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \log \pi_{\theta}(a_{i, t} \mid s_{i, t})
+\mathcal{L}^{KL}_{\theta} = \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{T} \text{nograd}\left(\left(\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}{ \pi_{\theta_{old}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{T} k\left(s_{i, t'}, a_{i, t'}\right) \right) \log \pi_{\theta}(a_{i, t} \mid s_{i, t})
 ```
 
 注意，其中
@@ -1075,18 +1104,25 @@ k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i
 
 ### 小结：KL 梯度估计的正确实现
 
-KL 梯度估计有以下注意点：
+KL 梯度估计的核心问题在于：究竟对什么量计算梯度。这里需要注意的是，并非所有与 $\theta$ 相关的量，都需要计算梯度。
 
-1. 公式中的 $`\text{nograd}`$ 操作，该操作在 PyTorch 中可以通过 `torch.no_grad()` 实现。将 KL 放入 reward 中，通常会自然地实现这一点，即不带梯度计算（但也可以实现为 loss 形式）。
-2. 在 off-policy 场景下，则还需要注意：
-   1. 添加重要性采样系数。将 KL 放入 reward 中，则可以自然地实现这一点。
+1. 公式中的 nograd 操作，该操作在 PyTorch 中可以通过 `torch.no_grad()` 实现。将 KL 放入 reward 中，通常会自然地实现这一点，即不带梯度计算（当然，也可以实现为 loss 形式，但需要注意手动 nograd）。
+2. 在 off-policy 场景下，则还需要注意：从第二个 mini-batch 开始，$\pi_\theta != \pi_{\theta_{old}}$
+   1. 添加重要性采样系数 $\frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}=\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}$。将 KL 估计样本值放入 reward 中，并重新进行重要性采样，则可以自然地实现这一点。
    2. 使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。将 KL 放入 reward 中时，很容易忽略这一点。
 
-综上所述，基于目前主流 LLM RL 框架中的实现，最简单的修正方式应当是，每轮更新时，使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 再放入 reward。
+综上所述，基于目前主流 LLM RL 框架中的实现，最简单的修正方式应当是，
 
-### 替换 k 是否对 KL 梯度估计同样有效？
+1. 保持将 KL 估计值
+2. 每轮更新时，使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 。
 
-待续。
+### 替换 k 是否对 KL 梯度估计同样有效？（TODO）
+
+上文的推导是从定义出发的，$k$ 的形式与 k1 一致。如果将 $k$ 替换为 k2，k3 或其他估计样本值，是否能更准确地估计 KL 梯度？
+
+### KL-regularized RL 的理论优势（TODO）
+
+Wei Xiong et al. 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$。
 
 ## 致谢
 
