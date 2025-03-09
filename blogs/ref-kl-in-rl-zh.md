@@ -1,8 +1,8 @@
-# GRPO 公式有错？RL 中 Reference KL 的迷思
+# GRPO 公式有错？RL 中 KL over reference 的迷思
 
 > 童雨轩 tongyuxuan361@gmail.com
 
-最近看到许多朋友在讨论 RL 中的 reference KL，例如：
+最近看到许多朋友在讨论 RL 中的 KL over reference，例如：
 
 - @Hurry Z 的 [GRPO 中的 KL Loss 实现细节问题](https://zhuanlan.zhihu.com/p/28440962040)
 - @lym 的 [k2 loss 就是比 k3 loss 好！以及 GRPO_off-policy](https://zhuanlan.zhihu.com/p/28735759256)
@@ -116,7 +116,7 @@ p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathb
 p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = p(s_1) \prod_{t=1}^{T} \pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_t) \prod_{t=1}^{T-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_t, \mathbf{a}_t)
 ```
 
-同时 reference KL 也可以简化为：
+同时 KL over reference 也可以简化为：
 
 ```math
 \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta}}\left[\sum_{t=1}^{T} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_t)}{\pi_{r e f}(\mathbf{a}_t \mid \mathbf{s}_t)}\right]
@@ -134,7 +134,7 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = p(s_1) \prod
 
 因此，我们可以得出结论，即 GRPO 公式中的 KL 项存在错误，其与 PG 项暗示的 off-policy 场景存在矛盾。
 
-## 另一种可能：直接计算 Reference KL？
+## 另一种可能：直接计算 KL over reference？
 
 但似乎还有另一种可能：我们可以直接准确地计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$ 的值，因为
 
@@ -161,9 +161,9 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = p(s_1) \prod
 > 2. There's no closed form expression.
 > 3. We can simplify code by just storing the log-prob, not the whole distribution. This is a reasonable choice if KL is just being used as a diagnostic, as is often the case in reinforcement learning.
 
-## 插曲：Reference KL 放在 reward 中还是 loss 中？
+## 插曲：KL over reference 放在 reward 中还是 loss 中？
 
-主流 LLM RL 框架中，Reference KL 通常被放在 reward 中，而非 loss 中。以 TRL 为例，对应代码如下：
+主流 LLM RL 框架中，KL over reference 通常被放在 reward 中，而非 loss 中。以 TRL 为例，对应代码如下：
 
 ```python
 # https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L500-506
@@ -231,11 +231,11 @@ Q^\pi\left(s_t, a_t\right)=\mathbb{E}_\pi\left[\sum^T r\left(s_{t^{\prime}}, a_{
 
 ## 主流 LLM RL 框架中的实现
 
-我们可以再梳理一番主流 LLM RL 框架中对于 Reference KL 的实现。
+我们可以再梳理一番主流 LLM RL 框架中对于 KL over reference 的实现。
 
 ### TRL
 
-TRL 使用样本值估计 reference KL，并将其放在 reward 中。对应代码如下：
+TRL 使用样本值估计 KL over reference，并将其放在 reward 中。对应代码如下：
 
 ```python
 # https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L500-506
@@ -271,9 +271,9 @@ for i in range(0, queries.shape[0], args.local_rollout_forward_batch_size):
     logprob = selective_log_softmax(logits, response)
 ```
 
-注意，这里的 reference KL 作为 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$ 的估计值是正确的，但我们希望使用的是 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。
+注意，这里的 KL over reference 作为 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$ 的估计值是正确的，但我们希望使用的是 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。
 
-随后进行多轮 PPO 更新时，并没有基于当前策略 $`\pi_{\theta}`$ 重新计算 reference KL $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。对应代码如下：
+随后进行多轮 PPO 更新时，并没有基于当前策略 $`\pi_{\theta}`$ 重新计算 KL over reference $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。对应代码如下：
 
 ```python
 # https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L528-L577
@@ -332,7 +332,7 @@ for ppo_epoch_idx in range(args.num_ppo_epochs):
 
 ### OpenRLHF
 
-#### 采样策略的 reference KL 作为 reward 项
+#### 采样策略的 KL over reference 作为 reward 项
 
 与 TRL 类似，OpenRLHF 计算了 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$，并将其放在 reward 中。对应代码如下：
 
@@ -446,9 +446,9 @@ def make_experience(self, samples: Samples) -> Experience:
     )
 ```
 
-#### “当前策略的 reference KL” 作为 loss 项
+#### “当前策略的 KL over reference” 作为 loss 项
 
-此外，OpenRLHF 还支持估计“当前策略的 reference KL”作为 loss 项。对应代码如下：
+此外，OpenRLHF 还支持估计“当前策略的 KL over reference”作为 loss 项。对应代码如下：
 
 ```python
 # https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_trainer.py#L337-L470
@@ -531,11 +531,11 @@ def make_experience(self, samples: Samples) -> Experience:
 
 然而，计算 `action_log_probs` 使用的样本却来自采样策略 $`\pi_{\theta_{old}}`$。
 
-所以，这里对“当前策略的 reference KL”的估计实际上是错误的。我们会在后文讨论修正的方法。
+所以，这里对“当前策略的 KL over reference”的估计实际上是错误的。我们会在后文讨论修正的方法。
 
 ### verl
 
-#### 采样策略的 reference KL 作为 reward 项
+#### 采样策略的 KL over reference 作为 reward 项
 
 verl 同样计算了 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$，并将其放在 reward 中。对应代码如下：
 
@@ -557,9 +557,9 @@ def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, 
 # ...
 ```
 
-#### “当前策略的 reference KL” 作为 loss 项
+#### “当前策略的 KL over reference” 作为 loss 项
 
-verl 也支持估计“当前策略的 reference KL”作为 loss 项。对应代码如下：
+verl 也支持估计“当前策略的 KL over reference”作为 loss 项。对应代码如下：
 
 ```python
 # https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/workers/actor/dp_actor.py#L226-L327
@@ -618,7 +618,7 @@ def update_policy(self, data: DataProto):
 
 同样，这里的估计是错误的。
 
-## 思路 1: 先估计 Reference KL，再通过自动微分计算梯度
+## 思路 1: 先估计 KL over reference，再通过自动微分计算梯度
 
 将 KL 作为 loss 项的设计背后，是一个自然的思路：先计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，再使用自动微分。
 
@@ -754,7 +754,7 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 ### 另一个问题：off-policy
 
-如前文所述，在 off-policy 场景下估计当前策略的 reference KL $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$ 时，我们会遇到一个困难：没有采样自当前策略 $\pi_\theta$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 reference KL loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
+如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$ 时，我们会遇到一个困难：没有采样自当前策略 $\pi_\theta$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
 
 那么，有没有办法绕过这个困难呢？熟悉 off-policy PG 的朋友可能很容易想到，我们可以使用重要性采样（Importance Sampling, IS）来估计 $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$：
 
@@ -793,7 +793,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 由于我们使用的是梯度法，本质上，我们需要准确估计的是 KL 散度的梯度而非其本身。类似地，在 PG 中，我们需要最大化 $`\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]`$，估计的是其梯度 $`\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]=\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})]`$ 而不是 $`r(\mathbf{\tau})`$ 本身。
 
-展开 reference KL 的表达式：
+展开 KL over reference 的表达式：
 
 ```math
 \begin{aligned}
@@ -816,7 +816,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 但注意到，LLM 的许多任务中，环境中的状态转移概率分布均为已知的，有时还可能是确定性的（Deterministic）。
 
-当状态转移概率分布已知时，$`\forall t, p_{\theta_i}(a_1, \cdots, s_t, a_t \mid s_1)`$ 都是可以计算的，则 reference KL 可以直接写成：
+当状态转移概率分布已知时，$`\forall t, p_{\theta_i}(a_1, \cdots, s_t, a_t \mid s_1)`$ 都是可以计算的，则 KL over reference 可以直接写成：
 
 ```math
 \begin{aligned}
@@ -826,7 +826,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 ### 简写为 Contextual Bandit
 
-为了方便书写，我们可以进一步将模型简化为 contextual bandit，即令 $`\mathbf{s}_1 = \mathbf{x} \in \mathcal{P}, (\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = \mathbf{y} \in \mathcal{R}`$，其中 $`\mathcal{P}, \mathcal{R}`$ 分别表示 prompt / response 空间，则 reference KL 变为：
+为了方便书写，我们可以进一步将模型简化为 contextual bandit，即令 $`\mathbf{s}_1 = \mathbf{x} \in \mathcal{P}, (\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = \mathbf{y} \in \mathcal{R}`$，其中 $`\mathcal{P}, \mathcal{R}`$ 分别表示 prompt / response 空间，则 KL over reference 变为：
 
 ```math
 \begin{aligned}
