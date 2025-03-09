@@ -41,12 +41,12 @@ L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t
 
 这个问题本身的答案是非常简单的。这个问题混淆了两种不同的 KL：
 
-1. $`\text{KL}[\pi_{\theta_{old}},\pi_{\theta}]`$，其作用是约束最新策略 $`\pi_{\theta}`$ 不要离采样策略 $`\pi_{\theta_{o l d}}`$ 太远，避免过大的更新导致策略崩溃，从而构成信任域（Trust Region, TR），这也就是 TRPO 中的 TR，而 PPO 作为 TRPO 的近似实现，继承了这一点。
-2. $`\text{KL}[\pi_{\theta},\pi_{\theta_{ref}}]`$，其作用是约束最新策略 $`\pi_{\theta}`$ 不要离参考策略 $`\pi_{\theta_{ref}}`$ 太远，从而更充分地利用参考策略中的先验。
+1. $`\text{KL}[\pi_{\theta_{old}},\pi_{\theta}]`$`，其作用是约束最新策略 `$`\pi_{\theta}`$`不要离采样策略`$`\pi_{\theta_{o l d}}`$ 太远，避免过大的更新导致策略崩溃，从而构成信任域（Trust Region, TR），这也就是 TRPO 中的 TR，而 PPO 作为 TRPO 的近似实现，继承了这一点。
+2. $`\text{KL}[\pi_{\theta},\pi_{\theta_{ref}}]`$`，其作用是约束最新策略 `$`\pi_{\theta}`$`不要离参考策略`$`\pi_{\theta_{ref}}`$ 太远，从而更充分地利用参考策略中的先验。
 
 另外，这个问题忽略了 TRPO/PPO 公式中的 KL 损失项与 GRPO 公式中的 clip 函数实际上是出于同一目的，即约束 $`\text{KL}[\pi_{\theta_{old}},\pi_{\theta}]`$。如 [PPO 论文](https://arxiv.org/abs/1707.06347) 第 3-4 节所说，两者可以相互替代或结合使用：
 
-> Let $`r_t(\theta)`$ denote the probability ratio $`r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}`$, so $`r\left(\theta_{\text {old }}\right)=1`$. TRPO maximizes a "surrogate" objective
+> Let $`r_t(\theta)`$`denote the probability ratio`$`r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}`$`, so `$`r\left(\theta_{\text {old }}\right)=1`$. TRPO maximizes a "surrogate" objective
 
 ```math
 L^{C P I}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left[r_t(\theta) \hat{A}_t\right] .
@@ -60,7 +60,7 @@ L^{C P I}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\rig
 L^{C L I P}(\theta)=\hat{\mathbb{E}}_t\left[\min \left(r_t(\theta) \hat{A}_t, \text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\right]
 ```
 
-> where epsilon is a hyperparameter, say, $`\epsilon=0.2`$. The motivation for this objective is as follows. The first term inside the $`\min`$ is $`L^{C P I}`$. The second term, $`\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t`$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $`r_t`$ outside of the interval $`[1-\epsilon, 1+\epsilon]`$.
+> where epsilon is a hyperparameter, say, $`\epsilon=0.2`$`. The motivation for this objective is as follows. The first term inside the `$`\min`$`is`$`L^{C P I}`$`. The second term, `$`\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t`$`, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving `$`r_t`$`outside of the interval`$`[1-\epsilon, 1+\epsilon]`$.
 >
 > ...
 >
@@ -74,7 +74,7 @@ L^{C L I P}(\theta)=\hat{\mathbb{E}}_t\left[\min \left(r_t(\theta) \hat{A}_t, \t
 L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid s_t\right), \pi_\theta\left(\cdot \mid s_t\right)\right]\right]
 ```
 
-还可以从以下角度理解两者的共通之处：clip 函数约束的 $`r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}`$ 就是 $`K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]`$ 中对单个样本 $`(s_t, a_t)`$ 的值 $`\log`$ 上方的真数。
+还可以从以下角度理解两者的共通之处：clip 函数约束的 $`r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}`$`就是`$`K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]`$`中对单个样本`$`(s_t, a_t)`$`的值`$`\log`$ 上方的真数。
 
 ## 新的问题：GRPO 公式中的 KL 项有错？
 
@@ -87,7 +87,7 @@ L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t
 \end{aligned}
 ```
 
-其中 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$ 按定义展开为（此处使用更常用的符号系统，实际上 $`q`$ 对应 $`s_1`$, $`o_{i,t}`$ 对应 $`\left(\mathbf{s}_t, \mathbf{a}_t\right)`$）：
+其中 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$`按定义展开为（此处使用更常用的符号系统，实际上`$`q`$`对应`$`s_1`$`, `$`o_{i,t}`$`对应`$`\left(\mathbf{s}_t, \mathbf{a}_t\right)`$）：
 
 ```math
 \begin{aligned}
@@ -124,11 +124,11 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = p(s_1) \prod
 
 不过，目前的语言模型（Language Model, LM）通常使用自回归的方式建模，即当前 token 的生成依赖于所有之前的 token。
 
-如果令 $`s_t`$ 表示第 $`t`$ 个 token，则自回归模型不满足 Markov 性质；而如果令 $`s_t`$ 表示前 $`t`$ 个 token 组成的序列，则自回归模型满足 Markov 性质。
+如果令 $`s_t`$`表示第`$`t`$`个 token，则自回归模型不满足 Markov 性质；而如果令`$`s_t`$`表示前`$`t`$ 个 token 组成的序列，则自回归模型满足 Markov 性质。
 
 我们先不依赖于 Markov 性质进行推导，以获得更通用的结论。在必要时，我们会再引入 Markov 性质。
 
-而要计算统计量 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，需要基于使用当前策略 $`\pi_{\theta}`$ 采样得到的样本 $`\tau \sim p_{\theta}`$，然而这在 off-policy 场景下通常是做不到的，因为我们只有使用采样策略 $`\pi_{\theta_{o l d}}`$ 采样得到的样本 $`\tau \sim p_{\theta_{o l d}}`$，在多轮更新时，我们不会使用当前策略 $`\pi_{\theta}`$ 去重新采样。
+而要计算统计量 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$`，需要基于使用当前策略 `$`\pi_{\theta}`$`采样得到的样本`$`\tau \sim p_{\theta}`$`，然而这在 off-policy 场景下通常是做不到的，因为我们只有使用采样策略 `$`\pi_{\theta_{o l d}}`$`采样得到的样本`$`\tau \sim p_{\theta_{o l d}}`$`，在多轮更新时，我们不会使用当前策略 `$`\pi_{\theta}`$ 去重新采样。
 
 而如果说 GRPO 只考虑 on-policy 场景，也是不恰当的，因为 GRPO 公式中的剩余部分，出现了 $`\pi_{\theta_{o l d}}`$，这来自于 off-policy policy gradient (PG) 的推导。
 
@@ -151,11 +151,11 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = p(s_1) \prod
 \neq \mathbb{E}_{\mathbf{a}_t \sim \pi_{\theta}(\cdot \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\left[\log \frac{\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}{\pi_{r e f}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\right]
 ```
 
-而要直接计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，需要遍历整个轨迹空间 $`\mathcal{T} = \set{(s_1, a_1, \cdots, s_T, a_T) \mid s_t \in \mathcal{S}, a_t \in \mathcal{A}}`$，其关于轨迹长度 $`T`$ 指数增大，显然是不可行的。
+而要直接计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$`，需要遍历整个轨迹空间 `$`\mathcal{T} = \set{(s_1, a_1, \cdots, s_T, a_T) \mid s_t \in \mathcal{S}, a_t \in \mathcal{A}}`$`，其关于轨迹长度 `$`T`$ 指数增大，显然是不可行的。
 
 [John Schulman 这篇著名的博客](http://joschu.net/blog/kl-approx.html) 也提到直接计算 KL 散度的开销非常大：
 
-> Our options for computing KL depend on what kind of access we have to $`p`$ and $`q`$. Here, we'll be assuming that we can compute the probabilities (or probability densities) $`p(x)`$ and $`q(x)`$ for any $`x`$, but we can't calculate the sum over $`x`$ analytically. Why wouldn't we be able to calculate it analytically?
+> Our options for computing KL depend on what kind of access we have to $`p`$`and`$`q`$`. Here, we'll be assuming that we can compute the probabilities (or probability densities) `$`p(x)`$`and`$`q(x)`$`for any`$`x`$`, but we can't calculate the sum over `$`x`$ analytically. Why wouldn't we be able to calculate it analytically?
 >
 > 1. Computing it exactly requires too much computation or memory.
 > 2. There's no closed form expression.
@@ -191,7 +191,7 @@ rewards[[actual_start, actual_end]] += scores
 \end{aligned}
 ```
 
-> where $`\pi_\phi^{\mathrm{RL}}`$ is the learned RL policy, $`\pi^{\mathrm{SFT}}`$ is the supervised trained model, and $`D_{\text {pretrain }}`$ is the pretraining distribution. The KL reward coefficient, $`\beta`$, and the pretraining loss coefficient, $`\gamma`$, control the strength of the KL penalty and pretraining gradients respectively. For "PPO" models, $`\gamma`$ is set to 0 . Unless otherwise specified, in this paper InstructGPT refers to the PPO-ptx models.
+> where $`\pi_\phi^{\mathrm{RL}}`$`is the learned RL policy,`$`\pi^{\mathrm{SFT}}`$`is the supervised trained model, and`$`D_{\text {pretrain }}`$`is the pretraining distribution. The KL reward coefficient,`$`\beta`$`, and the pretraining loss coefficient, `$`\gamma`$`, control the strength of the KL penalty and pretraining gradients respectively. For "PPO" models, `$`\gamma`$ is set to 0 . Unless otherwise specified, in this paper InstructGPT refers to the PPO-ptx models.
 
 其中并没有提到为什么讲 KL 项放在 reward 中，而非 loss 中。
 
@@ -199,7 +199,7 @@ rewards[[actual_start, actual_end]] += scores
 
 然而，在 [OpenAI 早期的一篇论文 "Learning to summarize from human feedback"](https://arxiv.org/abs/2009.01325) 中，他们就已经采用了 KL reward，并提及了出处：
 
-> Human feedback policies. We want to use the reward model trained above to train a policy that generates higher-quality outputs as judged by humans. We primarily do this using reinforcement learning, by treating the output of the reward model as a reward for the entire summary that we maximize with the PPO algorithm [58], where each time step is a BPE token. $`{ }^8`$ We initialize our policy to be the model fine-tuned on Reddit TL;DR. Importantly, we include a term in the reward that penalizes the KL divergence between the learned RL policy $`\pi_\phi^{\mathrm{RL}}`$ with parameters $`\phi`$ and this original supervised model $`\pi^{\mathrm{SFT}}`$, as previously done in [25]. The full reward $`R`$ can be written as:
+> Human feedback policies. We want to use the reward model trained above to train a policy that generates higher-quality outputs as judged by humans. We primarily do this using reinforcement learning, by treating the output of the reward model as a reward for the entire summary that we maximize with the PPO algorithm [58], where each time step is a BPE token. $`{ }^8`$`We initialize our policy to be the model fine-tuned on Reddit TL;DR. Importantly, we include a term in the reward that penalizes the KL divergence between the learned RL policy`$`\pi_\phi^{\mathrm{RL}}`$`with parameters`$`\phi`$`and this original supervised model`$`\pi^{\mathrm{SFT}}`$`, as previously done in [25]. The full reward `$`R`$ can be written as:
 
 ```math
 R(x, y)=r_\theta(x, y)-\beta \log \left[\pi_\phi^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x)\right]
@@ -215,13 +215,13 @@ R(x, y)=r_\theta(x, y)-\beta \log \left[\pi_\phi^{\mathrm{RL}}(y \mid x) / \pi^{
 
 实际上，其中提出引入 KL 最初的形式是 loss 项，而非 reward 项，只是指出了两者的等价性：
 
-> Rather than simply sample from the prior, we would like the $`Q`$-learning algorithm to directly incorporate the prior into the policy. Thus, we use KL-control to penalize divergence between the prior $`p(y \mid x)`$, and the $`Q`$-network policy $`\pi_\theta`$, while still maximizing reward. Given a trajectory of actions, $`\tau=\left\{a_1, a_2, \ldots a_{t-1}\right\}`$, let $`q(\tau)=\prod_{t=1}^T \pi_\theta\left(a_t, s_t\right)`$ be the policy of our $`Q`$-learning algorithm at the trajectory level. Similarly, let $`p(\tau)=\prod_{t=1}^T p\left(a_t \mid s_t\right)`$ be the prior distribution over the trajectory, and $`r(\tau)`$ be the rewards. We seek to maximize the following KL-regularized objective:
+> Rather than simply sample from the prior, we would like the $`Q`$`-learning algorithm to directly incorporate the prior into the policy. Thus, we use KL-control to penalize divergence between the prior `$`p(y \mid x)`$`, and the `$`Q`$`-network policy `$`\pi_\theta`$`, while still maximizing reward. Given a trajectory of actions, `$`\tau=\left\{a_1, a_2, \ldots a_{t-1}\right\}`$`, let `$`q(\tau)=\prod_{t=1}^T \pi_\theta\left(a_t, s_t\right)`$`be the policy of our`$`Q`$`-learning algorithm at the trajectory level. Similarly, let `$`p(\tau)=\prod_{t=1}^T p\left(a_t \mid s_t\right)`$`be the prior distribution over the trajectory, and`$`r(\tau)`$ be the rewards. We seek to maximize the following KL-regularized objective:
 
 ```math
 L(q)=\mathbb{E}_{q(\tau)}[r(\tau)] / c-D_{K L}[q(\tau) \| p(\tau)]
 ```
 
-> Since $`D_{K L}[q \| p]=\sum_x q(x)(\log q(x)-\log p(x))`$, we can see that this is equivalent to maximizing the following expected value function of the policy $`\pi_\theta`$ at the action level:
+> Since $`D_{K L}[q \| p]=\sum_x q(x)(\log q(x)-\log p(x))`$`, we can see that this is equivalent to maximizing the following expected value function of the policy `$`\pi_\theta`$ at the action level:
 
 ```math
 Q^\pi\left(s_t, a_t\right)=\mathbb{E}_\pi\left[\sum^T r\left(s_{t^{\prime}}, a_{t^{\prime}}\right) / c+\log p\left(a_{t^{\prime}} \mid s_{t^{\prime}}\right)-\log \pi\left(a_{t^{\prime}} \mid s_{t^{\prime}}\right)\right]
@@ -248,7 +248,7 @@ actual_end = torch.where(sequence_lengths_p1 < rewards.size(1), sequence_lengths
 rewards[[actual_start, actual_end]] += scores
 ```
 
-此处 `logprobs` 与对应的样本均来自采样策略 $`\pi_{\theta_{old}}`$，而非当前策略 $`\pi_{\theta}`$。对应代码如下：
+此处 `logprobs` 与对应的样本均来自采样策略 $`\pi_{\theta_{old}}`$`，而非当前策略 `$`\pi_{\theta}`$。对应代码如下：
 
 ```python
 # https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L406-L432
@@ -271,9 +271,9 @@ for i in range(0, queries.shape[0], args.local_rollout_forward_batch_size):
     logprob = selective_log_softmax(logits, response)
 ```
 
-注意，这里的 KL over reference 作为 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$ 的估计值是正确的，但我们希望使用的是 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。
+注意，这里的 KL over reference 作为 $`\mathbb{D}_{K L}\left[\pi_{\theta_{o l d}} \| \pi_{r e f}\right]`$`的估计值是正确的，但我们希望使用的是`$`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。
 
-随后进行多轮 PPO 更新时，并没有基于当前策略 $`\pi_{\theta}`$ 重新计算 KL over reference $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。对应代码如下：
+随后进行多轮 PPO 更新时，并没有基于当前策略 $`\pi_{\theta}`$`重新计算 KL over reference`$`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$。对应代码如下：
 
 ```python
 # https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L528-L577
@@ -422,7 +422,7 @@ def compute_reward(
     return reward
 ```
 
-同样，此处的 `log_probs=action_logprobs` 在 `make_experience` 时被计算，和对应的样本 `sequences` 都来自采样策略 $`\pi_{\theta_{old}}`$，而非当前策略 $`\pi_{\theta}`$。对应代码如下：
+同样，此处的 `log_probs=action_logprobs` 在 `make_experience` 时被计算，和对应的样本 `sequences` 都来自采样策略 $`\pi_{\theta_{old}}`$`，而非当前策略 `$`\pi_{\theta}`$。对应代码如下：
 
 ```python
 # https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595
@@ -527,7 +527,7 @@ def make_experience(self, samples: Samples) -> Experience:
         return status
 ```
 
-注意，这里同名的 `action_log_probs` 来自更新过程中的当前策略 $`\pi_{\theta}`$，而非采样策略 $`\pi_{\theta_{old}}`$。
+注意，这里同名的 `action_log_probs` 来自更新过程中的当前策略 $`\pi_{\theta}`$`，而非采样策略 `$`\pi_{\theta_{old}}`$。
 
 然而，计算 `action_log_probs` 使用的样本却来自采样策略 $`\pi_{\theta_{old}}`$。
 
@@ -622,7 +622,7 @@ def update_policy(self, data: DataProto):
 
 将 KL 作为 loss 项的设计背后，是一个自然的思路：先计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，再使用自动微分。
 
-将 KL 作为 loss 项时，通常有一个隐藏的假设，即对所有与 $\theta$ 相关的量，都计算梯度，也即默认不使用 nograd。这也是目前 OpenRLHF 与 verl 实现 KL 作为 loss 项的方式。
+将 KL 作为 loss 项时，通常有一个隐藏的假设，即对所有与 $`\theta`$ 相关的量，都计算梯度，也即默认不使用 nograd。这也是目前 OpenRLHF 与 verl 实现 KL 作为 loss 项的方式。
 
 如上文所说，几乎不可能直接计算 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$，我们只能基于样本来估计，例如使用 Monte Carlo 估计
 
@@ -686,7 +686,7 @@ def kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_pe
 
 John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出了结论：
 
-考虑 $`\text{KL}[q,p]=\mathbb{E}_{x \sim q}[\log \frac{q(x)}{p(x)}] \approx \frac{1}{N} \sum_{i=1}^{N} k_j(x_i)`$，其中 $`x_i \sim q`$，令 $`r = \frac{q(x)}{p(x)}`$，则：
+考虑 $`\text{KL}[q,p]=\mathbb{E}_{x \sim q}[\log \frac{q(x)}{p(x)}] \approx \frac{1}{N} \sum_{i=1}^{N} k_j(x_i)`$`，其中 `$`x_i \sim q`$`，令 `$`r = \frac{q(x)}{p(x)}`$，则：
 
 1. $`k_{1}= \log r`$ 是无偏估计，但方差较大。
 2. $`k_{2}= \frac{1}{2} (\log r)^2`$ 是有偏估计，但方差较小。
@@ -694,7 +694,7 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 其还进行了简单的验证实验：
 
-> Now let's compare the bias and variance of the three estimators for $`\mathrm{KL}[q, p]`$. Suppose $`q=N(0,1), p=N(0.1,1)`$. Here, the true KL is 0.005.
+> Now let's compare the bias and variance of the three estimators for $`\mathrm{KL}[q, p]`$`. Suppose `$`q=N(0,1), p=N(0.1,1)`$. Here, the true KL is 0.005.
 
 |     | bias/true | stdev/true |
 | --- | --------- | ---------- |
@@ -745,11 +745,11 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 也就是说，如果 on-policy 地优化 k1 估计方法导出的 loss，平均意义上不会引起分布改变。
 
-我们可以进一步考虑 off-policy 的场景，第一个 mini-batch 更新时梯度期望为 0，但由于随机性，仍然会略微改变分布，使得 $\pi_\theta \neq \pi_{\theta_{old}}$。
+我们可以进一步考虑 off-policy 的场景，第一个 mini-batch 更新时梯度期望为 0，但由于随机性，仍然会略微改变分布，使得 $`\pi_\theta \neq \pi_{\theta_{old}}`$。
 
-随后的 mini-batch 中，再在样本 $\tau \sim p_{\theta_{old}}$ 上计算梯度，则梯度期望变为 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}} \left[\nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right]$，此时，减小 k1 估计值，就相当于增大来自采样分布 $p_{\theta_{old}}$ 的样本概率，即使模型向 $p_{\theta_{old}}$ 回退。
+随后的 mini-batch 中，再在样本 $`\tau \sim p_{\theta_{old}}`$ 上计算梯度，则梯度期望变为 $`\mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}} \left[\nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right]`$，此时，减小 k1 估计值，就相当于增大来自采样分布 $`p_{\theta_{old}}`$ 的样本概率，即使模型向 $`p_{\theta_{old}}`$ 回退。
 
-有趣的是，其作用与 PPO 中的 KL penalty 类似。注意，这并非其本意，因为其最初的计算中使用了 $\pi_{ref}$。
+有趣的是，其作用与 PPO 中的 KL penalty 类似。注意，这并非其本意，因为其最初的计算中使用了 $`\pi_{ref}`$。
 
 #### 基于 k2/k3 估计方法求得的梯度：暂时无法分辨其意义
 
@@ -776,9 +776,9 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 ### 另一个问题：off-policy 场景下 KL 值的估计
 
-如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$ 时，我们会遇到一个困难：没有采样自当前策略 $\pi_\theta$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
+如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$ 时，我们会遇到一个困难：没有采样自当前策略 $`\pi_\theta`$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
 
-那么，有没有办法绕过这个困难呢？熟悉 off-policy PG 的朋友可能很容易想到，我们可以使用重要性采样（Importance Sampling, IS）来估计 $\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]$：
+那么，有没有办法绕过这个困难呢？熟悉 off-policy PG 的朋友可能很容易想到，我们可以使用重要性采样（Importance Sampling, IS）来估计 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$：
 
 ```math
 \begin{aligned}
@@ -813,7 +813,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 ## 思路 2: 直接估计 KL 散度的梯度
 
-由于我们使用的是梯度法，本质上，我们需要准确估计的是 KL 散度的梯度而非其本身。类似地，在 PG 中，我们需要最大化 $`\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]`$，估计的是其梯度 $`\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]=\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})]`$ 而不是 $`r(\mathbf{\tau})`$ 本身。
+由于我们使用的是梯度法，本质上，我们需要准确估计的是 KL 散度的梯度而非其本身。类似地，在 PG 中，我们需要最大化 $`\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]`$`，估计的是其梯度 `$`\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]=\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})]`$`而不是`$`r(\mathbf{\tau})`$ 本身。
 
 展开 KL over reference 的表达式：
 
@@ -848,7 +848,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 ### 简写为 Contextual Bandit
 
-为了方便书写，我们可以进一步将模型简化为 contextual bandit，即令 $`\mathbf{s}_1 = \mathbf{x} \in \mathcal{P}, (\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = \mathbf{y} \in \mathcal{R}`$，其中 $`\mathcal{P}, \mathcal{R}`$ 分别表示 prompt / response 空间，则 KL over reference 变为：
+为了方便书写，我们可以进一步将模型简化为 contextual bandit，即令 $`\mathbf{s}_1 = \mathbf{x} \in \mathcal{P}, (\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = \mathbf{y} \in \mathcal{R}`$`，其中 `$`\mathcal{P}, \mathcal{R}`$ 分别表示 prompt / response 空间，则 KL over reference 变为：
 
 ```math
 \begin{aligned}
@@ -890,7 +890,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 \end{aligned}
 ```
 
-这里为了重新获得期望形式，引入了 $`1 = \pi_{\theta}(y \mid x) / \pi_{\theta}(y \mid x)`$，并利用了 $`\nabla_{\theta} \log \pi_{\theta}(y \mid x) = \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)}`$。
+这里为了重新获得期望形式，引入了 $`1 = \pi_{\theta}(y \mid x) / \pi_{\theta}(y \mid x)`$`，并利用了 `$`\nabla_{\theta} \log \pi_{\theta}(y \mid x) = \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)}`$。
 
 注意到“对数概率梯度的期望为 0”，即：
 
@@ -952,7 +952,7 @@ E_{\mathbf{\tau} \sim p_\theta}\left[b\nabla_\theta \log p_\theta(\tau) \right]=
 
 ### 利用 Markov 性质化简 KL 梯度估计（减小方差）
 
-前文我们提到过，令 $`s_t`$ 表示前 $`t`$ 个 token 组成的序列时，则自回归模型满足（一阶） Markov 性质，即
+前文我们提到过，令 $`s_t`$`表示前`$`t`$ 个 token 组成的序列时，则自回归模型满足（一阶） Markov 性质，即
 
 ```math
 p_{\theta_i}(s_{t+1} \mid s_1, \cdots, s_t, a_t) = p_{\theta_i}(s_{t+1} \mid s_t, a_t)
@@ -979,19 +979,19 @@ PG 的表达式为：
 \end{aligned}
 ```
 
-首先，让我们考虑原始策略梯度公式中对某个轨迹 $`i`$ 的单个时间步 $`t`$ 的贡献：
+首先，让我们考虑原始策略梯度公式中对某个轨迹 $`i`$`的单个时间步`$`t`$ 的贡献：
 
 ```math
 \nabla_\theta \log \pi_\theta\left(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}\right) \sum_{t'=1}^T r\left(\mathbf{s}_{i, t'}, \mathbf{a}_{i, t'}\right)
 ```
 
-现在，我们将总奖励分解为两部分：$`t' < t`$ 的奖励和 $`t' \geq t`$ 的奖励：
+现在，我们将总奖励分解为两部分：$`t' < t`$`的奖励和`$`t' \geq t`$ 的奖励：
 
 ```math
 \nabla_\theta \log \pi_\theta\left(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}\right) \left(\sum_{t'=1}^{t-1} r\left(\mathbf{s}_{i, t'}, \mathbf{a}_{i, t'}\right) + \sum_{t'=t}^T r\left(\mathbf{s}_{i, t'}, \mathbf{a}_{i, t'}\right)\right)
 ```
 
-这里关键的洞察是，根据 Markov 性质，$`t' < t`$ 时的奖励 $`\sum_{t'=1}^{t-1} r\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right)`$ 与 $`t`$ 时的策略梯度 $`\nabla_\theta \log \pi_\theta\left(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}\right)`$ 是独立的。
+这里关键的洞察是，根据 Markov 性质，$`t' < t`$`时的奖励`$`\sum_{t'=1}^{t-1} r\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right)`$`与`$`t`$`时的策略梯度`$`\nabla_\theta \log \pi_\theta\left(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}\right)`$ 是独立的。
 
 所以有：
 
@@ -1031,7 +1031,7 @@ PG 的表达式为：
 k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 ```
 
-则同样地，根据 Markov 性质，$`t' < t`$ 时的 $`\sum_{t'=1}^{t-1} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right)= \sum_{t'=1}^{t-1} \log \frac{\pi_{\theta}(a_{t'} \mid s_{t'})}{\pi_{r e f}(a_{t'} \mid s_{t'})}`$ 与 $`t`$ 时的策略梯度 $`\nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t})`$ 是独立的。
+则同样地，根据 Markov 性质，$`t' < t`$`时的`$`\sum_{t'=1}^{t-1} k\left(\mathbf{s}_{t'}, \mathbf{a}_{t'}\right)= \sum_{t'=1}^{t-1} \log \frac{\pi_{\theta}(a_{t'} \mid s_{t'})}{\pi_{r e f}(a_{t'} \mid s_{t'})}`$`与`$`t`$`时的策略梯度`$`\nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t})`$ 是独立的。
 
 所以有：
 
@@ -1053,11 +1053,11 @@ k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 
 此处，$`k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
 
-不难注意到 KL 估计样本值 $`k`$ 与 reward $`r`$ 在形式上的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。但两者不同的是 $`k(s_{i, t'}, a_{i, t'})= \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 会随 $\pi_\theta$ 变化而变化，而 $`r(s_{i, t'}, a_{i, t'})`$ 不会。
+不难注意到 KL 估计样本值 $`k`$`与 reward`$`r`$`在形式上的相似性，这也解释了为什么先前的工作要将 KL 放进 reward。但两者不同的是`$`k(s_{i, t'}, a_{i, t'})= \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$`会随`$\pi_\theta$`变化而变化，而`$`r(s_{i, t'}, a_{i, t'})`$ 不会。
 
 类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等，具体可以参考 [UCB CS 285](https://rail.eecs.berkeley.edu/deeprlcourse/)。
 
-注意，数学表达式中，各个值默认是不计算梯度的，只有 $\nabla_{\theta}$ 后的部分才计算梯度。所以不在 $\nabla_{\theta}$ 后的部分，但又与 $\theta$ 相关的值，需要使用 `torch.no_grad()` 显式地设置为不计算梯度。
+注意，数学表达式中，各个值默认是不计算梯度的，只有 $`\nabla_{\theta}`$ 后的部分才计算梯度。所以不在 $`\nabla_{\theta}`$ 后的部分，但又与 $`\theta`$ 相关的值，需要使用 `torch.no_grad()` 显式地设置为不计算梯度。
 
 同样，要使用自动微分计算该梯度估计式，我们需要构造对应的 loss 函数：
 
@@ -1067,7 +1067,7 @@ k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 
 ### 利用重要性采样处理 off-policy 场景
 
-off-policy 场景下，我们无法使用样本 $`\mathbf{\tau} \sim p_{\theta}`$，而只能使用样本 $`\mathbf{\tau} \sim p_{\theta_{old}}`$。
+off-policy 场景下，我们无法使用样本 $`\mathbf{\tau} \sim p_{\theta}`$`，而只能使用样本 `$`\mathbf{\tau} \sim p_{\theta_{old}}`$。
 
 利用重要性采样，前面的 KL 梯度表达式可以转化为：
 
@@ -1106,32 +1106,32 @@ k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i
 
 KL 梯度估计的核心问题在于：究竟对什么量计算梯度。具体来说，需要注意：
 
-1. 公式中与 $\theta$ 相关，但不在 $\nabla_{\theta}$ 后的量，需要使用 nograd 操作设置为不计算梯度。
-2. 在 off-policy 场景下，则还需要注意：从第二个 mini-batch 开始，$\pi_\theta \neq \pi_{\theta_{old}}$
-   1. 添加重要性采样系数 $\frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}=\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}$。
-   2. 使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
+1. 公式中与 $`\theta`$ 相关，但不在 $`\nabla_{\theta}`$ 后的量，需要使用 nograd 操作设置为不计算梯度。
+2. 在 off-policy 场景下，则还需要注意：从第二个 mini-batch 开始，$`\pi_\theta \neq \pi_{\theta_{old}}`$
+   1. 添加重要性采样系数 $`\frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}=\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}`$。
+   2. 使用当前策略 $`\pi_{\theta}`$`重新计算`$`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
 
 综上所述，基于目前主流 LLM RL 框架中的实现，可能有以下实现方式：
 
 - 将 $`k`$ 放入 reward，
   - 则通常自然地使用了 `torch.no_grad()`，
   - 但在 off-policy 场景下，容易忽略从第二个 mini-batch 开始，
-    - 每次需要基于 $\pi_{\theta}$ 重新计算 $`k`$ ，
+    - 每次需要基于 $`\pi_{\theta}`$ 重新计算 $`k`$ ，
     - 并施加重要性采样，
     - 但可能不需要施加 discounting 或 GAE。
 - 使用单独的 loss 优化 KL over reference
-  - 对于公式中与 $\theta$ 相关，但不在 $\nabla_{\theta}$ 后的量，需要手动使用 `torch.no_grad()` 设置为不计算梯度。
+  - 对于公式中与 $`\theta`$ 相关，但不在 $`\nabla_{\theta}`$ 后的量，需要手动使用 `torch.no_grad()` 设置为不计算梯度。
   - 在 off-policy 场景下，
-    - 同样需要基于 $\pi_{\theta}$ 重新计算 $`k`$ 并施加重要性采样，
+    - 同样需要基于 $`\pi_{\theta}`$ 重新计算 $`k`$ 并施加重要性采样，
     - 但通常自然地不会施加 discounting 或 GAE。
 
 ### 替换 k 是否对 KL 梯度估计同样有效？（TODO）
 
-上文的推导是从定义出发的，$k$ 的形式与 k1 一致。如果将 $k$ 替换为 k2，k3 或其他估计样本值，是否能更准确地估计 KL 梯度？
+上文的推导是从定义出发的，$`k`$ 的形式与 k1 一致。如果将 $`k`$ 替换为 k2，k3 或其他估计样本值，是否能更准确地估计 KL 梯度？
 
 ### KL-regularized RL 的理论优势（TODO）
 
-Wei Xiong et al. 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于为 $\mathcal{O}(\sqrt{T})$。
+Wei Xiong et al. 证明了 KL-regularized RL 的 regret 只有 $`\mathcal{O}(\log T)`$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于为 $`\mathcal{O}(\sqrt{T})`$。
 
 ## 致谢
 
