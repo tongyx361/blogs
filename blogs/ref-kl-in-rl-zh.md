@@ -871,18 +871,20 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 这里为了重新获得期望形式，引入了 $`1 = \pi_{\theta}(y \mid x) / \pi_{\theta}(y \mid x)`$，并利用了 $`\nabla_{\theta} \log \pi_{\theta}(y \mid x) = \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)}`$。
 
-注意到：
+注意到“对数概率梯度的期望为 0”，即：
 
 ```math
-E\left[\nabla_\theta \log p_\theta(\tau) b\right]=\int p_\theta(\tau) \nabla_\theta \log p_\theta(\tau) b d \tau=\int \nabla_\theta p_\theta(\tau) b d \tau=b \nabla_\theta \int p_\theta(\tau) d \tau=b \nabla_\theta 1=0
+E_{\mathbf{\tau} \sim p_\theta}\left[b\nabla_\theta \log p_\theta(\tau) \right]=\sum_{\mathbf{\tau} \in \mathcal{T}} p_\theta(\mathbf{\tau}) b \nabla_\theta \log p_\theta(\mathbf{\tau}) = \sum_{\mathbf{\tau} \in \mathcal{T}} \nabla_\theta b p_\theta(\mathbf{\tau}) = b \nabla_\theta \sum_{\mathbf{\tau} \in \mathcal{T}} p_\theta(\mathbf{\tau}) = b \nabla_\theta 1 = 0
 ```
+
+这意味着，从一个分布采样样本，再在样本上计算同一个分布的对数似然及其梯度，最终得到的梯度期望为 0，即统计意义上不会发生改变。也就是说，分布直接通过对数似然蒸馏自己的输出，统计意义上不会改变分布。
 
 则 KL 梯度表达式可以进一步化简为：
 
 ```math
 \begin{aligned}
-\nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)} + 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] + \mathbb{E}_{(x, y) \sim p_{\theta}} \left[-\nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
-& = \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)} + 1 - 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
+\nabla_{\theta} \mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)} + 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
+& = \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] + \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
 & = \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right]
 \end{aligned}
 ```
