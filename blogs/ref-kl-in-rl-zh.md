@@ -820,7 +820,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 
 ```math
 \begin{aligned}
-\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \sum_{(s_1, a_1, \cdots,s_T, a_T) \in \mathcal{T}^{\prime}} p(s_1) p_{\theta}(a_1,\cdots,s_T, a_{T} \mid s_1) \log \frac{p_{\theta}(a_1,\cdots, s_{T},a_{T} \mid s_1)}{p_{r e f}(a_1,\cdots, s_{T},a_{T} \mid s_1)}  \\
+\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \sum_{(s_1, a_1, \cdots,s_T, a_T) \in \mathcal{T}} p(s_1) p_{\theta}(a_1,\cdots,s_T, a_{T} \mid s_1) \log \frac{p_{\theta}(a_1,\cdots, s_{T},a_{T} \mid s_1)}{p_{r e f}(a_1,\cdots, s_{T},a_{T} \mid s_1)}  \\
 \end{aligned}
 ```
 
