@@ -877,7 +877,9 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 E_{\mathbf{\tau} \sim p_\theta}\left[b\nabla_\theta \log p_\theta(\tau) \right]=\sum_{\mathbf{\tau} \in \mathcal{T}} p_\theta(\mathbf{\tau}) b \nabla_\theta \log p_\theta(\mathbf{\tau}) = \sum_{\mathbf{\tau} \in \mathcal{T}} \nabla_\theta b p_\theta(\mathbf{\tau}) = b \nabla_\theta \sum_{\mathbf{\tau} \in \mathcal{T}} p_\theta(\mathbf{\tau}) = b \nabla_\theta 1 = 0
 ```
 
-这意味着，从一个分布采样样本，再在样本上计算同一个分布的对数似然及其梯度，最终得到的梯度期望为 0，即统计意义上不会发生改变。也就是说，分布直接通过对数似然蒸馏自己的输出，统计意义上不会改变分布。
+这意味着，从一个分布采样样本，再在样本上计算同一个分布的对数似然及其梯度，最终得到的梯度期望为 0，即统计意义上不会发生改变。也就是说，分布直接 on-policy 地通过对数似然蒸馏自己的输出，统计意义上不会改变分布。
+
+注意，这与直接自我蒸馏（self-distillation）容易导致模型坍塌（collapse）的结论并不矛盾。因为直接自我蒸馏的工作很少保证 on-policy。
 
 则 KL 梯度表达式可以进一步化简为：
 
