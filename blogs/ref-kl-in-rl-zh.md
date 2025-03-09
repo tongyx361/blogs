@@ -1073,7 +1073,7 @@ k(s_t, a_t) = \log \frac{\pi_{\theta}(a_t \mid s_t)}{\pi_{r e f}(a_t \mid s_t)}
 
 ### 利用重要性采样处理 off-policy 场景
 
-off-policy 场景下，我们无法使用样本 $`\mathbf{\tau} \sim p_{\theta}`$，而只能使用样本 $`\mathbf{\tau} \sim p*{\theta*{old}}`$。
+off-policy 场景下，我们无法使用样本 $`\mathbf{\tau} \sim p_{\theta}`$，而只能使用样本 $`\mathbf{\tau} \sim p_{\theta_{old}}`$。
 
 利用重要性采样，前面的 KL 梯度表达式可以转化为：
 
