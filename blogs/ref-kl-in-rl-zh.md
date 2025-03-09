@@ -850,6 +850,7 @@ kld = core_algos.kl_penalty(logprob=log_prob,
 ```math
 \begin{aligned}
 \nabla_{\theta} \left(\pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right)\right) & = \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) + \pi_{\theta}(y \mid x) \nabla_{\theta} \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) \\
+& = \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) + \pi_{\theta}(y \mid x) \frac{1}{\pi_\theta(y \mid x)} \nabla_{\theta} \pi_{\theta}(y \mid x) \\
 & = \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)}\right) + \nabla_{\theta} \pi_{\theta}(y \mid x) \\
 & = \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{r e f}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x)
 \end{aligned}
