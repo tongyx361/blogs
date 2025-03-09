@@ -747,6 +747,7 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 & \nabla_{\theta} \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 - \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right) \\
 = & \frac{\nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
 = & \left(\frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - 1 \right)\nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+= & \left(\frac{1}{\pi_{r e f}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} - \frac{1}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})
 \end{aligned}
 ```
 
