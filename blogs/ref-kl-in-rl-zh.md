@@ -774,19 +774,25 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 基于 k2 和 k3 估计方法求得的梯度样本较为复杂，难以分辨其意义。
 
-### 另一个问题：off-policy 场景下 KL 值的估计
+### off-policy 场景下 KL 值的估计
 
-如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$ 时，我们会遇到一个困难：没有采样自当前策略 $`\pi_\theta`$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference loss 实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
+如前文所述，在 off-policy 场景下估计当前策略的 KL over reference $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$ 时，我们会遇到一个困难：没有采样自当前策略 $`\pi_\theta`$ 的样本。GRPO 的公式没有处理这一点，OpenRLHF/verl 的 KL over reference 作为 loss 的实现也忽略了这一点，所以即便不论先估计 KL 散度再求梯度的方法本身就存在问题，这里对 KL 散度的估计本身在 off-policy 场景下也是不准确的。
 
 那么，有没有办法绕过这个困难呢？熟悉 off-policy PG 的朋友可能很容易想到，我们可以使用重要性采样（Importance Sampling, IS）来估计 $`\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right]`$：
 
 ```math
 \begin{aligned}
-\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta}}\left[\sum_{t=1}^{T} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{r e f}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
-& = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[\frac{p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)}{p_{\theta_{old}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)} \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
-& = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[ \left(\prod_{t=1}^{T} \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right) \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
-& = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[ \exp \left(\sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right) \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
+\mathbb{D}_{K L}\left[\pi_\theta \| \pi_{r e f}\right] \
+& = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta}}\left[\sum_{t=1}^{T} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{r e f}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
+=& \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[\frac{p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)}{p_{\theta_{old}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t, \mathbf{a}_t\right)} \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right] \\
+=& \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) \sim p_{\theta_{old}}}\left[ \left(\prod_{t=1}^{T} \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right) \sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{r e f}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right]
 \end{aligned}
+```
+
+其中
+
+```math
+\prod_{t=1}^{T} \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}=\exp \left(\sum_{t=1}^{T} \log \frac{\pi_{\theta}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}{\pi_{\theta_{old}}\left(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t\right)}\right)
 ```
 
 代码则可以按如下方式改正：
