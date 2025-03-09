@@ -745,7 +745,7 @@ John Schulman 的博客分析了 3 种估计方法的偏差和方差，并给出
 
 也就是说，如果 on-policy 地优化 k1 估计方法导出的 loss，平均意义上不会引起分布改变。
 
-我们可以进一步考虑 off-policy 的场景，第一个 mini-batch 更新时梯度期望为 0，但由于随机性，仍然会略微改变分布，使得 $\pi_\theta != \pi_{\theta_{old}}$。
+我们可以进一步考虑 off-policy 的场景，第一个 mini-batch 更新时梯度期望为 0，但由于随机性，仍然会略微改变分布，使得 $\pi_\theta \neq \pi_{\theta_{old}}$。
 
 随后的 mini-batch 中，再在样本 $\tau \sim p_{\theta_{old}}$ 上计算梯度，则梯度期望变为 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{old}}} \left[\nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right]$，此时，减小 k1 估计值，就相当于增大来自采样分布 $p_{\theta_{old}}$ 的样本概率，即使模型向 $p_{\theta_{old}}$ 回退。
 
@@ -1104,17 +1104,26 @@ k\left(s_{i, t'}, a_{i, t'}\right) = \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i
 
 ### 小结：KL 梯度估计的正确实现
 
-KL 梯度估计的核心问题在于：究竟对什么量计算梯度。这里需要注意的是，并非所有与 $\theta$ 相关的量，都需要计算梯度。
+KL 梯度估计的核心问题在于：究竟对什么量计算梯度。具体来说，需要注意：
 
-1. 公式中的 nograd 操作，该操作在 PyTorch 中可以通过 `torch.no_grad()` 实现。将 KL 放入 reward 中，通常会自然地实现这一点，即不带梯度计算（当然，也可以实现为 loss 形式，但需要注意手动 nograd）。
-2. 在 off-policy 场景下，则还需要注意：从第二个 mini-batch 开始，$\pi_\theta != \pi_{\theta_{old}}$
-   1. 添加重要性采样系数 $\frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}=\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}$。将 KL 估计样本值放入 reward 中，并重新进行重要性采样，则可以自然地实现这一点。
-   2. 使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。将 KL 放入 reward 中时，很容易忽略这一点。
+1. 公式中与 $\theta$ 相关，但不在 $\nabla_{\theta}$ 后的量，需要使用 nograd 操作设置为不计算梯度。
+2. 在 off-policy 场景下，则还需要注意：从第二个 mini-batch 开始，$\pi_\theta \neq \pi_{\theta_{old}}$
+   1. 添加重要性采样系数 $\frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{old}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}=\prod_{t=1}^{T}\frac{\pi_{\theta}(\mathbf{s}_{t}, \mathbf{a}_{t})}{ \pi_{\theta_{old}}(\mathbf{s}_{t}, \mathbf{a}_{t})}$。
+   2. 使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$。
 
-综上所述，基于目前主流 LLM RL 框架中的实现，最简单的修正方式应当是，
+综上所述，基于目前主流 LLM RL 框架中的实现，可能有以下实现方式：
 
-1. 保持将 KL 估计值
-2. 每轮更新时，使用当前策略 $`\pi_{\theta}`$ 重新计算 $`k(s_{i, t'}, a_{i, t'})=\log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, t'})}{\pi_{r e f}(a_{i, t'} \mid s_{i, t'})}`$ 。
+- 将 $`k`$ 放入 reward，
+  - 则通常自然地使用了 `torch.no_grad()`，
+  - 但在 off-policy 场景下，容易忽略从第二个 mini-batch 开始，
+    - 每次需要基于 $\pi_{\theta}$ 重新计算 $`k`$ ，
+    - 并施加重要性采样，
+    - 但可能不需要施加 discounting 或 GAE。
+- 使用单独的 loss 优化 KL over reference
+  - 对于公式中与 $\theta$ 相关，但不在 $\nabla_{\theta}$ 后的量，需要手动使用 `torch.no_grad()` 设置为不计算梯度。
+  - 在 off-policy 场景下，
+    - 同样需要基于 $\pi_{\theta}$ 重新计算 $`k`$ 并施加重要性采样，
+    - 但通常自然地不会施加 discounting 或 GAE。
 
 ### 替换 k 是否对 KL 梯度估计同样有效？（TODO）
 
@@ -1122,7 +1131,7 @@ KL 梯度估计的核心问题在于：究竟对什么量计算梯度。这里�
 
 ### KL-regularized RL 的理论优势（TODO）
 
-Wei Xiong et al. 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$。
+Wei Xiong et al. 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于为 $\mathcal{O}(\sqrt{T})$。
 
 ## 致谢
 
