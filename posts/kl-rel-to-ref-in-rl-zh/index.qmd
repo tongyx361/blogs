@@ -1242,13 +1242,7 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 
 :::
 
-## 致谢 {.appendix}
-
-感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。
-
-感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
-
-## 相关工作
+## 相关工作 {.appendix}
 
 与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：
 
@@ -1325,3 +1319,9 @@ $$
 > 
 
 顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 $r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}$就是$K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]$ 中对单个样本 $(s_t, a_t)$ 的值中 $\log$ 的真数。
+
+## 致谢 {.appendix}
+
+感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。
+
+感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
