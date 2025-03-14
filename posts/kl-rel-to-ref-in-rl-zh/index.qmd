@@ -17,14 +17,14 @@ abstract: |
     GRPO 公式
 
     - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决
-    - 将 KL 估计样本量应用于动作条件概率，而非轨迹联合概率，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
+    - 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
     
     目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：
 
     - 在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度
     - KL loss 项的平均操作存在错误。
   
-    本文分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
+    本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
 # language
 lang: zh
 toc-title: 目录
@@ -58,7 +58,7 @@ $$ {#eq-grpo-obj-kl-term}
 而目前流行的 LLM RL 框架，在实现 KL 优化时，通常也忽略了 off-policy 问题，同时还存在其他一系列问题：
 
 1. 误认为前向传播估计出 KL 散度，再反向传播就能得到其梯度（但实际上通常并非如此）；
-2. 忽略了估计器应该用于轨迹概率，而不能是条件概率；
+2. 忽略了先对动作动作对数条件似然应用 KL 估计样本量再求和并非良好定义的行为，导致梯度错误；
 3. 忽略了同一轨迹上 KL 对数概率必须求和以获得轨迹联合概率，而不能求平均；
 4. 错误地计算了平均操作。
 
@@ -423,10 +423,7 @@ $$ {#eq-def-kl-theta-ref-state-action-markov-1}
 
 目前的语言模型（Language Model, LM）通常建模为自回归模型，即当前 token 的生成依赖于所有之前的 token。
 
-尽管初看起来，自回归模型似乎无法满足 Markov 性质，但实际上我们也可以将自回归模型建模为一阶 Markov 过程。具体来说：令 $s_1$ 表示 prompt 中的所有 token，对于 $t >1$，
-
-- 如果令 $s_t$ 表示第 $t$ 个 token 前的所有 token，则自回归模型满足 Markov 性质。
-- 如果令 $s_t$ 仅表示第 $t-1$ 个 token，则自回归模型不满足 Markov 性质。
+尽管初看起来，自回归模型似乎无法满足 Markov 性质，但实际上我们也可以将自回归模型建模为一阶 Markov 过程。具体来说：令 $s_1$ 表示 prompt 中的所有 token，对于 $t >1$，如果令 $s_t$ 表示第 $t$ 个动作 token 前的所有 token，则自回归模型满足 Markov 性质，否则不一定。
 
 接下来，我们先令 $s_t$ 表示前 $t$ 个 token 组成的序列，即不依赖于 Markov 性质继续推导，以获得尽可能通用的结论。在必要时，我们会再引入 Markov 性质。
 
@@ -681,11 +678,7 @@ $$ {#eq-kl-loss-grad-expect-k2}
 
 ### 为什么不应该对同一轨迹中的 “KL 估计量” 求均值 {#sec-kl-estim-no-mean}
 
-回顾 KL 估计量公式 (@eq-def-kl-estimators) ，应当注意到这些估计量使用的都是轨迹联合概率 $p_{\theta}(\mathbf{\tau})$，而不是条件概率 $\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)$ 或 $p(\mathbf{s}_{t+1} \mid \mathbf{s}_{1}, \cdots, \mathbf{s}_t, \mathbf{a}_t)$。
-
-假设我们知晓全部条件概率，则可以通过条件概率求积或对数条件概率求和的方式来求解联合概率，进而正确应用估计量。无论如何，都不应该有平均操作。额外加入平均操作，实际上添加了一个与轨迹动作数有关的权重 $\frac{1}{|\tau|}$，通常会使得梯度估计量出现偏差。
-
-此外，如果对条件概率强行计算估计量，则很难保证其积或其对数和仍然对应于联合概率。例如 $k_2$，$k_3$ 的和就包含并非联合概率的奇怪结果。
+回顾 KL 估计量公式 (@eq-def-kl-estimators) ，应当注意到这些估计量是直接作用于似然 $p_{\theta}(\mathbf{\tau})$，而没有保证作用于概率后求积/对数和仍然有意义。例如 $k_2$，$k_3$ 的和就包含并非概率的奇怪结果。
 
 接下来我们将直接忽略这一操作，即去除 $\frac{1}{|\tau|}$ 这一项。
 
@@ -761,9 +754,9 @@ $$ {#eq-kl-grad-est-dp}
 
 不难注意到，[@sec-analogy-pg-kl] 中的 KL 样本量对应于 $k_1$ 估计量。
 
-一个自然的问题是，如果使用 $k_2$ 或 $k_3$ 等其他估计量，会得到什么结果？
+一个自然的问题是，如果对动作条件似然使用 $k_2$ 或 $k_3$ 等其他估计量，会得到什么结果？
 
-如 [@sec-kl-estim-no-mean] 所述，使用 $k_2$ 或 $k_3$ 等其他估计量，求和时通常无法得到联合概率。具体来说，其他估计量分别在优化
+$k_2$ 或 $k_3$ 等其他估计量导致的一个问题，求和时通常无法得到联合概率。具体来说，其他估计量分别在优化
 
 - $k_2$: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \frac{1}{2} \left( \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right)^{2} \right]$
 - $k_3$: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} (\frac{\pi_{\text{ref}} \left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} - 1 - \log \frac{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}) \right]$
@@ -1005,7 +998,7 @@ $$ {#eq-def-kl-grad-kt-reduce-mc-loss}
 
 这里也可以看到，KL loss 项正确的实现要求：
 
-1. 在序列内 token 间，对对数条件概率先求和，得到 KL 样本值，
+1. 在序列内 token 间，对对数条件似然先求和，得到 KL 样本值，
 2. 再在序列间求均值。
 
 因此 OpenRLHF (@eq-def-kl-loss-grad-estim-openrlhf) 与 verl (@eq-def-kl-loss-grad-estim-verl) 的权重都是错误的。
@@ -1202,7 +1195,7 @@ $$ {#eq-def-kl-reward-is}
 GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 对于 KL 优化主要存在两个错误：
 
 1. 忽略了 KL 优化的 off-policy 问题
-2. 错误地将 KL 估计器应用于条件概率
+2. 先将 $k_{3}$ 估计样本量应用于动作条件似然再求和，导致得到异常的梯度
 
 对于这两个问题，在 [@eq-grpo-obj-kl-fixed] 的基础上，仿照 [@eq-def-kl-reward-is]，我们可以按如下方式修正：
 
@@ -1223,7 +1216,7 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 对于这些问题，可以按照如下思路修正：
 
 1. 为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项
-2. 应用 KL 估计器时，先对于序列内 token 间的对数条件概率求和，得到轨迹联合概率，再代入公式
+2. 应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式
 3. 如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 [@eq-def-kl-reward-is] 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）
 4. 如果不希望应用 reward 优化的其他技术，可以按 [@eq-def-kl-grad-kt-reduce-is-mc-loss] 实现为 KL loss 项
 
@@ -1251,7 +1244,7 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 
 ## 致谢 {.appendix}
 
-感谢生广明、Wei Xiong、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论。
+感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。
 
 感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
 
