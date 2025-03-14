@@ -14,7 +14,7 @@ abstract-title: Takeways
 abstract: |
     对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式
 
-    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决
+    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决
     - 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
     
     目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：
