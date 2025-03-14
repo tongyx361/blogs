@@ -239,7 +239,7 @@ window.Quarto = {
       <li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</li>
       <li>将 KL 估计样本量应用于动作条件概率，而非轨迹联合概率，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</li>
       </ul>
-      <p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，存在其他问题：</p>
+      <p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</p>
       <ul>
       <li>在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度</li>
       <li>KL loss 项的平均操作存在错误。</li>
@@ -2404,7 +2404,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-19"><a href="#cb2-19"></a><span class="co">    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</span></span>
 <span id="cb2-20"><a href="#cb2-20"></a><span class="co">    - 将 KL 估计样本量应用于动作条件概率，而非轨迹联合概率，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</span></span>
 <span id="cb2-21"><a href="#cb2-21"></a><span class="co">    </span></span>
-<span id="cb2-22"><a href="#cb2-22"></a><span class="co">    目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，存在其他问题：</span></span>
+<span id="cb2-22"><a href="#cb2-22"></a><span class="co">    目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</span></span>
 <span id="cb2-23"><a href="#cb2-23"></a></span>
 <span id="cb2-24"><a href="#cb2-24"></a><span class="co">    - 在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度</span></span>
 <span id="cb2-25"><a href="#cb2-25"></a><span class="co">    - KL loss 项的平均操作存在错误。</span></span>

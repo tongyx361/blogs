@@ -234,7 +234,7 @@ window.Quarto = {
     </div>
 </div>
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="Q2hpbmVzZSUyMCVFNCVCOCVBRCVFNiU5NiU4NyUyQ1RlY2huaWNhbCUyMCVFNiU4QSU4MCVFNiU5QyVBRg==" data-listing-date-sort="1741478400000" data-listing-file-modified-sort="1741961918303" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="44" data-listing-word-count-sort="8679">
+<div class="quarto-post image-right" data-index="0" data-categories="Q2hpbmVzZSUyMCVFNCVCOCVBRCVFNiU5NiU4NyUyQ1RlY2huaWNhbCUyMCVFNiU4QSU4MCVFNiU5QyVBRg==" data-listing-date-sort="1741478400000" data-listing-file-modified-sort="1741962332141" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="44" data-listing-word-count-sort="8679">
 <div class="thumbnail">
 <p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external"></a></p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external">
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -262,7 +262,7 @@ Technical 技术
 <li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</li>
 <li>将 KL 估计样本量应用于动作条件概率，而非轨迹联合概率，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</li>
 </ul>
-<p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，存在其他问题：</p>
+<p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</p>
 <ul>
 <li>在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度</li>
 <li>KL loss 项的平均操作存在错误。</li>
