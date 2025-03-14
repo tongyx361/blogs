@@ -1220,7 +1220,7 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 
 对于这些问题，可以按照如下思路修正：
 
-1. 为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项
+1. 为 KL 项添加重要性采样，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项，包括重要性采样系数
 2. 应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式
 3. 如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 [@eq-def-kl-reward-is] 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）
 4. 如果不希望应用 reward 优化的其他技术，可以按 [@eq-def-kl-grad-kt-reduce-is-mc-loss] 实现为 KL loss 项
