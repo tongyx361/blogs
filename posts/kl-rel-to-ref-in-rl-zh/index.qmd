@@ -797,7 +797,7 @@ $$ {#eq-grpo-obj-kl-fixed}
 
 由于我们使用的是梯度法，为了优化 KL 散度，我们需要准确估计的是 KL 散度的梯度而非其本身。类似地，在 PG 中，我们需要最大化 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]$，估计的是其梯度 $\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]=\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})]$而不是$r(\mathbf{\tau})$ 本身。
 
-同时，如 [@#sec-kl-loss-impl] 所述，先前向传播估计 KL 散度，再直接反向传播，通常是无法直接得到 KL 散度的梯度的。所以，我们需要直接估计 KL 散度的梯度。
+同时，如 [@sec-kl-loss-impl] 所述，先前向传播估计 KL 散度，再直接反向传播，通常是无法直接得到 KL 散度的梯度的。所以，我们需要直接估计 KL 散度的梯度。
 
 首先，展开 KL 散度的表达式：
 
