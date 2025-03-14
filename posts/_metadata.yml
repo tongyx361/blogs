@@ -22,6 +22,10 @@ bibliography: references.bib
 reference-location: section
 # language
 lang: en
+# comments
+comments:
+  hypothesis:
+    theme: clean
 # freeze computational output
 # (see https://quarto.org/docs/projects/code-execution.html#freeze)
 freeze: true
