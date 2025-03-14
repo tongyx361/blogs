@@ -1256,6 +1256,12 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 
 感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
 
+## 相关工作
+
+与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：
+
+- [GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎](https://zhuanlan.zhihu.com/p/28440962040)
+- [k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎](https://zhuanlan.zhihu.com/p/28735759256)
 
 ## 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？” {.appendix}
 
