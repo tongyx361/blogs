@@ -1911,26 +1911,22 @@ font-style: inherit;"># ...</span></span>
 </div>
 </div>
 
-<section id="相关工作" class="level2" data-number="9.2">
-<h2 data-number="9.2" class="anchored" data-anchor-id="相关工作"><span class="header-section-number">9.2</span> 相关工作</h2>
+
+
+</div></section><section id="相关工作" class="level2 appendix" data-number="9.1"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.1</span> 相关工作</h2><div class="quarto-appendix-contents">
+
 <p>与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：</p>
 <ul>
 <li><a href="https://zhuanlan.zhihu.com/p/28440962040">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/28735759256">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</a></li>
 </ul>
-</section>
-
-</div></section><section id="致谢" class="level2 appendix" data-number="9.1"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.1</span> 致谢</h2><div class="quarto-appendix-contents">
-
-<p>感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。</p>
-<p>感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。</p>
 <aside id="footnotes-14" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="19">
 <li id="fn19"><p>https://tongyx361.github.io↩︎</p></li>
 </ol>
 </aside>
-</div></section><section id="写作契机trpoppo-与-grpo-中的-kl-为什么不一样" class="level2 appendix" data-number="9.3"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.3</span> 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？”</h2><div class="quarto-appendix-contents">
+</div></section><section id="写作契机trpoppo-与-grpo-中的-kl-为什么不一样" class="level2 appendix" data-number="9.2"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.2</span> 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？”</h2><div class="quarto-appendix-contents">
 
 <p>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题<sup>20</sup>：</p>
 <blockquote class="blockquote">
@@ -1976,17 +1972,21 @@ font-style: inherit;"># ...</span></span>
 
 </blockquote>
 <p>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 <img src="https://latex.codecogs.com/png.latex?r_t(%5Ctheta)=%5Cfrac%7B%5Cpi_%5Ctheta%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%20%7Bold%20%7D%7D%7D%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D">就是<img src="https://latex.codecogs.com/png.latex?K%20L%5Cleft%5B%5Cpi_%7B%5Ctheta_%7Bd%20d%7D%7D,%20%5Cpi_%5Ctheta%5Cright%5D=%5Cmathbb%7BE%7D_%7Ba_t%20%5Csim%20%5Cpi_%7B%5Ctheta_%7Bd%20t%7D%7D%5Cleft(%5Ccdot%20%5Cmid%20s_t%5Cright)%7D%5Cleft%5B%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta_%7Bd%20t%7D%7D%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%7B%5Cpi_%5Ctheta%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%5Cright%5D"> 中对单个样本 <img src="https://latex.codecogs.com/png.latex?(s_t,%20a_t)"> 的值中 <img src="https://latex.codecogs.com/png.latex?%5Clog"> 的真数。</p>
-
-
-<!-- -->
-
-
 <aside id="footnotes-15" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="20">
 <li id="fn20"><p>https://x.com/pufanyi/status/1888845956684370202↩︎</p></li>
 </ol>
 </aside>
+</div></section><section id="致谢" class="level2 appendix" data-number="9.3"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.3</span> 致谢</h2><div class="quarto-appendix-contents">
+
+<p>感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。</p>
+<p>感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。</p>
+
+
+<!-- -->
+
+
 </div></section><section class="quarto-appendix-contents" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">参考文献</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0">
 <div id="ref-hu2024openrlhf" class="csl-entry">
 Hu, Jian, Xibin Wu, Zilin Zhu, Xianyu, Weixun Wang, Dehao Zhang, 和 Yu Cao. 2024. <span>《OpenRLHF: An Easy-to-use, Scalable and High-performance RLHF Framework》</span>. <em>arXiv preprint arXiv:2405.11143</em>.
