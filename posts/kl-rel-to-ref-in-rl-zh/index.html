@@ -235,7 +235,7 @@ window.Quarto = {
       <div class="block-title">Takeways</div>
       <p>对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式</p>
       <ul>
-      <li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</li>
+      <li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决</li>
       <li>先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</li>
       </ul>
       <p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</p>
@@ -2412,7 +2412,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-14"><a href="#cb2-14"></a><span class="an">abstract:</span><span class="co"> |</span></span>
 <span id="cb2-15"><a href="#cb2-15"></a><span class="co">    对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式</span></span>
 <span id="cb2-16"><a href="#cb2-16"></a></span>
-<span id="cb2-17"><a href="#cb2-17"></a><span class="co">    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</span></span>
+<span id="cb2-17"><a href="#cb2-17"></a><span class="co">    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决</span></span>
 <span id="cb2-18"><a href="#cb2-18"></a><span class="co">    - 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</span></span>
 <span id="cb2-19"><a href="#cb2-19"></a><span class="co">    </span></span>
 <span id="cb2-20"><a href="#cb2-20"></a><span class="co">    目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</span></span>

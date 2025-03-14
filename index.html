@@ -234,7 +234,7 @@ window.Quarto = {
     </div>
 </div>
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="Q2hpbmVzZSUyMCVFNCVCOCVBRCVFNiU5NiU4NyUyQ1RlY2huaWNhbCUyMCVFNiU4QSU4MCVFNiU5QyVBRg==" data-listing-date-sort="1741478400000" data-listing-file-modified-sort="1741976138304" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="44" data-listing-word-count-sort="8718">
+<div class="quarto-post image-right" data-index="0" data-categories="Q2hpbmVzZSUyMCVFNCVCOCVBRCVFNiU5NiU4NyUyQ1RlY2huaWNhbCUyMCVFNiU4QSU4MCVFNiU5QyVBRg==" data-listing-date-sort="1741478400000" data-listing-file-modified-sort="1741976194451" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="44" data-listing-word-count-sort="8718">
 <div class="thumbnail">
 <p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external"></a></p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external">
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -258,7 +258,7 @@ Technical 技术
 <div class="listing-description">
 <p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external">对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式</a></p><a href="./posts/kl-rel-to-ref-in-rl-zh/index.html" class="no-external">
 <ul>
-<li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决</li>
+<li>没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决</li>
 <li>先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）</li>
 </ul>
 <p>目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：</p>
