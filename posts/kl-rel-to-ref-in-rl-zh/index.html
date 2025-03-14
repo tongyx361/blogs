@@ -1549,7 +1549,11 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 <p><span id="eq-is-off-policy-kl"><span class="math display">\[
 \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[f(\mathbf{\tau})\right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) f(\tau)  = \sum_{\tau \in \mathcal{T}} p_{\theta_{\text{old}}}(\tau) \frac{p_{\theta}(\tau)}{p_{\theta_{\text{old}}}(\tau)} f(\tau) = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}} \left[\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} f(\mathbf{\tau})\right]
 \tag{50}\]</span></span></p>
-<p>利用重要性采样 (<a href="#eq-is-off-policy-kl" class="quarto-xref">Equation&nbsp;50</a>) ，KL 梯度表达式 <a href="#eq-def-kl-grad-kt-reduce" class="quarto-xref">Equation&nbsp;46</a> 可以转化为：</p>
+<p>此处，重要性采样系数 <span class="math inline">\(\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})}\)</span> 可以仿照 <a href="#eq-dp-expansion" class="quarto-xref">Equation&nbsp;5</a> 展开为：</p>
+<p><span id="eq-is-coef-expansion"><span class="math display">\[
+\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} = \prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{\pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}
+\tag{51}\]</span></span> <a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a></p>
+<p>利用重要性采样 (<a href="#eq-is-off-policy-kl" class="quarto-xref">Equation&nbsp;50</a>, <a href="#eq-is-coef-expansion" class="quarto-xref">Equation&nbsp;51</a>) ，KL 梯度表达式 <a href="#eq-def-kl-grad-kt-reduce" class="quarto-xref">Equation&nbsp;46</a> 可以转化为：</p>
 <p><span id="eq-def-kl-grad-kt-reduce-is"><span class="math display">\[
 \begin{aligned}
 &amp; \nabla_{\theta} \mathbb{D}_{\text{KL}} \left[\pi_\theta \mid \pi_{\text{ref}}\right] \\
@@ -1557,7 +1561,7 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 =&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{\text{old}}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}  \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})  \right] \\
 =&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \left(\prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}\right) \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right]
 \end{aligned}
-\tag{51}\]</span></span></p>
+\tag{52}\]</span></span></p>
 <p>对应的 Monte Carlo 估计式为：</p>
 <p><span id="eq-def-kl-grad-kt-reduce-is-mc"><span class="math display">\[
 \begin{aligned}
@@ -1565,16 +1569,22 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 \approx&amp; \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}) \\
 =&amp; \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})
 \end{aligned}
-\tag{52}\]</span></span></p>
+\tag{53}\]</span></span></p>
 <p>对应的 loss 函数为：</p>
 <p><span id="eq-def-kl-grad-kt-reduce-is-mc-loss"><span class="math display">\[
 \mathcal{L}^{KL}_{\theta} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_{i}|} \text{nograd}\left(\left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})
-\tag{53}\]</span></span></p>
+\tag{54}\]</span></span></p>
 <p>类似 <a href="#eq-def-kl-grad-kt-reduce-k" class="quarto-xref">Equation&nbsp;49</a>，我们可以令</p>
 <p><span id="eq-def-kl-reward-is"><span class="math display">\[
 k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}
-\tag{54}\]</span></span></p>
-<p>注意，<a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;54</a> 中的 <span class="math inline">\(k\)</span> 需要对于每个新的 <span class="math inline">\(\pi_{\theta}\)</span> 重新计算。</p>
+\tag{55}\]</span></span></p>
+<p>注意，<a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;55</a> 中的 <span class="math inline">\(k\)</span> 需要对于每个新的 <span class="math inline">\(\pi_{\theta}\)</span> 重新计算。</p>
+<aside id="footnotes-14" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<hr>
+<ol start="19">
+<li id="fn19"><p>实际计算中，<a href="#eq-is-coef-expansion" class="quarto-xref">Equation&nbsp;51</a> 由于涉及到 <span class="math inline">\(|\mathbf{\tau}|\)</span> 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</aside>
 </section>
 </section>
 <section id="结论如何正确地在-rl-中优化-kl-散度" class="level1" data-number="7">
@@ -1586,13 +1596,13 @@ k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\pr
 <li>忽略了 KL 优化的 off-policy 问题</li>
 <li>先将 <span class="math inline">\(k_{3}\)</span> 估计样本量应用于动作条件似然再求和，导致得到异常的梯度</li>
 </ol>
-<p>对于这两个问题，在 <a href="#eq-grpo-obj-kl-fixed" class="quarto-xref">Equation&nbsp;29</a> 的基础上，仿照 <a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;54</a>，我们可以按如下方式修正：</p>
+<p>对于这两个问题，在 <a href="#eq-grpo-obj-kl-fixed" class="quarto-xref">Equation&nbsp;29</a> 的基础上，仿照 <a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;55</a>，我们可以按如下方式修正：</p>
 <p><span id="eq-grpo-obj-kl-fixed-is"><span class="math display">\[
 \begin{aligned}
 &amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
-&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right\}
+&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] \right\} -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right)
 \end{aligned}
-\tag{55}\]</span></span></p>
+\tag{56}\]</span></span></p>
 </section>
 <section id="修正流行-llm-rl-框架中的-kl-优化实现" class="level2" data-number="7.2">
 <h2 data-number="7.2" class="anchored" data-anchor-id="修正流行-llm-rl-框架中的-kl-优化实现"><span class="header-section-number">7.2</span> 修正流行 LLM RL 框架中的 KL 优化实现</h2>
@@ -1605,8 +1615,8 @@ k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\pr
 <ol type="1">
 <li>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 <span class="math inline">\(\pi_\theta\)</span> 重新计算 KL loss / reward 项</li>
 <li>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</li>
-<li>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;54</a> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</li>
-<li>如果不希望应用 reward 优化的其他技术，可以按 <a href="#eq-def-kl-grad-kt-reduce-is-mc-loss" class="quarto-xref">Equation&nbsp;53</a> 实现为 KL loss 项</li>
+<li>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;55</a> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</li>
+<li>如果不希望应用 reward 优化的其他技术，可以按 <a href="#eq-def-kl-grad-kt-reduce-is-mc-loss" class="quarto-xref">Equation&nbsp;54</a> 实现为 KL loss 项</li>
 </ol>
 </section>
 </section>
@@ -1637,7 +1647,7 @@ Tip
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>本文的作者（童雨轩）仍在寻找北美的 Ph.D.&nbsp;或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页<a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a>来获取进一步了解。</p>
+<p>本文的作者（童雨轩）仍在寻求北美的 Ph.D.&nbsp;或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页<a href="#fn20" class="footnote-ref" id="fnref20" role="doc-noteref"><sup>20</sup></a>来获取进一步了解。</p>
 </div>
 </div>
 
@@ -1650,15 +1660,15 @@ Tip
 <li><a href="https://zhuanlan.zhihu.com/p/28440962040">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/28735759256">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</a></li>
 </ul>
-<aside id="footnotes-14" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-15" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="19">
-<li id="fn19"><p>https://tongyx361.github.io<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="20">
+<li id="fn20"><p>https://tongyx361.github.io<a href="#fnref20" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </div></section><section id="写作契机trpoppo-与-grpo-中的-kl-为什么不一样" class="level2 appendix" data-number="9.2"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.2</span> 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？”</h2><div class="quarto-appendix-contents">
 
-<p>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题<a href="#fn20" class="footnote-ref" id="fnref20" role="doc-noteref"><sup>20</sup></a>：</p>
+<p>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题<a href="#fn21" class="footnote-ref" id="fnref21" role="doc-noteref"><sup>21</sup></a>：</p>
 <blockquote class="blockquote">
 <p>A small question about GRPO: I noticed that the KL divergence in GRPO is written as KL(new || old), while TRPO and PPO use KL(old || new) as the constraint/penalty. Is there a difference between the two? Would modifying this part have any impact?</p>
 <p>TRPO <span class="citation" data-cites="schulman2015trpo">(<a href="#ref-schulman2015trpo" role="doc-biblioref">Schulman et al. 2015</a>)</span></p>
@@ -1668,13 +1678,13 @@ Tip
 &amp; \underset{\theta}{\text{maximize}}~L_{\theta_{\text {old }}}(\theta) \\
 &amp; \text { subject to } \bar{D}_{\mathrm{KL}}^{\rho_{\theta_{\text {old }}}}\left(\theta_{\text {old }}, \theta\right) \leq \delta
 \end{aligned}
-\tag{56}\]</span></span></p>
+\tag{57}\]</span></span></p>
 <blockquote class="blockquote">
 <p>PPO <span class="citation" data-cites="schulman2017ppo">(<a href="#ref-schulman2017ppo" role="doc-biblioref">Schulman et al. 2017</a>)</span></p>
 </blockquote>
 <p><span id="eq-ppo-klpen"><span class="math display">\[
 L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t \mid \mathbf{x}_t\right)}{\pi_{\theta_{\text {old }}}\left(\mathbf{y}_t \mid \mathbf{x}_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid \mathbf{x}_t\right), \pi_\theta\left(\cdot \mid \mathbf{x}_t\right)\right]\right]
-\tag{57}\]</span></span></p>
+\tag{58}\]</span></span></p>
 <blockquote class="blockquote">
 <p>GRPO <span class="citation" data-cites="shao2024deepseekmath">(<a href="#ref-shao2024deepseekmath" role="doc-biblioref">Shao et al. 2024</a>)</span></p>
 </blockquote>
@@ -1683,7 +1693,7 @@ L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t
 &amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
 &amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|}\left\{\min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right]-\beta \mathbb{D}_{K L}\left[\pi_\theta \mid \pi_{\text{ref}}\right]\right\}
 \end{aligned}
-\tag{58}\]</span></span></p>
+\tag{59}\]</span></span></p>
 <p>这个问题本身的答案是非常简单的。</p>
 <p>首先，这个问题混淆了两种不同的 KL 惩罚项：</p>
 <ol type="1">
@@ -1720,10 +1730,10 @@ L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid 
 
 </blockquote>
 <p>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 <span class="math inline">\(r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}\)</span>就是<span class="math inline">\(K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]\)</span> 中对单个样本 <span class="math inline">\((s_t, a_t)\)</span> 的值中 <span class="math inline">\(\log\)</span> 的真数。</p>
-<aside id="footnotes-15" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-16" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="20">
-<li id="fn20"><p>https://x.com/pufanyi/status/1888845956684370202<a href="#fnref20" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="21">
+<li id="fn21"><p>https://x.com/pufanyi/status/1888845956684370202<a href="#fnref21" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </div></section><section id="致谢" class="level2 appendix" data-number="9.3"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.3</span> 致谢</h2><div class="quarto-appendix-contents">
@@ -3537,180 +3547,187 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-1149"><a href="#cb2-1149"></a>\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[f(\mathbf{\tau})\right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) f(\tau)  = \sum_{\tau \in \mathcal{T}} p_{\theta_{\text{old}}}(\tau) \frac{p_{\theta}(\tau)}{p_{\theta_{\text{old}}}(\tau)} f(\tau) = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}} \left[\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} f(\mathbf{\tau})\right]</span>
 <span id="cb2-1150"><a href="#cb2-1150"></a>$$ {#eq-is-off-policy-kl}</span>
 <span id="cb2-1151"><a href="#cb2-1151"></a></span>
-<span id="cb2-1152"><a href="#cb2-1152"></a>利用重要性采样 (@eq-is-off-policy-kl) ，KL 梯度表达式 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce</span><span class="co">]</span> 可以转化为：</span>
+<span id="cb2-1152"><a href="#cb2-1152"></a>此处，重要性采样系数 $\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})}$ 可以仿照 <span class="co">[</span><span class="ot">@eq-dp-expansion</span><span class="co">]</span> 展开为：</span>
 <span id="cb2-1153"><a href="#cb2-1153"></a></span>
 <span id="cb2-1154"><a href="#cb2-1154"></a>$$</span>
-<span id="cb2-1155"><a href="#cb2-1155"></a>\begin{aligned}</span>
-<span id="cb2-1156"><a href="#cb2-1156"></a>&amp; \nabla_{\theta} \mathbb{D}_{\text{KL}} \left[\pi_\theta \mid \pi_{\text{ref}}\right] <span class="sc">\\</span></span>
-<span id="cb2-1157"><a href="#cb2-1157"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right] <span class="sc">\\</span></span>
-<span id="cb2-1158"><a href="#cb2-1158"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{\text{old}}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}  \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})  \right] <span class="sc">\\</span></span>
-<span id="cb2-1159"><a href="#cb2-1159"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \left(\prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}\right) \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right]</span>
-<span id="cb2-1160"><a href="#cb2-1160"></a>\end{aligned}</span>
-<span id="cb2-1161"><a href="#cb2-1161"></a>$$ {#eq-def-kl-grad-kt-reduce-is}</span>
-<span id="cb2-1162"><a href="#cb2-1162"></a></span>
-<span id="cb2-1163"><a href="#cb2-1163"></a></span>
-<span id="cb2-1164"><a href="#cb2-1164"></a>对应的 Monte Carlo 估计式为：</span>
-<span id="cb2-1165"><a href="#cb2-1165"></a></span>
-<span id="cb2-1166"><a href="#cb2-1166"></a>$$</span>
-<span id="cb2-1167"><a href="#cb2-1167"></a>\begin{aligned}</span>
-<span id="cb2-1168"><a href="#cb2-1168"></a>&amp; \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] <span class="sc">\\</span></span>
-<span id="cb2-1169"><a href="#cb2-1169"></a>\approx&amp; \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}) <span class="sc">\\</span></span>
-<span id="cb2-1170"><a href="#cb2-1170"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})</span>
-<span id="cb2-1171"><a href="#cb2-1171"></a>\end{aligned}</span>
-<span id="cb2-1172"><a href="#cb2-1172"></a>$$ {#eq-def-kl-grad-kt-reduce-is-mc}</span>
-<span id="cb2-1173"><a href="#cb2-1173"></a></span>
-<span id="cb2-1174"><a href="#cb2-1174"></a>对应的 loss 函数为：</span>
-<span id="cb2-1175"><a href="#cb2-1175"></a></span>
-<span id="cb2-1176"><a href="#cb2-1176"></a>$$</span>
-<span id="cb2-1177"><a href="#cb2-1177"></a>\mathcal{L}^{KL}_{\theta} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_{i}|} \text{nograd}\left(\left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})</span>
-<span id="cb2-1178"><a href="#cb2-1178"></a>$$ {#eq-def-kl-grad-kt-reduce-is-mc-loss}</span>
-<span id="cb2-1179"><a href="#cb2-1179"></a></span>
+<span id="cb2-1155"><a href="#cb2-1155"></a>\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} = \prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{\pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}</span>
+<span id="cb2-1156"><a href="#cb2-1156"></a>$$ {#eq-is-coef-expansion}</span>
+<span id="cb2-1157"><a href="#cb2-1157"></a>^<span class="co">[</span><span class="ot">实际计算中，[@eq-is-coef-expansion] 由于涉及到 $|\mathbf{\tau}|$ 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。</span><span class="co">]</span></span>
+<span id="cb2-1158"><a href="#cb2-1158"></a></span>
+<span id="cb2-1159"><a href="#cb2-1159"></a>利用重要性采样 (@eq-is-off-policy-kl, @eq-is-coef-expansion) ，KL 梯度表达式 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce</span><span class="co">]</span> 可以转化为：</span>
+<span id="cb2-1160"><a href="#cb2-1160"></a></span>
+<span id="cb2-1161"><a href="#cb2-1161"></a>$$</span>
+<span id="cb2-1162"><a href="#cb2-1162"></a>\begin{aligned}</span>
+<span id="cb2-1163"><a href="#cb2-1163"></a>&amp; \nabla_{\theta} \mathbb{D}_{\text{KL}} \left[\pi_\theta \mid \pi_{\text{ref}}\right] <span class="sc">\\</span></span>
+<span id="cb2-1164"><a href="#cb2-1164"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right] <span class="sc">\\</span></span>
+<span id="cb2-1165"><a href="#cb2-1165"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{\text{old}}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}  \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})  \right] <span class="sc">\\</span></span>
+<span id="cb2-1166"><a href="#cb2-1166"></a>=&amp;  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \left(\prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}\right) \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right]</span>
+<span id="cb2-1167"><a href="#cb2-1167"></a>\end{aligned}</span>
+<span id="cb2-1168"><a href="#cb2-1168"></a>$$ {#eq-def-kl-grad-kt-reduce-is}</span>
+<span id="cb2-1169"><a href="#cb2-1169"></a></span>
+<span id="cb2-1170"><a href="#cb2-1170"></a></span>
+<span id="cb2-1171"><a href="#cb2-1171"></a>对应的 Monte Carlo 估计式为：</span>
+<span id="cb2-1172"><a href="#cb2-1172"></a></span>
+<span id="cb2-1173"><a href="#cb2-1173"></a>$$</span>
+<span id="cb2-1174"><a href="#cb2-1174"></a>\begin{aligned}</span>
+<span id="cb2-1175"><a href="#cb2-1175"></a>&amp; \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] <span class="sc">\\</span></span>
+<span id="cb2-1176"><a href="#cb2-1176"></a>\approx&amp; \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}) <span class="sc">\\</span></span>
+<span id="cb2-1177"><a href="#cb2-1177"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})</span>
+<span id="cb2-1178"><a href="#cb2-1178"></a>\end{aligned}</span>
+<span id="cb2-1179"><a href="#cb2-1179"></a>$$ {#eq-def-kl-grad-kt-reduce-is-mc}</span>
 <span id="cb2-1180"><a href="#cb2-1180"></a></span>
-<span id="cb2-1181"><a href="#cb2-1181"></a>类似 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce-k</span><span class="co">]</span>，我们可以令 </span>
+<span id="cb2-1181"><a href="#cb2-1181"></a>对应的 loss 函数为：</span>
 <span id="cb2-1182"><a href="#cb2-1182"></a></span>
 <span id="cb2-1183"><a href="#cb2-1183"></a>$$</span>
-<span id="cb2-1184"><a href="#cb2-1184"></a>k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}</span>
-<span id="cb2-1185"><a href="#cb2-1185"></a>$$ {#eq-def-kl-reward-is}</span>
+<span id="cb2-1184"><a href="#cb2-1184"></a>\mathcal{L}^{KL}_{\theta} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_{i}|} \text{nograd}\left(\left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})</span>
+<span id="cb2-1185"><a href="#cb2-1185"></a>$$ {#eq-def-kl-grad-kt-reduce-is-mc-loss}</span>
 <span id="cb2-1186"><a href="#cb2-1186"></a></span>
-<span id="cb2-1187"><a href="#cb2-1187"></a>注意，<span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span> 中的 $k$ 需要对于每个新的 $\pi_{\theta}$ 重新计算。</span>
-<span id="cb2-1188"><a href="#cb2-1188"></a></span>
-<span id="cb2-1189"><a href="#cb2-1189"></a><span class="fu"># 结论：如何正确地在 RL 中优化 KL 散度</span></span>
-<span id="cb2-1190"><a href="#cb2-1190"></a></span>
-<span id="cb2-1191"><a href="#cb2-1191"></a><span class="fu">## 修正 GRPO 公式中的 KL 项</span></span>
-<span id="cb2-1192"><a href="#cb2-1192"></a></span>
-<span id="cb2-1193"><a href="#cb2-1193"></a>GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 对于 KL 优化主要存在两个错误：</span>
-<span id="cb2-1194"><a href="#cb2-1194"></a></span>
-<span id="cb2-1195"><a href="#cb2-1195"></a><span class="ss">1. </span>忽略了 KL 优化的 off-policy 问题</span>
-<span id="cb2-1196"><a href="#cb2-1196"></a><span class="ss">2. </span>先将 $k_{3}$ 估计样本量应用于动作条件似然再求和，导致得到异常的梯度</span>
+<span id="cb2-1187"><a href="#cb2-1187"></a></span>
+<span id="cb2-1188"><a href="#cb2-1188"></a>类似 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce-k</span><span class="co">]</span>，我们可以令 </span>
+<span id="cb2-1189"><a href="#cb2-1189"></a></span>
+<span id="cb2-1190"><a href="#cb2-1190"></a>$$</span>
+<span id="cb2-1191"><a href="#cb2-1191"></a>k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}</span>
+<span id="cb2-1192"><a href="#cb2-1192"></a>$$ {#eq-def-kl-reward-is}</span>
+<span id="cb2-1193"><a href="#cb2-1193"></a></span>
+<span id="cb2-1194"><a href="#cb2-1194"></a>注意，<span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span> 中的 $k$ 需要对于每个新的 $\pi_{\theta}$ 重新计算。</span>
+<span id="cb2-1195"><a href="#cb2-1195"></a></span>
+<span id="cb2-1196"><a href="#cb2-1196"></a><span class="fu"># 结论：如何正确地在 RL 中优化 KL 散度</span></span>
 <span id="cb2-1197"><a href="#cb2-1197"></a></span>
-<span id="cb2-1198"><a href="#cb2-1198"></a>对于这两个问题，在 <span class="co">[</span><span class="ot">@eq-grpo-obj-kl-fixed</span><span class="co">]</span> 的基础上，仿照 <span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span>，我们可以按如下方式修正：</span>
+<span id="cb2-1198"><a href="#cb2-1198"></a><span class="fu">## 修正 GRPO 公式中的 KL 项</span></span>
 <span id="cb2-1199"><a href="#cb2-1199"></a></span>
-<span id="cb2-1200"><a href="#cb2-1200"></a>$$</span>
-<span id="cb2-1201"><a href="#cb2-1201"></a>\begin{aligned}</span>
-<span id="cb2-1202"><a href="#cb2-1202"></a>&amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] <span class="sc">\\</span></span>
-<span id="cb2-1203"><a href="#cb2-1203"></a>&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left<span class="sc">\{</span> \sum_{t=1}^{\left|o_i\right|} \min \left<span class="co">[</span><span class="ot">\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right</span><span class="co">]</span> -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right<span class="sc">\}</span> </span>
-<span id="cb2-1204"><a href="#cb2-1204"></a>\end{aligned}</span>
-<span id="cb2-1205"><a href="#cb2-1205"></a>$$ {#eq-grpo-obj-kl-fixed-is}</span>
+<span id="cb2-1200"><a href="#cb2-1200"></a>GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 对于 KL 优化主要存在两个错误：</span>
+<span id="cb2-1201"><a href="#cb2-1201"></a></span>
+<span id="cb2-1202"><a href="#cb2-1202"></a><span class="ss">1. </span>忽略了 KL 优化的 off-policy 问题</span>
+<span id="cb2-1203"><a href="#cb2-1203"></a><span class="ss">2. </span>先将 $k_{3}$ 估计样本量应用于动作条件似然再求和，导致得到异常的梯度</span>
+<span id="cb2-1204"><a href="#cb2-1204"></a></span>
+<span id="cb2-1205"><a href="#cb2-1205"></a>对于这两个问题，在 <span class="co">[</span><span class="ot">@eq-grpo-obj-kl-fixed</span><span class="co">]</span> 的基础上，仿照 <span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span>，我们可以按如下方式修正：</span>
 <span id="cb2-1206"><a href="#cb2-1206"></a></span>
-<span id="cb2-1207"><a href="#cb2-1207"></a><span class="fu">## 修正流行 LLM RL 框架中的 KL 优化实现</span></span>
-<span id="cb2-1208"><a href="#cb2-1208"></a></span>
-<span id="cb2-1209"><a href="#cb2-1209"></a>目前流行的 LLM RL 框架中的 KL 优化实现，除了 GRPO 公式中体现的两个问题之外，还存在以下问题：</span>
-<span id="cb2-1210"><a href="#cb2-1210"></a></span>
-<span id="cb2-1211"><a href="#cb2-1211"></a><span class="ss">1. </span>实现单独的 KL loss 项时，默认不去除任何梯度，（这可能是误以为直接前向传播估计 KL 散度，再反向传播就能得到正确的梯度导致的）</span>
-<span id="cb2-1212"><a href="#cb2-1212"></a><span class="ss">2. </span>错误地实现了平均操作</span>
+<span id="cb2-1207"><a href="#cb2-1207"></a>$$</span>
+<span id="cb2-1208"><a href="#cb2-1208"></a>\begin{aligned}</span>
+<span id="cb2-1209"><a href="#cb2-1209"></a>&amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] <span class="sc">\\</span></span>
+<span id="cb2-1210"><a href="#cb2-1210"></a>&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left<span class="sc">\{</span> \sum_{t=1}^{\left|o_i\right|} \min \left<span class="co">[</span><span class="ot">\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right</span><span class="co">]</span> \right<span class="sc">\}</span> -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right)</span>
+<span id="cb2-1211"><a href="#cb2-1211"></a>\end{aligned}</span>
+<span id="cb2-1212"><a href="#cb2-1212"></a>$$ {#eq-grpo-obj-kl-fixed-is}</span>
 <span id="cb2-1213"><a href="#cb2-1213"></a></span>
-<span id="cb2-1214"><a href="#cb2-1214"></a>对于这些问题，可以按照如下思路修正：</span>
+<span id="cb2-1214"><a href="#cb2-1214"></a><span class="fu">## 修正流行 LLM RL 框架中的 KL 优化实现</span></span>
 <span id="cb2-1215"><a href="#cb2-1215"></a></span>
-<span id="cb2-1216"><a href="#cb2-1216"></a><span class="ss">1. </span>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项</span>
-<span id="cb2-1217"><a href="#cb2-1217"></a><span class="ss">2. </span>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</span>
-<span id="cb2-1218"><a href="#cb2-1218"></a><span class="ss">3. </span>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</span>
-<span id="cb2-1219"><a href="#cb2-1219"></a><span class="ss">4. </span>如果不希望应用 reward 优化的其他技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce-is-mc-loss</span><span class="co">]</span> 实现为 KL loss 项</span>
+<span id="cb2-1216"><a href="#cb2-1216"></a>目前流行的 LLM RL 框架中的 KL 优化实现，除了 GRPO 公式中体现的两个问题之外，还存在以下问题：</span>
+<span id="cb2-1217"><a href="#cb2-1217"></a></span>
+<span id="cb2-1218"><a href="#cb2-1218"></a><span class="ss">1. </span>实现单独的 KL loss 项时，默认不去除任何梯度，（这可能是误以为直接前向传播估计 KL 散度，再反向传播就能得到正确的梯度导致的）</span>
+<span id="cb2-1219"><a href="#cb2-1219"></a><span class="ss">2. </span>错误地实现了平均操作</span>
 <span id="cb2-1220"><a href="#cb2-1220"></a></span>
-<span id="cb2-1221"><a href="#cb2-1221"></a><span class="fu"># 讨论</span></span>
+<span id="cb2-1221"><a href="#cb2-1221"></a>对于这些问题，可以按照如下思路修正：</span>
 <span id="cb2-1222"><a href="#cb2-1222"></a></span>
-<span id="cb2-1223"><a href="#cb2-1223"></a><span class="fu">## 对于 KL 梯度更好的估计样本量</span></span>
-<span id="cb2-1224"><a href="#cb2-1224"></a></span>
-<span id="cb2-1225"><a href="#cb2-1225"></a>如 <span class="co">[</span><span class="ot">@sec-kl-grad-as-kl-reward</span><span class="co">]</span> 所述，PG 使用了许多其他技术来改进其梯度估计，能否使用类似技术改进 KL 梯度估计？</span>
-<span id="cb2-1226"><a href="#cb2-1226"></a></span>
-<span id="cb2-1227"><a href="#cb2-1227"></a>此外，John Schulman 的博客是针对估计 KL 散度分析了不同的估计样本量。但这些分析对于估计 KL 散度的梯度是否还成立？</span>
-<span id="cb2-1228"><a href="#cb2-1228"></a></span>
-<span id="cb2-1229"><a href="#cb2-1229"></a><span class="fu">## KL-Regularized RL 的理论优势</span></span>
-<span id="cb2-1230"><a href="#cb2-1230"></a></span>
-<span id="cb2-1231"><a href="#cb2-1231"></a>最近基于可验证 reward 的 RL 非常流行，其很大程度上避免了 reward hacking，直觉上，我们似乎不再需要相对于参考策略的 KL 正则化。</span>
-<span id="cb2-1232"><a href="#cb2-1232"></a></span>
-<span id="cb2-1233"><a href="#cb2-1233"></a>然而，也有一些工作指出，KL-Regularized RL 在理论上还有许多其他优势。例如 @zhao2025logregretkl 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于 $\mathcal{O}(\sqrt{T})$。粗浅地说，这是因为 KL 正则化目标项的存在，使得 value 分解有了特别的性质，例如凸性更强。</span>
-<span id="cb2-1234"><a href="#cb2-1234"></a></span>
-<span id="cb2-1235"><a href="#cb2-1235"></a><span class="fu"># 附录 {.appendix}</span></span>
-<span id="cb2-1236"><a href="#cb2-1236"></a></span>
-<span id="cb2-1237"><a href="#cb2-1237"></a>::: {.callout-tip}</span>
-<span id="cb2-1238"><a href="#cb2-1238"></a></span>
-<span id="cb2-1239"><a href="#cb2-1239"></a>本文的作者（童雨轩）仍在寻找北美的 Ph.D. 或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页^<span class="co">[</span><span class="ot">https://tongyx361.github.io</span><span class="co">]</span>来获取进一步了解。</span>
-<span id="cb2-1240"><a href="#cb2-1240"></a></span>
-<span id="cb2-1241"><a href="#cb2-1241"></a>:::</span>
-<span id="cb2-1242"><a href="#cb2-1242"></a></span>
-<span id="cb2-1243"><a href="#cb2-1243"></a><span class="fu">## 相关工作 {.appendix}</span></span>
-<span id="cb2-1244"><a href="#cb2-1244"></a></span>
-<span id="cb2-1245"><a href="#cb2-1245"></a>与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：</span>
-<span id="cb2-1246"><a href="#cb2-1246"></a></span>
-<span id="cb2-1247"><a href="#cb2-1247"></a><span class="ss">- </span><span class="co">[</span><span class="ot">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</span><span class="co">](https://zhuanlan.zhihu.com/p/28440962040)</span></span>
-<span id="cb2-1248"><a href="#cb2-1248"></a><span class="ss">- </span><span class="co">[</span><span class="ot">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</span><span class="co">](https://zhuanlan.zhihu.com/p/28735759256)</span></span>
+<span id="cb2-1223"><a href="#cb2-1223"></a><span class="ss">1. </span>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项</span>
+<span id="cb2-1224"><a href="#cb2-1224"></a><span class="ss">2. </span>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</span>
+<span id="cb2-1225"><a href="#cb2-1225"></a><span class="ss">3. </span>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</span>
+<span id="cb2-1226"><a href="#cb2-1226"></a><span class="ss">4. </span>如果不希望应用 reward 优化的其他技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce-is-mc-loss</span><span class="co">]</span> 实现为 KL loss 项</span>
+<span id="cb2-1227"><a href="#cb2-1227"></a></span>
+<span id="cb2-1228"><a href="#cb2-1228"></a><span class="fu"># 讨论</span></span>
+<span id="cb2-1229"><a href="#cb2-1229"></a></span>
+<span id="cb2-1230"><a href="#cb2-1230"></a><span class="fu">## 对于 KL 梯度更好的估计样本量</span></span>
+<span id="cb2-1231"><a href="#cb2-1231"></a></span>
+<span id="cb2-1232"><a href="#cb2-1232"></a>如 <span class="co">[</span><span class="ot">@sec-kl-grad-as-kl-reward</span><span class="co">]</span> 所述，PG 使用了许多其他技术来改进其梯度估计，能否使用类似技术改进 KL 梯度估计？</span>
+<span id="cb2-1233"><a href="#cb2-1233"></a></span>
+<span id="cb2-1234"><a href="#cb2-1234"></a>此外，John Schulman 的博客是针对估计 KL 散度分析了不同的估计样本量。但这些分析对于估计 KL 散度的梯度是否还成立？</span>
+<span id="cb2-1235"><a href="#cb2-1235"></a></span>
+<span id="cb2-1236"><a href="#cb2-1236"></a><span class="fu">## KL-Regularized RL 的理论优势</span></span>
+<span id="cb2-1237"><a href="#cb2-1237"></a></span>
+<span id="cb2-1238"><a href="#cb2-1238"></a>最近基于可验证 reward 的 RL 非常流行，其很大程度上避免了 reward hacking，直觉上，我们似乎不再需要相对于参考策略的 KL 正则化。</span>
+<span id="cb2-1239"><a href="#cb2-1239"></a></span>
+<span id="cb2-1240"><a href="#cb2-1240"></a>然而，也有一些工作指出，KL-Regularized RL 在理论上还有许多其他优势。例如 @zhao2025logregretkl 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于 $\mathcal{O}(\sqrt{T})$。粗浅地说，这是因为 KL 正则化目标项的存在，使得 value 分解有了特别的性质，例如凸性更强。</span>
+<span id="cb2-1241"><a href="#cb2-1241"></a></span>
+<span id="cb2-1242"><a href="#cb2-1242"></a><span class="fu"># 附录 {.appendix}</span></span>
+<span id="cb2-1243"><a href="#cb2-1243"></a></span>
+<span id="cb2-1244"><a href="#cb2-1244"></a>::: {.callout-tip}</span>
+<span id="cb2-1245"><a href="#cb2-1245"></a></span>
+<span id="cb2-1246"><a href="#cb2-1246"></a>本文的作者（童雨轩）仍在寻求北美的 Ph.D. 或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页^<span class="co">[</span><span class="ot">https://tongyx361.github.io</span><span class="co">]</span>来获取进一步了解。</span>
+<span id="cb2-1247"><a href="#cb2-1247"></a></span>
+<span id="cb2-1248"><a href="#cb2-1248"></a>:::</span>
 <span id="cb2-1249"><a href="#cb2-1249"></a></span>
-<span id="cb2-1250"><a href="#cb2-1250"></a><span class="fu">## 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？” {.appendix}</span></span>
+<span id="cb2-1250"><a href="#cb2-1250"></a><span class="fu">## 相关工作 {.appendix}</span></span>
 <span id="cb2-1251"><a href="#cb2-1251"></a></span>
-<span id="cb2-1252"><a href="#cb2-1252"></a>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题^<span class="co">[</span><span class="ot">https://x.com/pufanyi/status/1888845956684370202</span><span class="co">]</span>：</span>
+<span id="cb2-1252"><a href="#cb2-1252"></a>与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：</span>
 <span id="cb2-1253"><a href="#cb2-1253"></a></span>
-<span id="cb2-1254"><a href="#cb2-1254"></a><span class="at">&gt; A small question about GRPO: I noticed that the KL divergence in GRPO is written as KL(new || old), while TRPO and PPO use KL(old || new) as the constraint/penalty. Is there a difference between the two? Would modifying this part have any impact?</span></span>
-<span id="cb2-1255"><a href="#cb2-1255"></a><span class="at">&gt;</span></span>
-<span id="cb2-1256"><a href="#cb2-1256"></a><span class="at">&gt; TRPO </span><span class="co">[</span><span class="ot">@schulman2015trpo</span><span class="co">]</span></span>
-<span id="cb2-1257"><a href="#cb2-1257"></a></span>
-<span id="cb2-1258"><a href="#cb2-1258"></a>$$</span>
-<span id="cb2-1259"><a href="#cb2-1259"></a>\begin{aligned}</span>
-<span id="cb2-1260"><a href="#cb2-1260"></a>&amp; \underset{\theta}{\text{maximize}}~L_{\theta_{\text {old }}}(\theta) <span class="sc">\\</span></span>
-<span id="cb2-1261"><a href="#cb2-1261"></a>&amp; \text { subject to } \bar{D}_{\mathrm{KL}}^{\rho_{\theta_{\text {old }}}}\left(\theta_{\text {old }}, \theta\right) \leq \delta</span>
-<span id="cb2-1262"><a href="#cb2-1262"></a>\end{aligned}</span>
-<span id="cb2-1263"><a href="#cb2-1263"></a>$$ {#eq-trpo}</span>
+<span id="cb2-1254"><a href="#cb2-1254"></a><span class="ss">- </span><span class="co">[</span><span class="ot">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</span><span class="co">](https://zhuanlan.zhihu.com/p/28440962040)</span></span>
+<span id="cb2-1255"><a href="#cb2-1255"></a><span class="ss">- </span><span class="co">[</span><span class="ot">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</span><span class="co">](https://zhuanlan.zhihu.com/p/28735759256)</span></span>
+<span id="cb2-1256"><a href="#cb2-1256"></a></span>
+<span id="cb2-1257"><a href="#cb2-1257"></a><span class="fu">## 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？” {.appendix}</span></span>
+<span id="cb2-1258"><a href="#cb2-1258"></a></span>
+<span id="cb2-1259"><a href="#cb2-1259"></a>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题^<span class="co">[</span><span class="ot">https://x.com/pufanyi/status/1888845956684370202</span><span class="co">]</span>：</span>
+<span id="cb2-1260"><a href="#cb2-1260"></a></span>
+<span id="cb2-1261"><a href="#cb2-1261"></a><span class="at">&gt; A small question about GRPO: I noticed that the KL divergence in GRPO is written as KL(new || old), while TRPO and PPO use KL(old || new) as the constraint/penalty. Is there a difference between the two? Would modifying this part have any impact?</span></span>
+<span id="cb2-1262"><a href="#cb2-1262"></a><span class="at">&gt;</span></span>
+<span id="cb2-1263"><a href="#cb2-1263"></a><span class="at">&gt; TRPO </span><span class="co">[</span><span class="ot">@schulman2015trpo</span><span class="co">]</span></span>
 <span id="cb2-1264"><a href="#cb2-1264"></a></span>
-<span id="cb2-1265"><a href="#cb2-1265"></a><span class="at">&gt; PPO </span><span class="co">[</span><span class="ot">@schulman2017ppo</span><span class="co">]</span></span>
-<span id="cb2-1266"><a href="#cb2-1266"></a></span>
-<span id="cb2-1267"><a href="#cb2-1267"></a>$$ </span>
-<span id="cb2-1268"><a href="#cb2-1268"></a>L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t \mid \mathbf{x}_t\right)}{\pi_{\theta_{\text {old }}}\left(\mathbf{y}_t \mid \mathbf{x}_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid \mathbf{x}_t\right), \pi_\theta\left(\cdot \mid \mathbf{x}_t\right)\right]\right]</span>
-<span id="cb2-1269"><a href="#cb2-1269"></a>$$ {#eq-ppo-klpen}</span>
-<span id="cb2-1270"><a href="#cb2-1270"></a></span>
-<span id="cb2-1271"><a href="#cb2-1271"></a><span class="at">&gt; GRPO </span><span class="co">[</span><span class="ot">@shao2024deepseekmath</span><span class="co">]</span></span>
-<span id="cb2-1272"><a href="#cb2-1272"></a></span>
-<span id="cb2-1273"><a href="#cb2-1273"></a>$$</span>
-<span id="cb2-1274"><a href="#cb2-1274"></a>\begin{aligned}</span>
-<span id="cb2-1275"><a href="#cb2-1275"></a>&amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] <span class="sc">\\</span></span>
-<span id="cb2-1276"><a href="#cb2-1276"></a>&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|}\left<span class="sc">\{</span>\min \left<span class="co">[</span><span class="ot">\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right</span><span class="co">]</span>-\beta \mathbb{D}_{K L}\left[\pi_\theta \mid \pi_{\text{ref}}\right]\right<span class="sc">\}</span></span>
-<span id="cb2-1277"><a href="#cb2-1277"></a>\end{aligned}</span>
-<span id="cb2-1278"><a href="#cb2-1278"></a>$$ {#eq-grpo}</span>
+<span id="cb2-1265"><a href="#cb2-1265"></a>$$</span>
+<span id="cb2-1266"><a href="#cb2-1266"></a>\begin{aligned}</span>
+<span id="cb2-1267"><a href="#cb2-1267"></a>&amp; \underset{\theta}{\text{maximize}}~L_{\theta_{\text {old }}}(\theta) <span class="sc">\\</span></span>
+<span id="cb2-1268"><a href="#cb2-1268"></a>&amp; \text { subject to } \bar{D}_{\mathrm{KL}}^{\rho_{\theta_{\text {old }}}}\left(\theta_{\text {old }}, \theta\right) \leq \delta</span>
+<span id="cb2-1269"><a href="#cb2-1269"></a>\end{aligned}</span>
+<span id="cb2-1270"><a href="#cb2-1270"></a>$$ {#eq-trpo}</span>
+<span id="cb2-1271"><a href="#cb2-1271"></a></span>
+<span id="cb2-1272"><a href="#cb2-1272"></a><span class="at">&gt; PPO </span><span class="co">[</span><span class="ot">@schulman2017ppo</span><span class="co">]</span></span>
+<span id="cb2-1273"><a href="#cb2-1273"></a></span>
+<span id="cb2-1274"><a href="#cb2-1274"></a>$$ </span>
+<span id="cb2-1275"><a href="#cb2-1275"></a>L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t \mid \mathbf{x}_t\right)}{\pi_{\theta_{\text {old }}}\left(\mathbf{y}_t \mid \mathbf{x}_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid \mathbf{x}_t\right), \pi_\theta\left(\cdot \mid \mathbf{x}_t\right)\right]\right]</span>
+<span id="cb2-1276"><a href="#cb2-1276"></a>$$ {#eq-ppo-klpen}</span>
+<span id="cb2-1277"><a href="#cb2-1277"></a></span>
+<span id="cb2-1278"><a href="#cb2-1278"></a><span class="at">&gt; GRPO </span><span class="co">[</span><span class="ot">@shao2024deepseekmath</span><span class="co">]</span></span>
 <span id="cb2-1279"><a href="#cb2-1279"></a></span>
-<span id="cb2-1280"><a href="#cb2-1280"></a>这个问题本身的答案是非常简单的。</span>
-<span id="cb2-1281"><a href="#cb2-1281"></a></span>
-<span id="cb2-1282"><a href="#cb2-1282"></a>首先，这个问题混淆了两种不同的 KL 惩罚项：</span>
-<span id="cb2-1283"><a href="#cb2-1283"></a></span>
-<span id="cb2-1284"><a href="#cb2-1284"></a><span class="ss">1. </span>$\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta_{\text{old}}},\pi_{\theta}</span><span class="co">]</span>$，其作用是约束最新策略 $\pi_{\theta}$不要离采样策略$\pi_{\theta_{\text{old}}}$ 太远，避免过大的更新导致策略崩溃，从而构成信任域（Trust Region, TR），也就是 TRPO 中的 TR。而 PPO 作为 TRPO 的近似实现，继承了这一点。</span>
-<span id="cb2-1285"><a href="#cb2-1285"></a><span class="ss">2. </span>$\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta},\pi_{\theta_{\text{ref}}}</span><span class="co">]</span>$，其作用是约束最新策略 $\pi_{\theta}$不要离参考策略$\pi_{\theta_{\text{ref}}}$ 太远，从而更充分地利用参考策略中的先验。</span>
+<span id="cb2-1280"><a href="#cb2-1280"></a>$$</span>
+<span id="cb2-1281"><a href="#cb2-1281"></a>\begin{aligned}</span>
+<span id="cb2-1282"><a href="#cb2-1282"></a>&amp; \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] <span class="sc">\\</span></span>
+<span id="cb2-1283"><a href="#cb2-1283"></a>&amp; \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|}\left<span class="sc">\{</span>\min \left<span class="co">[</span><span class="ot">\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right</span><span class="co">]</span>-\beta \mathbb{D}_{K L}\left[\pi_\theta \mid \pi_{\text{ref}}\right]\right<span class="sc">\}</span></span>
+<span id="cb2-1284"><a href="#cb2-1284"></a>\end{aligned}</span>
+<span id="cb2-1285"><a href="#cb2-1285"></a>$$ {#eq-grpo}</span>
 <span id="cb2-1286"><a href="#cb2-1286"></a></span>
-<span id="cb2-1287"><a href="#cb2-1287"></a>另外，这个问题忽略了 TRPO/PPO 公式中的 KL 损失项与 GRPO 公式中的 clip 函数实际上是出于同一目的，即约束 $\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta_{\text{old}}},\pi_{\theta}</span><span class="co">]</span>$。如 PPO 论文第 3-4 节所说，两者可以相互替代或结合使用：</span>
+<span id="cb2-1287"><a href="#cb2-1287"></a>这个问题本身的答案是非常简单的。</span>
 <span id="cb2-1288"><a href="#cb2-1288"></a></span>
-<span id="cb2-1289"><a href="#cb2-1289"></a><span class="at">&gt; Let $r_t(\theta)$denote the probability ratio$r_{t}(\theta)=\frac{\pi_{\theta}\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}$, so $r\left(\theta_{\text{old}}\right)=1$. TRPO maximizes a "surrogate" objective</span></span>
+<span id="cb2-1289"><a href="#cb2-1289"></a>首先，这个问题混淆了两种不同的 KL 惩罚项：</span>
 <span id="cb2-1290"><a href="#cb2-1290"></a></span>
-<span id="cb2-1291"><a href="#cb2-1291"></a>$$</span>
-<span id="cb2-1292"><a href="#cb2-1292"></a>L^{\text{CPI}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left<span class="co">[</span><span class="ot">r_t(\theta) \hat{A}_t\right</span><span class="co">]</span> .</span>
-<span id="cb2-1293"><a href="#cb2-1293"></a>$$</span>
-<span id="cb2-1294"><a href="#cb2-1294"></a></span>
-<span id="cb2-1295"><a href="#cb2-1295"></a><span class="at">&gt; ...</span></span>
-<span id="cb2-1296"><a href="#cb2-1296"></a><span class="at">&gt;</span></span>
-<span id="cb2-1297"><a href="#cb2-1297"></a><span class="at">&gt; The main objective we propose is the following:</span></span>
-<span id="cb2-1298"><a href="#cb2-1298"></a></span>
-<span id="cb2-1299"><a href="#cb2-1299"></a>$$</span>
-<span id="cb2-1300"><a href="#cb2-1300"></a>L^{\text{CLIP}}(\theta)=\hat{\mathbb{E}}_t\left<span class="co">[</span><span class="ot">\min \left(r_t(\theta) \hat{A}_t, \text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\right</span><span class="co">]</span></span>
-<span id="cb2-1301"><a href="#cb2-1301"></a>$$</span>
-<span id="cb2-1302"><a href="#cb2-1302"></a></span>
-<span id="cb2-1303"><a href="#cb2-1303"></a><span class="at">&gt; where ePsilon is a hyperparameter, say, $\epsilon=0.2$. The motivation for this objective is as follows. The first term inside the $\min$ is $L^{C P I}$. The second term, $\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $r_t$outside of the interval$</span><span class="co">[</span><span class="ot">1-\epsilon, 1+\epsilon</span><span class="co">]</span><span class="at">$.</span></span>
-<span id="cb2-1304"><a href="#cb2-1304"></a><span class="at">&gt;</span></span>
-<span id="cb2-1305"><a href="#cb2-1305"></a><span class="at">&gt; ...</span></span>
-<span id="cb2-1306"><a href="#cb2-1306"></a><span class="at">&gt;</span></span>
-<span id="cb2-1307"><a href="#cb2-1307"></a><span class="at">&gt; **Another approach, which can be used as an alternative to the clipped surrogate objective, or in addition to it, is to use a penalty on KL divergence**, and to adapt the penalty coefficient so that we achieve some target value of the KL divergence $d_{\text {targ }}$ each policy update. In our experiments, we found that the KL penalty performed worse than the clipped surrogate objective, however, we've included it here because it's an important baseline.</span></span>
-<span id="cb2-1308"><a href="#cb2-1308"></a><span class="at">&gt;</span></span>
-<span id="cb2-1309"><a href="#cb2-1309"></a><span class="at">&gt; In the simplest instantiation of this algorithm, we perform the following steps in each policy update:</span></span>
-<span id="cb2-1310"><a href="#cb2-1310"></a><span class="at">&gt;</span></span>
-<span id="cb2-1311"><a href="#cb2-1311"></a><span class="at">&gt; - Using several epochs of minibatch SGD, optimize the KL-penalized objective</span></span>
-<span id="cb2-1312"><a href="#cb2-1312"></a></span>
-<span id="cb2-1313"><a href="#cb2-1313"></a>$$</span>
-<span id="cb2-1314"><a href="#cb2-1314"></a>L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid s_t\right), \pi_\theta\left(\cdot \mid s_t\right)\right]\right]</span>
-<span id="cb2-1315"><a href="#cb2-1315"></a>$$</span>
-<span id="cb2-1316"><a href="#cb2-1316"></a></span>
-<span id="cb2-1317"><a href="#cb2-1317"></a><span class="at">&gt; </span></span>
-<span id="cb2-1318"><a href="#cb2-1318"></a></span>
-<span id="cb2-1319"><a href="#cb2-1319"></a>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 $r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}$就是$K L\left<span class="co">[</span><span class="ot">\pi_{\theta_{d d}}, \pi_\theta\right</span><span class="co">]</span>=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]$ 中对单个样本 $(s_t, a_t)$ 的值中 $\log$ 的真数。</span>
-<span id="cb2-1320"><a href="#cb2-1320"></a></span>
-<span id="cb2-1321"><a href="#cb2-1321"></a><span class="fu">## 致谢 {.appendix}</span></span>
-<span id="cb2-1322"><a href="#cb2-1322"></a></span>
-<span id="cb2-1323"><a href="#cb2-1323"></a>感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。</span>
-<span id="cb2-1324"><a href="#cb2-1324"></a></span>
-<span id="cb2-1325"><a href="#cb2-1325"></a>感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb2-1291"><a href="#cb2-1291"></a><span class="ss">1. </span>$\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta_{\text{old}}},\pi_{\theta}</span><span class="co">]</span>$，其作用是约束最新策略 $\pi_{\theta}$不要离采样策略$\pi_{\theta_{\text{old}}}$ 太远，避免过大的更新导致策略崩溃，从而构成信任域（Trust Region, TR），也就是 TRPO 中的 TR。而 PPO 作为 TRPO 的近似实现，继承了这一点。</span>
+<span id="cb2-1292"><a href="#cb2-1292"></a><span class="ss">2. </span>$\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta},\pi_{\theta_{\text{ref}}}</span><span class="co">]</span>$，其作用是约束最新策略 $\pi_{\theta}$不要离参考策略$\pi_{\theta_{\text{ref}}}$ 太远，从而更充分地利用参考策略中的先验。</span>
+<span id="cb2-1293"><a href="#cb2-1293"></a></span>
+<span id="cb2-1294"><a href="#cb2-1294"></a>另外，这个问题忽略了 TRPO/PPO 公式中的 KL 损失项与 GRPO 公式中的 clip 函数实际上是出于同一目的，即约束 $\text{KL}<span class="co">[</span><span class="ot">\pi_{\theta_{\text{old}}},\pi_{\theta}</span><span class="co">]</span>$。如 PPO 论文第 3-4 节所说，两者可以相互替代或结合使用：</span>
+<span id="cb2-1295"><a href="#cb2-1295"></a></span>
+<span id="cb2-1296"><a href="#cb2-1296"></a><span class="at">&gt; Let $r_t(\theta)$denote the probability ratio$r_{t}(\theta)=\frac{\pi_{\theta}\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}$, so $r\left(\theta_{\text{old}}\right)=1$. TRPO maximizes a "surrogate" objective</span></span>
+<span id="cb2-1297"><a href="#cb2-1297"></a></span>
+<span id="cb2-1298"><a href="#cb2-1298"></a>$$</span>
+<span id="cb2-1299"><a href="#cb2-1299"></a>L^{\text{CPI}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left<span class="co">[</span><span class="ot">r_t(\theta) \hat{A}_t\right</span><span class="co">]</span> .</span>
+<span id="cb2-1300"><a href="#cb2-1300"></a>$$</span>
+<span id="cb2-1301"><a href="#cb2-1301"></a></span>
+<span id="cb2-1302"><a href="#cb2-1302"></a><span class="at">&gt; ...</span></span>
+<span id="cb2-1303"><a href="#cb2-1303"></a><span class="at">&gt;</span></span>
+<span id="cb2-1304"><a href="#cb2-1304"></a><span class="at">&gt; The main objective we propose is the following:</span></span>
+<span id="cb2-1305"><a href="#cb2-1305"></a></span>
+<span id="cb2-1306"><a href="#cb2-1306"></a>$$</span>
+<span id="cb2-1307"><a href="#cb2-1307"></a>L^{\text{CLIP}}(\theta)=\hat{\mathbb{E}}_t\left<span class="co">[</span><span class="ot">\min \left(r_t(\theta) \hat{A}_t, \text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\right</span><span class="co">]</span></span>
+<span id="cb2-1308"><a href="#cb2-1308"></a>$$</span>
+<span id="cb2-1309"><a href="#cb2-1309"></a></span>
+<span id="cb2-1310"><a href="#cb2-1310"></a><span class="at">&gt; where ePsilon is a hyperparameter, say, $\epsilon=0.2$. The motivation for this objective is as follows. The first term inside the $\min$ is $L^{C P I}$. The second term, $\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $r_t$outside of the interval$</span><span class="co">[</span><span class="ot">1-\epsilon, 1+\epsilon</span><span class="co">]</span><span class="at">$.</span></span>
+<span id="cb2-1311"><a href="#cb2-1311"></a><span class="at">&gt;</span></span>
+<span id="cb2-1312"><a href="#cb2-1312"></a><span class="at">&gt; ...</span></span>
+<span id="cb2-1313"><a href="#cb2-1313"></a><span class="at">&gt;</span></span>
+<span id="cb2-1314"><a href="#cb2-1314"></a><span class="at">&gt; **Another approach, which can be used as an alternative to the clipped surrogate objective, or in addition to it, is to use a penalty on KL divergence**, and to adapt the penalty coefficient so that we achieve some target value of the KL divergence $d_{\text {targ }}$ each policy update. In our experiments, we found that the KL penalty performed worse than the clipped surrogate objective, however, we've included it here because it's an important baseline.</span></span>
+<span id="cb2-1315"><a href="#cb2-1315"></a><span class="at">&gt;</span></span>
+<span id="cb2-1316"><a href="#cb2-1316"></a><span class="at">&gt; In the simplest instantiation of this algorithm, we perform the following steps in each policy update:</span></span>
+<span id="cb2-1317"><a href="#cb2-1317"></a><span class="at">&gt;</span></span>
+<span id="cb2-1318"><a href="#cb2-1318"></a><span class="at">&gt; - Using several epochs of minibatch SGD, optimize the KL-penalized objective</span></span>
+<span id="cb2-1319"><a href="#cb2-1319"></a></span>
+<span id="cb2-1320"><a href="#cb2-1320"></a>$$</span>
+<span id="cb2-1321"><a href="#cb2-1321"></a>L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid s_t\right), \pi_\theta\left(\cdot \mid s_t\right)\right]\right]</span>
+<span id="cb2-1322"><a href="#cb2-1322"></a>$$</span>
+<span id="cb2-1323"><a href="#cb2-1323"></a></span>
+<span id="cb2-1324"><a href="#cb2-1324"></a><span class="at">&gt; </span></span>
+<span id="cb2-1325"><a href="#cb2-1325"></a></span>
+<span id="cb2-1326"><a href="#cb2-1326"></a>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 $r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}$就是$K L\left<span class="co">[</span><span class="ot">\pi_{\theta_{d d}}, \pi_\theta\right</span><span class="co">]</span>=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]$ 中对单个样本 $(s_t, a_t)$ 的值中 $\log$ 的真数。</span>
+<span id="cb2-1327"><a href="#cb2-1327"></a></span>
+<span id="cb2-1328"><a href="#cb2-1328"></a><span class="fu">## 致谢 {.appendix}</span></span>
+<span id="cb2-1329"><a href="#cb2-1329"></a></span>
+<span id="cb2-1330"><a href="#cb2-1330"></a>感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。</span>
+<span id="cb2-1331"><a href="#cb2-1331"></a></span>
+<span id="cb2-1332"><a href="#cb2-1332"></a>感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。</span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
