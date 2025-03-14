@@ -655,12 +655,13 @@ $$
 \begin{aligned}
 & \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] \\
 =& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} \log p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} \log p_{\theta}(\tau) \right] \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} p_{\theta}(\tau) \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) \right] \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  \left[ \nabla_{\theta} (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) -  \nabla_{\theta} \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
 =& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
-=& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\tau|}  p_{\theta}(\tau) \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
+=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  p_{\theta} \left[ \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
 =& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right) \right] \\
-= & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] - \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{\tau}) \right]
+= & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right]
 \end{aligned}
 $$ {#eq-kl-loss-grad-expect-k2-wrong}
 
@@ -748,7 +749,7 @@ $$
 \to& \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right] \\
 = & \nabla_{\theta} -  \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{\prod_{t=1}^{|\mathbf{\tau}|} \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{ \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right] \\
 = & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{ p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t) }{ p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t) } \right] \\
-= & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{ p_\theta\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)} \right] \\
+= & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{ p_\theta\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}  \right)}{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}  \right)} \right] \\
 = & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta} \left[ \log \frac{p_{\theta}\left(\mathbf{\tau}\right)}{p_{\text{ref}}\left(\mathbf{\tau}\right)} \right] \\
 = & \nabla_{\theta} - \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \\
 \end{aligned}
