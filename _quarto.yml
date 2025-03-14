@@ -1,0 +1,30 @@
+project:
+  type: website
+
+website:
+  site-url: https://tongyx361.github.io/blogs
+  title: "Shawn/Yuxuan Tong 童雨轩"
+  navbar:
+    right:
+      - icon: person
+        text: About
+        href: https://tongyx361.github.io
+      - icon: twitter-x
+        text: X
+        href: https://x.com/tongyx361
+      - icon: github
+        text: GitHub
+        href: https://github.com/tongyx361
+format:
+  html: 
+    theme: # https://quarto.org/docs/output-formats/html-themes.html
+      light:
+        - latera
+        - brand
+      dark:
+        - darkly
+        - brand
+    css: styles.css
+
+execute:
+  freeze: auto

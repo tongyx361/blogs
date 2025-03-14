@@ -1,0 +1,1328 @@
+---
+# title
+title: "重新思考 RL 中的 KL 梯度优化"
+subtitle: "修正 GRPO 公式与流行 LLM RL 框架"
+date: "2025-03-09"
+author: 
+  name: "童雨轩"
+  email: "tongyuxuan361@gmail.com"
+copyright:
+  holder: "童雨轩"
+  year: 2025
+# abstract
+abstract-title: Takeways
+abstract: |
+    对于 LLM RL 中相对于参考策略的 KL 优化，
+    
+    GRPO 公式
+
+    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决
+    - 将 KL 估计样本量应用于动作条件概率，而非轨迹联合概率，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
+    
+    目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，存在其他问题：
+
+    - 在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度
+    - KL loss 项的平均操作存在错误。
+  
+    本文分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
+# language
+lang: zh
+toc-title: 目录
+categories:
+    - Chinese 中文
+    - Technical 技术
+---
+
+# 引言：GRPO 公式的“错误”{#sec-grpo-kl-misunderstanding}
+
+GRPO [@shao2024deepseekmath] 的优化目标公式为：
+
+$$
+\begin{aligned}
+& \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
+& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|}\left\{\min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right]-\beta \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]\right\}
+\end{aligned}
+$$ {#eq-grpo-obj}
+
+其中
+
+$$
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{r e f}\right]=\frac{\pi_{r e f}\left(o_{i, t} \mid q, o_{i,<t}\right)}{\pi_\theta\left(o_{i, t} \mid q, o_{i,<t}\right)}-\log \frac{\pi_{r e f}\left(o_{i, i} \mid q, o_{i, \alpha}\right)}{\pi_\theta\left(o_{i, t} \mid q, o_{i, e t}\right)}-1
+$$ {#eq-grpo-obj-kl-term}
+
+
+首先，[@eq-grpo-obj] 中出现了 $\pi_{\theta_\text{old}}$，这意味着其考虑了 off-policy 设置，但 [@eq-grpo-obj-kl-term] 中却没有相应的处理，只适用于 $o_i \sim \pi_{\theta}$，无法正确处理 $o_i \sim \pi_{\theta_\text{old}}$。
+
+其次，[@eq-grpo-obj-kl-term] 将估计样本量 $\frac{\pi_{r e f}\left(o_{i, t} \mid q, o_{i,<t}\right)}{\pi_\theta\left(o_{i, t} \mid q, o_{i,<t}\right)}-\log \frac{\pi_{r e f}\left(o_{i, i} \mid q, o_{i, \alpha}\right)}{\pi_\theta\left(o_{i, t} \mid q, o_{i, e t}\right)}-1$ 写成 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{r e f}\right]$ 也并不十分恰当，因为 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{r e f}\right]$ 通常表示 KL 散度的真实值。
+
+而目前流行的 LLM RL 框架，在实现 KL 优化时，通常也忽略了 off-policy 问题，同时还存在其他一系列问题：
+
+1. 误认为前向传播估计出 KL 散度，再反向传播就能得到其梯度（但实际上通常并非如此）；
+2. 忽略了估计器应该用于轨迹概率，而不能是条件概率；
+3. 忽略了同一轨迹上 KL 对数概率必须求和以获得轨迹联合概率，而不能求平均；
+4. 错误地计算了平均操作。
+
+由于 on-policy 设置更加简单，但也已经暴露了上述大部分问题，我们可以先从 on-policy 设置开始讨论，后续再考虑 off-policy 设置。
+
+# 流行 LLM RL 框架中 on-policy KL 优化的实现 {#sec-popular-llm-rl-kl-optim}
+
+我们可以先回顾目前流行的 LLM RL 框架中对于 KL 优化的实现。以下我们以
+
+1. TRL^[https://github.com/huggingface/trl]，
+2. OpenRLHF^[https://github.com/OpenRLHF/OpenRLHF] [@hu2024openrlhf]
+3. verl^[https://github.com/volcengine/verl] [@sheng2024hybridflow]
+
+为例。
+
+熟悉这些框架的读者可以跳过本节，直接从 [@sec-rl-kl-optim-formulation] 开始阅读。
+
+## TRL：KL reward 项
+
+TRL 计算 KL 定义中的样本值 $\log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,t})}{\pi_{\theta_{\text{ref}}}(a_{i,t} \mid s_{i,t})}$，并将其从 reward 中减去。对应代码可见 [@lst-trl-kl-reward]。
+
+```{#lst-trl-kl-reward .python lst-cap="TRL 计算 KL 样本值 $\log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,t})}{\pi_{\theta_{\text{ref}}}(a_{i,t} \mid s_{i,t})}$ 并从 reward 中减去^[https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L500-506]"}
+# 4. compute rewards
+kl = logprobs - ref_logprobs
+non_score_reward = -args.kl_coef * kl
+rewards = non_score_reward.clone()
+# ...
+rewards[[actual_start, actual_end]] += scores
+```
+
+这可能会引起疑惑：为什么要将 KL 样本值从 reward 中减去？我们先将对此的讨论推迟到 @sec-why-kl-reward。
+
+## OpenRLHF
+
+### KL reward 项 {#sec-openrlhf-kl-reward}
+
+与 TRL 类似，OpenRLHF 支持计算 KL 估计样本值，并从 reward 中减去，但提供了多种计算 KL 估计样本值的方法。对应代码可见 [@lst-openrlhf-calc-kl-estimator]。
+
+```{#lst-openrlhf-calc-kl-estimator .python lst-cap="OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 ^[https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/models/utils.py#L7-L88]"}
+def compute_approx_kl(
+    log_probs: torch.Tensor,
+    log_probs_base: torch.Tensor,
+    action_mask: Optional[torch.Tensor] = None,
+    kl_estimator: str = "k1",
+) -> torch.Tensor:
+    """
+    Compute the approximate KL divergence between two distributions.
+    Schulman blog: http://joschu.net/blog/kl-approx.html
+
+    Args:
+        log_probs: Log probabilities of the new distribution.
+        log_probs_base: Log probabilities of the base distribution.
+        action_mask: Mask for actions.
+    """
+
+    if kl_estimator == "k1":
+        log_ratio = log_probs.float() - log_probs_base.float()
+        if action_mask is not None:
+            log_ratio = log_ratio * action_mask
+
+    # The $k_2$ estimator is the non negative kl approximation in
+    # http://joschu.net/blog/kl-approx.html
+    # The k2_loss is approximately equivalent to the
+    # one-step KL divergence penalty with the $k_1$ estimator
+    # used in https://arxiv.org/abs/2310.10505.
+    if kl_estimator == "k2":
+        log_ratio = log_probs.float() - log_probs_base.float()
+        if action_mask is not None:
+            log_ratio = log_ratio * action_mask
+        log_ratio = log_ratio**2 / 2.0
+
+    # The $k_3$ estimator is the non negative kl approximation in
+    # http://joschu.net/blog/kl-approx.html
+    if kl_estimator == "k3":
+        log_ratio = log_probs.float() - log_probs_base.float()
+        if action_mask is not None:
+            log_ratio = log_ratio * action_mask
+        log_ratio = -log_ratio
+        log_ratio = log_ratio.exp() - 1 - log_ratio
+
+    return log_ratio
+
+
+def compute_reward(
+    # ...
+    kl_coef: float,
+    kl: Union[torch.Tensor, list[torch.Tensor]],
+    # ...
+    num_actions: Optional[Union[int, list[int]]] = None,
+    # ...
+) -> Union[torch.Tensor, list[torch.Tensor]]:
+    # ...
+    if action_mask is not None:
+        # ...
+    else:
+        # ...
+        reward = []
+        for i, (kl_seg, action_len) in enumerate(zip(kl, num_actions)):
+            kl_reward = -kl_coef * kl_seg
+            kl_reward[action_len - 1] += r[i]
+            reward.append(kl_reward)
+
+    return reward
+```
+
+### KL loss 项
+
+此外，OpenRLHF 还支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中。对应代码可见 [@lst-openrlhf-calc-kl-loss]。
+
+```{#lst-openrlhf-calc-kl-loss .python lst-cap="OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 ^[https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_trainer.py#L337-L470]"}
+def training_step_actor(self, experience: Experience) -> Dict[str, float]:
+    self.actor.train()
+    # ...
+    if isinstance(experience.sequences, list):
+        # ...
+    else:
+        sequences = experience.sequences
+        old_action_log_probs = experience.action_log_probs
+        advantages = experience.advantages
+        num_actions = experience.action_mask.size(1)
+        packed_seq_lens = None
+        attention_mask = experience.attention_mask
+        if self.args.use_kl_loss and experience.base_action_log_probs is not None:
+            base_action_log_probs = experience.base_action_log_probs
+
+    # actor loss
+    action_log_probs, output = self.actor(
+        sequences,
+        num_actions,
+        # ...
+    )
+    # ...
+    # loss function
+    actor_loss = self.actor_loss_fn(
+        action_log_probs,
+        old_action_log_probs,
+        advantages,
+        # ...
+    )
+
+    if self.args.use_kl_loss:
+        if self.initial_model is not None:
+            kl = compute_approx_kl(
+                action_log_probs,
+                base_action_log_probs,
+                # ...
+                kl_estimator=self.args.kl_estimator,
+            )
+        else:
+            kl = torch.zeros_like(action_log_probs, dtype=action_log_probs.dtype, device=action_log_probs.device)
+
+        if not self.args.packing_samples:
+            kl_mean = masked_mean(kl, experience.action_mask, dim=-1)
+        else:
+            # ...
+
+        kl_loss = kl_mean.mean()
+        experience.info["kl"] = kl_loss.item()
+    else:
+        kl_loss = 0
+    # ...
+    self.strategy.optimizer_step(self.actor_optim, self.actor, self.actor_scheduler, name="actor")
+    # ...
+```
+
+## verl
+
+### KL reward 项
+
+verl 同样支持计算 KL 估计样本值并从 reward 中减去。对应代码可见 [@lst-verl-kl-reward]。
+
+```{#lst-verl-kl-reward .python lst-cap="verl 将 KL 估计样本值从 reward 中减去 ^[https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/trainer/ppo/ray_trainer.py#L131-L160]"}
+def apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, kl_penalty='kl'):
+    # ...
+    # compute kl between ref_policy and current policy
+    if 'ref_log_prob' in data.batch.keys():
+        kld = core_algos.kl_penalty(data.batch['old_log_probs'], data.batch['ref_log_prob'],
+                                    kl_penalty=kl_penalty)  # (batch_size, response_length)
+        kld = kld * response_mask
+        beta = kl_ctrl.value
+    else:
+        beta = 0
+        kld = torch.zeros_like(response_mask, dtype=torch.float32)
+
+    token_level_rewards = token_level_scores - beta * kld
+    # ...
+```
+
+### KL loss 项
+
+verl 也支持计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中。对应代码可见 [@lst-verl-kl-loss]。
+
+```{#lst-verl-kl-loss .python lst-cap="verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 ^[https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/workers/actor/dp_actor.py#L226-L327]"}
+def update_policy(self, data: DataProto):
+    # make sure we are in training mode
+    self.actor_module.train()
+    # ...
+    for epoch in range(self.config.ppo_epochs):
+        for batch_idx, data in enumerate(dataloader):
+            # ...
+            self.actor_optimizer.zero_grad()
+
+            for data in micro_batches:
+                # ...
+                responses = data['responses']
+                # ...
+                old_log_prob = data['old_log_probs']
+                # ...
+
+                # all return: (bsz, response_length)
+                entropy, log_prob = self._forward_micro_batch(micro_batch=data, temperature=temperature)
+
+                pg_loss, pg_clipfrac, ppo_kl = core_algos.compute_policy_loss(old_log_prob=old_log_prob,
+                                                                                log_prob=log_prob,
+                                                                                # ...
+                                                                                )
+                # ...
+
+                # compute policy loss
+                policy_loss = pg_loss - entropy_loss * entropy_coeff
+
+                if self.config.use_kl_loss:
+                    ref_log_prob = data['ref_log_prob']
+                    # compute kl loss
+                    kld = core_algos.kl_penalty(logprob=log_prob,
+                                                ref_logprob=ref_log_prob,
+                                                kl_penalty=self.config.kl_loss_type)
+                    kl_loss = masked_mean(kld, response_mask)
+
+                    policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
+                # ...
+                loss.backward()
+            # ...
+            grad_norm = self._optimizer_step()
+    # ...
+    self.actor_optimizer.zero_grad()
+    # ...
+```
+
+
+## 为什么要将 KL 从 reward 中减去 {#sec-why-kl-reward}
+
+将 KL 从 reward 中减去的做法应当主要参考的是 OpenAI 正式提出 RLHF 的论文 InstructGPT [@ouyang2022instructgpt]。
+
+### KL reward 的流行应当源自 RLHF 与 InstructGPT
+
+InstructGPT 论文中提到其向 reward 添加了相对于 SFT 模型的 KL 惩罚项，但并没有提到为什么将 KL 放在 reward 而非 loss 中。
+
+> ... In addition, we add a per-token KL penalty from the SFT model at each token to mitigate overoptimization of the reward model. The value function is initialized from the RM. We call these models "PPO."
+>
+> ...
+
+$$
+\begin{aligned}
+\text { objective }(\phi)= & E_{(x, y) \sim D_\pi^{\mathrm{RL}}}\left[r_\theta(x, y)-\beta \log \left(\pi_\phi^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x)\right)\right]+ \\
+& \gamma E_{x \sim D_{\text {remin }}}\left[\log \left(\pi_\phi^{\mathrm{RL}}(x)\right)\right]
+\end{aligned}
+$$
+
+> where $\pi_\phi^{\mathrm{RL}}$is the learned RL policy,$\pi^{\mathrm{SFT}}$ is the supervised trained model, and$D_{\text {pretrain }}$is the pretraining distribution. The KL reward coefficient, $\beta$, and the pretraining loss coefficient, $\gamma$, control the strength of the KL penalty and pretraining gradients respectively. For "PPO" models, $\gamma$ is set to 0 . Unless otherwise specified, in this paper InstructGPT refers to the PPO-ptx models.
+
+### OpenAI 论文中 KL reward 的出处 {#sec-oai-kl-reward-src}
+
+然而，在OpenAI 早期的一篇论文 "Learning to summarize from human feedback" [@stiennon2020summarize] 中，他们就已经采用了 KL reward，并提及了出处：
+
+> ... **Importantly, we include a term in the reward that penalizes the KL divergence between the learned RL policy $\pi_\phi^{\mathrm{RL}}$ with parameters $\phi$ and this original supervised model $\pi^{\mathrm{SFT}}$, as previously done in [25].** The full reward $R$ can be written as:
+
+$$
+R(x, y)=r_\theta(x, y)-\beta \log \left[\pi_\phi^{\mathrm{RL}}(y \mid x) / \pi^{\mathrm{SFT}}(y \mid x)\right]
+$$
+
+> This KL term serves two purposes. First, it acts as an entropy bonus, encouraging the policy to explore and deterring it from collaPsing to a single mode. Second, it ensures the policy doesn't learn to produce outputs that are too different from those that the reward model has seen during training.
+
+### KL reward 最早的出处
+
+[@sec-oai-kl-reward-src] 中 OpenAI 引用的 KL reward 出处 [25] 是 "Way Off-Policy Batch Deep Reinforcement Learning of Implicit Human Preferences in Dialog" [@jaques2019wayoffpolicy]。
+
+实际上，其中引入 KL 散度时，最初的形式是 loss 项，而非 reward 项，但其指出了两者的等价性：
+
+> Rather than simply sample from the prior, we would like the $Q$-learning algorithm to directly incorporate the prior into the policy. Thus, we use KL-control to penalize divergence between the prior $p(y \mid x)$, and the $Q$-network policy $\pi_\theta$, while still maximizing reward. Given a trajectory of actions, $\tau=\left\{a_1, a_2, \ldots a_{t-1}\right\}$, let $q(\tau)=\prod_{t=1}^T \pi_\theta\left(a_t, s_t\right)$be the policy of our$Q$-learning algorithm at the trajectory level. Similarly, let $p(\tau)=\prod_{t=1}^T p\left(a_t \mid s_t\right)$be the prior distribution over the trajectory, and$r(\tau)$ be the rewards. We seek to maximize the following KL-regularized objective:
+
+$$
+L(q)=\mathbb{E}_{q(\tau)}[r(\tau)] / c-D_{\text{KL}}[q(\tau) \mid p(\tau)]
+$$
+
+> Since $D_{\text{KL}}[q \mid p]=\sum_x q(x)(\log q(x)-\log p(x))$, we can see that this is equivalent to maximizing the following expected value function of the policy $\pi_\theta$ at the action level:
+
+$$
+Q^\pi\left(s_t, a_t\right)=\mathbb{E}_\pi\left[\sum^T r\left(s_{t^{\prime}}, a_{t^{\prime}}\right) / c+\log p\left(a_{t^{\prime}} \mid s_{t^{\prime}}\right)-\log \pi\left(a_{t^{\prime}} \mid s_{t^{\prime}}\right)\right]
+$$
+
+> 
+
+# LLM RL 中 KL 优化的数学形式化 {#sec-rl-kl-optim-formulation}
+
+为了进一步分析这些 LLM RL 框架中的实现是否正确，我们需要先形式化 LLM RL 中 KL 散度的优化。
+
+## RL 中的 KL 散度通常定义在轨迹分布上
+
+GRPO 公式 (@eq-grpo-obj) 中的 KL 项可以定义为：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & =\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\log \frac{p_{\theta}\left(\mathbf{\tau}\right)}{p_{\text{ref}}\left(\mathbf{\tau}\right)}\right]
+\end{aligned}
+$$ {#eq-def-kl-theta-ref}
+
+其中 $\mathbf{\tau}$ 是表示轨迹（Trajectory）的随机变量。注意，与策略梯度（Policy Gradient，PG）优化轨迹分布上奖励的期望类似，我们同样希望在轨迹分布上优化最新策略整体分布 $p_{\theta}$ 与参考策略整体分布 $p_{\text{ref}}$ 的 KL 散度。
+
+## 将轨迹展开为状态-动作序列
+
+RL 文献中通常会将轨迹 $\mathbf{\tau}$ 展开为状态-动作序列 $\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}$：^[这里我们离开了 GRPO 的符号系统，换用了 RL 文献中更常见的状态-动作符号系统。实际上，$\mathbf{q}$ 对应于 $\mathbf{s}_1$，而 ${\mathbf{o}}$ 对应于 $\mathbf{\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T}$。]
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & =\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\log \frac{p_{\theta}\left(\mathbf{\tau}\right)}{p_{\text{ref}}\left(\mathbf{\tau}\right)}\right] \\
+& = \mathbb{E}_{\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|},\right) \sim p_{\theta}}\left[\log \frac{p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|},, \mathbf{a}_{|\mathbf{\tau}|},\right)}{p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}\right)}\right] \\
+& = \mathbb{E}_{\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}\right) \sim p_{\theta}}\left[\log \frac{p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t)}{p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t)}\right] \\
+& = \mathbb{E}_{\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}\right) \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\right] \\
+\end{aligned}
+$$ {#eq-def-kl-theta-ref-state-action-ag}
+
+其中 $|\mathbf{\tau}|$ 为轨迹动作数的随机变量。
+
+此处利用了联合概率的展开，以 $p_{\theta}$ 为例：
+
+$$
+p_{\theta}(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) = p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t)
+$$ {#eq-dp-expansion}
+
+注意区分整体概率分布 $p_{\theta}$、策略（条件）概率分布 $\pi_{\theta}$ 与状态转移概率分布 $p$。
+
+## Markov 决策过程中的 KL 散度
+
+实际上，RL 文献中还经常将序列决策过程建模为一阶 Markov 决策过程（Markov Decision Process, MDP^[https://www.wikiwand.com/zh-cn/articles/%E9%A6%AC%E5%8F%AF%E5%A4%AB%E6%B1%BA%E7%AD%96%E9%81%8E%E7%A8%8B]。
+
+Markov 决策过程要求序列中的条件概率满足 Markov 性质，即只依赖于最新的 $n$ 个历史状态和动作，而非全部的历史信息，对应的过程称为 $n$ 阶 Markov 过程。以 $n=1$ 为例：
+
+$$
+\begin{aligned}
+\pi(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) & = \pi(\mathbf{a}_t \mid \mathbf{s}_t) \\
+p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t) & = p(\mathbf{s}_{t+1} \mid \mathbf{s}_t, \mathbf{a}_t) \\
+\end{aligned}
+$$ {#eq-def-markov-prop}
+
+则 [@eq-dp-expansion] 中的联合概率可以进一步简化为：
+
+$$
+p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) = p(s_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_t) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_t, \mathbf{a}_t)
+$$ {#eq-dp-expansion-markov-1}
+
+如果考虑一阶 Markov 过程，则 [@eq-def-kl-theta-ref-state-action-ag] 中的 KL 可以进一步简化为：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] = & = \mathbb{E}_{\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}\right) \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\right] \\
+& = \mathbb{E}_{\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}\right) \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_t)}\right] \\
+\end{aligned}
+$$ {#eq-def-kl-theta-ref-state-action-markov-1}
+
+## 语言模型作为序列决策过程 {#sec-lm-as-dp}
+
+目前的语言模型（Language Model, LM）通常建模为自回归模型，即当前 token 的生成依赖于所有之前的 token。
+
+尽管初看起来，自回归模型似乎无法满足 Markov 性质，但实际上我们也可以将自回归模型建模为一阶 Markov 过程。具体来说：令 $s_1$ 表示 prompt 中的所有 token，对于 $t >1$，
+
+- 如果令 $s_t$ 表示第 $t$ 个 token 前的所有 token，则自回归模型满足 Markov 性质。
+- 如果令 $s_t$ 仅表示第 $t-1$ 个 token，则自回归模型不满足 Markov 性质。
+
+接下来，我们先令 $s_t$ 表示前 $t$ 个 token 组成的序列，即不依赖于 Markov 性质继续推导，以获得尽可能通用的结论。在必要时，我们会再引入 Markov 性质。
+
+## 估计 KL 散度
+
+### 几乎不可能直接计算 KL 散度的真实值
+
+实际实现中，我们几乎不可能直接计算出 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$，因为 RL 中的 KL 散度定义要对轨迹空间求均值，而轨迹空间的大小 $\left|\mathcal{T}\right|$ 与轨迹最大长度 $T = \max_{\mathbf{\tau} \in \mathcal{T}} |\mathbf{\tau}|$ 成指数关系：
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
+& = \frac{1}{\left|\mathcal{T}\right|} \sum_{(s_1, a_1, \cdots, s_{|\tau|}, a_{|\tau|}) \in \mathcal{T}} \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
+\end{aligned}
+$$ {#eq-def-rl-kl-avg-over-traj}
+
+### 通常使用 Monte Carlo 方法估计 KL 散度
+
+所以，我们通常基于若干轨迹样本使用 Monte Carlo 方法^[https://www.wikiwand.com/zh-hans/articles/%E8%92%99%E5%9C%B0%E5%8D%A1%E7%BE%85%E6%96%B9%E6%B3%95]来估计 RL 中的 KL 散度，例如：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \frac{1}{\left|\mathcal{T}\right|} \sum_{(s_1, a_1, \cdots, s_{|\mathbf{\tau}|}, a_{|\mathbf{\tau}|}) \in \mathcal{T}} \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)} \\
+& \approx \frac{1}{N} \sum_{i=1}^{N} \left(\sum_{t=1}^{|\mathbf{\tau_{i }}|} \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)
+\end{aligned}
+$$ {#eq-def-rl-kl-mc-k1}
+
+其中，$\left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}$，$N$ 为估计使用的轨迹样本数量。
+
+### 不同的 KL 估计量
+
+实际上，Monte Carlo 方法允许使用样本导出的不同估计量，而不必是统计量定义中的样本量。不同的估计量有不同的偏差（Bias）和方差（Variance），从而构成了估计量选择之间的权衡。
+
+设 KL 估计量为 $k$，则对应的 KL 估计值为
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & \approx \frac{1}{N} \sum_{i=1}^{N} k(\tau_i)
+\end{aligned}
+$$ {#eq-def-rl-kl-mc-general}
+
+例如 [@sec-openrlhf-kl-reward] 提到，OpenRLHF 引入了 3 种 KL 散度的估计方法，分别称为 `k1`, `k2`, `k3`，这应该是主要参考了 John Schulman 的博客 "Approximating KL Divergence"^[http://joschu.net/blog/kl-approx.html]。
+
+verl 则考虑了更多估计方法。实际上，verl 还考虑了直接计算条件 KL 散度^[这里的条件 KL 散度只需要遍历整个词表，代价可能是可以接受的。]，但目前还没有实现。对应代码可见 [@lst-verl-kl-estimator]。
+
+```{#lst-verl-kl-estimator .python lst-cap="verl 的 KL 散度 Monte Carlo 估计样本值^[https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/trainer/ppo/core_algos.py#L351-L383]"}
+def kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_penalty) -> torch.FloatTensor:
+    # ...
+    if kl_penalty == "kl":
+        return logprob - ref_logprob
+
+    if kl_penalty == "abs":
+        return (logprob - ref_logprob).abs()
+
+    if kl_penalty == "mse":
+        return 0.5 * (logprob - ref_logprob).square()
+
+    # J. Schulman. Approximating kl divergence, 2020.
+    # # URL http://joschu.net/blog/kl-approx.html.
+    if kl_penalty == 'low_var_kl':
+        kl = ref_logprob - logprob
+        ratio = torch.exp(kl)
+        kld = (ratio - kl - 1).contiguous()
+        return torch.clamp(kld, min=-10, max=10)
+
+    if kl_penalty == "full":
+        # so, here logprob and ref_logprob should contain the logits for every token in vocabulary
+        raise NotImplementedError
+
+    raise NotImplementedError
+```
+
+由于 $k_1$、$k_2$、$k_3$ 三种估计量最为流行，我们将以这三种估计量为例展开分析。
+
+考虑 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \approx \frac{1}{N} \sum_{i=1}^{N} k_j(\tau_i)$，其中 $\tau_i \sim p_{\theta}$，令 $r = \frac{\pi_{\text{ref}}(\tau_i)}{\pi_{\theta}(\tau_i)}$，注意，此处 $r$ 并非 KL 定义中的样本量，而是其倒数，则：
+
+$$
+\begin{aligned}
+k_{1} & = - \log r \\
+k_{2} & = \frac{1}{2} (\log r)^2 \\
+k_{3} & = (r - 1) - \log r
+\end{aligned}
+$$ {#eq-def-kl-estimators}
+
+# 流行 on-policy KL 优化实现的数学形式化
+
+神经网络模型普遍使用梯度法优化，因此，我们主要关注这些 KL 优化实现导出的梯度。
+
+而由于 reward 项优化的实现涉及到基线（Baseline）、折扣（Discounting）、GAE [@schulman2018gae] 等内容，较为复杂，我们可以先分析 KL loss 项实现。
+
+## 分析流行的 “KL loss 项” 实现 {#sec-kl-loss-impl}
+
+上述框架中，OpenRLHF 与 verl 都实现了 “KL loss 项”，即先直接计算出 KL 估计量并加入到 loss 中，再反向传播得到梯度，期间默认没有去除梯度。
+
+然而，如 [@sec-grpo-kl-misunderstanding] 所述，这一做法是错误的，接下来我们将通过分析这些 “KL loss 项” 实际导出的梯度估计，说明其错误之处。
+
+### 不同 KL 估计量对应的 loss 项导出的梯度估计的一般形式
+
+观察 [@lst-openrlhf-calc-kl-loss] 计算 “KL loss” 项的部分。
+
+```python
+# ...
+kl = compute_approx_kl(
+    action_log_probs,
+    base_action_log_probs,
+    # ...
+    kl_estimator=self.args.kl_estimator,
+)
+# ...
+kl_mean = masked_mean(kl, experience.action_mask, dim=-1)
+# ...
+kl_loss = kl_mean.mean()
+# ...
+```
+
+这些代码：
+
+1. 计算了 `kl`，对应对每个动作 token $a_{i,t}$ 计算 “KL 估计量” $k$。
+2. 计算了 `kl_mean`，对应对每个轨迹 $\tau_i$ 计算均值 $\frac{1}{|\tau_i|} \sum_{t=1}^{|\tau_i|} k$。
+3. 计算了 `kl_loss`，对应对所有轨迹样本计算均值 $\frac{1}{N} \sum_{i=1}^{N} \frac{1}{|\tau_i|} \sum_{t=1}^{|\tau_i|} k$。
+
+由于其没有去除任何梯度，因此其导出的梯度估计值为
+
+$$
+\begin{aligned}
+\nabla_{\theta} \left( \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_i|} \frac{1}{|\tau_i|} k \right) = \frac{1}{N} \sum_{i=1}^{N} \frac{1}{|\tau_i|} \sum_{t=1}^{|\tau_i|}  \nabla_{\theta} k
+\end{aligned}
+$$ {#eq-def-kl-loss-grad-estim-openrlhf}
+
+[@lst-verl-kl-loss] 中 verl 的实现类似，但不同的是其平均是在所有 token 之间执行的，因此对应的梯度估计值为：
+
+$$
+\begin{aligned}
+\nabla_{\theta} \left( \frac{1}{\sum_{i=1}^{N} |\tau_i|} \sum_{i=1}^{N} k \right) = \frac{1}{\sum_{i=1}^{N} |\tau_i|} \sum_{i=1}^{N} \nabla_{\theta} k
+\end{aligned}
+$$ {#eq-def-kl-loss-grad-estim-verl}
+
+我们将平均操作一般化为权重 $w_{\mathbf{\tau}}$ 与 $w_{t}$，则不同 KL 估计量对应的 loss 项导出的梯度估计值的一般形式为：
+
+$$
+\begin{aligned}
+\sum_{i=1}^{N} w_{\mathbf{\tau}_i} \sum_{t=1}^{|\tau_i|} w_{t} \nabla_{\theta} k \\
+\end{aligned}
+$$ {#eq-def-kl-loss-grad-estim-general}
+
+则
+
+- OpenRLHF 对应 $w_{\mathbf{\tau}} = \frac{1}{N}, w_{t} = \frac{1}{|\tau|}$；
+- verl 对应 $w_{\mathbf{\tau}} = \frac{1}{\sum_{i=1}^{N} |\tau_i|}, w_{t} = 1$。
+
+此处，我们先以 OpenRLHF 的梯度估计 (@eq-def-kl-loss-grad-estim-openrlhf) 为例，分析不同 KL 估计量导出的梯度估计，其满足：
+
+$$
+\mathbb{E}_{\mathbf{\tau}_i \sim p_{\theta}} \left[ \frac{1}{N} \sum_{i=1}^{N} \frac{1}{|\tau_i|} \sum_{t=1}^{|\tau_i|}  \nabla_{\theta} k \right] = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \nabla_{\theta} k \right]
+$$ {#eq-def-kl-loss-grad-expect-openrlhf}
+
+我们会在 [@sec-derive-kld-grad] 中推导正确的 KL 梯度估计。
+
+### $k_1$ 导出的梯度：期望为 0
+
+向 [@eq-def-kl-loss-grad-expect-openrlhf] 代入 $k = k_1 = - \log r = \log \frac{1}{r} = \log \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}$，导出的梯度估计为
+
+$$
+\begin{aligned}
+& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} k \\
+=&\frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} \log \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} \\
+=&\frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta}\log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \\
+=&\frac{1}{|\mathbf{\tau}|} \nabla_{\theta} \log \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \\
+=&\frac{1}{|\mathbf{\tau}|} \left( \nabla_{\theta} \log \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) + \nabla_{\theta} \log \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}, \mathbf{a}_{t}) + \nabla_{\theta} \log \left( p(\mathbf{s}_{1}) \right) \right) \\
+=&\frac{1}{|\mathbf{\tau}|} \nabla_{\theta} \log \left( p(\mathbf{s}_{1}) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}, \mathbf{a}_{t}) \right) \\
+=&\frac{1}{|\mathbf{\tau}|} \nabla_{\theta} \log p_\theta(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) \\
+=&\frac{1}{|\mathbf{\tau}|} \nabla_{\theta} \log p_{\theta}(\tau)
+\end{aligned}
+$$ {#eq-kl-loss-grad-sample-k1}
+
+则其导出的梯度期望满足：
+
+$$
+\begin{aligned}
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right] 
+& = \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \frac{1}{|\tau|} \nabla_{\theta} \log p_{\theta}(\tau) \\
+& = \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) \\
+& = \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \nabla_{\theta} p_{\theta}(\tau) \\
+& = \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  p_{\theta}(\tau) \\
+& = \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} p_{\theta}(\mathbf{\tau}) \right]
+\end{aligned}
+$$ {#eq-kl-loss-grad-expect-k1}
+
+此处利用了 $p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) = \frac{1}{p_{\theta}(\tau)} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) = \nabla_{\theta} p_{\theta}(\tau)$。
+
+所以 $k_1$ loss 项优化的量是 $\frac{1}{|\mathcal{T}|}\sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  p_{\theta}(\tau)$。    `
+
+
+注意，$\forall \theta, \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) = 1$。
+
+因此，在这一约束下最小化 $k_1$ loss 项，更长的轨迹权重 $\frac{1}{|\tau|}$ 更小，减小一定概率，对 $\sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  p_{\theta}(\tau)$ 的贡献更小，这意味着该优化过程倾向于增大长轨迹的概率。
+
+特别地，当 $|\tau|$ 为定值，或不对同一轨迹中的 “$k_1$ 估计量”求均值时，可以直接去掉 $\frac{1}{|\tau|}$ 这一项，得到
+
+$$
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})\right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) = \nabla_{\theta} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) = \nabla_{\theta} 1 = 0
+$$ {#eq-kl-loss-grad-expect-k1-no-intra-traj-mean}
+
+这意味着使用该梯度更新参数，在平均意义上不会引起参数及其导出的分布改变。
+
+无论哪种情况，$k_1$ 导出的优化量都非常奇怪。同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。
+
+但保守起见，我们仍然保留该条件推导 $k_2$ 梯度的表达式。
+
+### $k_2$ 导出的梯度
+
+向 [@eq-def-kl-loss-grad-expect-openrlhf] 代入 $k = k_2 = \frac{1}{2} (\log r)^2 = \frac{1}{2} \left(\log \frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}\right)^2$，导出的单条轨迹 $\mathbf{\tau} \sim p_{\theta}$ 的梯度为
+$$
+\begin{aligned}
+& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} k\\
+=& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta}  \frac{1}{2} \left(\log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)^2 \\
+=& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \\
+=& - \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+=& - \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\theta}(\mathbf{\tau})} \right) \nabla_{\theta} \sum_{t=1}^{|\mathbf{\tau}|}  \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+=& \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})
+\end{aligned}
+$$ {#eq-kl-loss-grad-sample-k2}
+
+则其导出的梯度期望满足：
+
+$$
+\begin{aligned}
+& \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} \log p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} \log p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\tau|}  p_{\theta}(\tau) \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
+=& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right) \right] \\
+= & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] - \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \pi_{\theta}(\mathbf{\tau}) \right]
+\end{aligned}
+$$ {#eq-kl-loss-grad-expect-k2-wrong}
+
+此处利用了 $\log p(x) \nabla_{\theta} p(x) = \nabla_{\theta} (\log p(x) - 1) p(x)$
+
+尽管 $k_2$ 的优化量相对复杂，但注意，如果不对同一轨迹中的 “$k_2$ 估计量”求均值，则其优化量将变为：
+
+$$
+\begin{aligned}
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[\log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right] = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[\log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] = \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
+\end{aligned}
+$$ {#eq-kl-loss-grad-expect-k2}
+
+此时，最小化 $k_2$ loss 项，确实是在优化 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$。
+
+这也进一步说明了，对同一轨迹中的 “KL 估计量” 求均值，这一操作应当是错误的。
+
+### 为什么不应该对同一轨迹中的 “KL 估计量” 求均值 {#sec-kl-estim-no-mean}
+
+回顾 KL 估计量公式 (@eq-def-kl-estimators) ，应当注意到这些估计量使用的都是轨迹联合概率 $p_{\theta}(\mathbf{\tau})$，而不是条件概率 $\pi_{\theta}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)$ 或 $p(\mathbf{s}_{t+1} \mid \mathbf{s}_{1}, \cdots, \mathbf{s}_t, \mathbf{a}_t)$。
+
+假设我们知晓全部条件概率，则可以通过条件概率求积或对数条件概率求和的方式来求解联合概率，进而正确应用估计量。无论如何，都不应该有平均操作。额外加入平均操作，实际上添加了一个与轨迹动作数有关的权重 $\frac{1}{|\tau|}$，通常会使得梯度估计量出现偏差。
+
+此外，如果对条件概率强行计算估计量，则很难保证其积或其对数和仍然对应于联合概率。例如 $k_2$，$k_3$ 的和就包含并非联合概率的奇怪结果。
+
+接下来我们将直接忽略这一操作，即去除 $\frac{1}{|\tau|}$ 这一项。
+
+### $k_3$ 导出的梯度
+
+向 [@eq-def-kl-loss-grad-expect-openrlhf] 代入 $k = k_3 = (r - 1) - \log r = (\log \frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} - 1) - \log \frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}$，导出的单条轨迹 $\mathbf{\tau} \sim p_{\theta}$ 的梯度为
+$$
+\begin{aligned}
+& \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} k \\
+=& \sum_{t=1}^{|\mathbf{\tau}|} \nabla_{\theta} \left(\frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} - 1 - \log \frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}\right) \\
+=& \sum_{t=1}^{|\mathbf{\tau}|} - \frac{ \pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}^{2}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} \nabla_{\theta}  \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) - \nabla_{\theta} \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\theta}(\mathbf{\tau})} \\
+=& - \left( \sum_{t=1}^{|\mathbf{\tau}|} \frac{ \pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}^{2}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} \nabla_{\theta}  \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \right) - \nabla_{\theta} \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\theta}(\mathbf{\tau})} \\
+=& - \left( \sum_{t=1}^{|\mathbf{\tau}|} \frac{ \pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}^{2}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} \nabla_{\theta}  \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \right) + \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \\
+\end{aligned}
+$$ {#eq-kl-loss-grad-sample-k3}
+
+参考 [@eq-kl-loss-grad-sample-k1] 的推导，$\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \log p_{\theta}(\mathbf{\tau}) \right] = 0$，不妨直接省略。
+
+而剩余部分似乎很难通过消去 $\pi_{\theta}(\mathbf{\tau})$ 来提出 $\nabla_{\theta}$ 并准确分析。但显然也并非在优化 KL 散度。
+
+### 小结：”KL loss 项“中，只有基于 $k_2$ 相对合理
+
+综上所述，对于 OpenRLHF 实现的 “KL loss 项”，若修正去除对同一轨迹内的 “KL 估计量” 求均值这一操作，则
+
+1. $k_1$ 导出的梯度期望为 0，在平均意义上不改变分布。
+2. $k_2$ 导出的梯度能够正确优化 KL 散度。
+3. $k_3$ 导出的梯度十分复杂，难以分析，但并非在优化 KL 散度。
+
+## 分析流行的 “KL reward 项“ 实现
+
+### 类比 PG 优化 reward 来分析 KL reward 的作用 {#sec-analogy-pg-kl}
+
+由于 PG 优化的就是 reward，因此我们不妨从 PG 的估计出发。最常用的 PG 估计方式应当是：
+$$
+\nabla_\theta \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[r(\mathbf{\tau})\right] = \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right) \hat{A}_t \right]
+$$ {#eq-pg-est-adv}
+
+其中 $\hat{A}_t$ 为优势（Advantage）的估计量。
+
+为了方便观察 KL reward 项发挥的作用，我们将 $r_{\mathbf{\tau}}$ 展开，并不妨考虑一个更简单的估计，例如：
+
+$$
+\nabla_\theta \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[\sum_{t=1}^{|\mathbf{\tau}|} r(\mathbf{s}_t, \mathbf{a}_t) \right] = \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right) \sum_{t'=1}^{|\tau|} r(s_{t'}, a_{t'}) \right]
+$$ {#eq-pg-est-ret}
+
+简洁起见，这里省略了该估计方式正确性的证明，有兴趣的读者可以参考 UCB CS285 "Policy Gradient" 一讲^[https://rail.eecs.berkeley.edu/deeprlcourse/deeprlcourse/static/slides/lec-5.pdf]。
+
+类比 $r_{t'}$ 导出的梯度期望，将负的 KL 样本量 $- \log \frac{\pi_\theta\left(a_t \mid s_t \right)}{\pi_{\text{ref}}\left(a_t \mid s_t \right)}$ 加入 reward $r_{t'}$ 代入其中，导出的梯度期望为：
+
+$$
+\mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|} \nabla_\theta \log \pi_\theta\left(a_t \mid s_t \right) \sum_{t'=1}^{|\tau|} - \log \frac{\pi_\theta\left(a_{t'} \mid s_{t'} \right)}{\pi_{\text{ref}}\left(a_{t'} \mid s_{t'} \right)} \right] = \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}\right]
+$$ {#eq-kl-grad-est-markov-1}
+
+注意，以上推导假设 RL 优化的序列决策过程满足一阶 Markov 性质 (@eq-def-markov-prop)。
+
+实际上，还可以扩展到任意序列决策过程，即要求条件概率依赖于所有历史状态和动作，则对应的 KL 梯度期望为：
+
+$$
+\begin{aligned}
+& \nabla_{\theta}- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_t \right)} \right] \\
+\to& \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right] \\
+= & \nabla_{\theta} -  \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{\prod_{t=1}^{|\mathbf{\tau}|} \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{ \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right] \\
+= & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{ p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t) }{ p(\mathbf{s}_1) \prod_{t=1}^{|\mathbf{\tau}|} \pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right) \prod_{t=1}^{|\mathbf{\tau}|-1} p(\mathbf{s}_{t+1} \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t) } \right] \\
+= & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  \log \frac{ p_\theta\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)} \right] \\
+= & \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta} \left[ \log \frac{p_{\theta}\left(\mathbf{\tau}\right)}{p_{\text{ref}}\left(\mathbf{\tau}\right)} \right] \\
+= & \nabla_{\theta} - \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \\
+\end{aligned}
+$$ {#eq-kl-grad-est-dp}
+
+可见，计算 KL 样本量并放入 reward 中，导出的梯度期望即为两个分布的 KL 散度的负梯度，则最大化 reward，就会最小化 KL 散度，是正确的做法。
+
+### 不同 KL 估计量导出的 reward 项的作用
+
+不难注意到，[@sec-analogy-pg-kl] 中的 KL 样本量对应于 $k_1$ 估计量。
+
+一个自然的问题是，如果使用 $k_2$ 或 $k_3$ 等其他估计量，会得到什么结果？
+
+如 [@sec-kl-estim-no-mean] 所述，使用 $k_2$ 或 $k_3$ 等其他估计量，求和时通常无法得到联合概率，也就无法实现类似 [@eq-kl-grad-est-dp] 中的效果了。具体来说，其他估计量分别在优化
+
+- k2: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \frac{1}{2} \left( \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right)^{2} \right]$
+- k3: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} (\frac{\pi_{\text{ref}} \left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} - 1 - \log \frac{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}) \right]$
+
+显然，这里的求和无法得到联合概率。
+
+而如果先计算出联合概率，则只需考虑 
+
+$$
+\nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right) \right] 
+\approx \nabla_{\theta} \frac{1}{N} k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right)
+\approx \nabla_{\theta} - \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
+$$ {#eq-kl-reward-grad-expect-general}
+
+应当仍然符合条件。
+
+### 小结：KL reward 中，需要先计算出联合概率，再应用估计器
+
+暂时不考虑 off-policy 问题，GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 应当修正 KL 项如下：
+
+$$
+\begin{aligned}
+& \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
+& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] -\beta k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right\} 
+\end{aligned}
+$$ {#eq-grpo-obj-kl-fixed}
+
+
+# 推导 on-policy 设置下 KL 散度的梯度估计方法 {#sec-derive-kld-grad}
+
+前文中，我们分析了流行的 LLM RL 框架中对 KL 散度优化的实现，并得出了结论。另一种思路是直接推导出 KL 散度的梯度估计表达式，并据此实现代码。
+
+由于我们使用的是梯度法，为了优化 KL 散度，我们需要准确估计的是 KL 散度的梯度而非其本身。类似地，在 PG 中，我们需要最大化 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]$，估计的是其梯度 $\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau})]=\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}[r(\mathbf{\tau}) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})]$而不是$r(\mathbf{\tau})$ 本身。
+
+同时，如 [@#sec-kl-loss-impl] 所述，先前向传播估计 KL 散度，再直接反向传播，通常是无法直接得到 KL 散度的梯度的。所以，我们需要直接估计 KL 散度的梯度。
+
+首先，展开 KL 散度的表达式：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
+& \propto \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
+& = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
+& \cdot \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right)
+\end{aligned}
+$$ {#eq-kl-expansion-sum}
+
+再计算其梯度：
+
+$$
+\begin{aligned}
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & \propto \nabla_{\theta} \sum_{\tau \in \mathcal{T}} p(s_1) \left(\prod_{t=1}^{|\tau|} \pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t) \right) \left(\prod_{t=1}^{|\tau|-1} p(s_{t+1} \mid  s_1, a_1, \cdots, s_t, a_t)\right)  \\
+& \cdot \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid  s_1, a_1, \cdots, s_t)}\right) \\
+& = \sum_{\tau \in \mathcal{T}} p(s_1) \left(\prod_{t=1}^{|\tau| - 1} p(s_{t+1} \mid  s_1, a_1, \cdots, s_t, a_t)\right) \\
+& \cdot \nabla_{\theta} \left(\left(\prod_{t=1}^{|\tau|} \pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t) \right) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid  s_1, a_1, \cdots, s_t)}\right) \right)
+\end{aligned}
+$$ {#eq-kl-grad-expansion}
+
+[@eq-kl-grad-expansion] 中的梯度相当复杂，难以直接计算。接下来，我们将引入一系列合理的假设来简化它。
+
+## 在已知环境中简化 KL 梯度估计
+
+实际上，LLM 的许多任务中，环境中的状态转移概率分布均为已知的，有时还可能是确定性的（Deterministic）。
+
+当状态转移概率分布已知时，$\forall t, p_{\theta}(a_1, \cdots, s_t, a_t \mid s_1)$ 都是可以计算的，则 KL 散度可以直接写成：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \sum_{\mathbf{\tau} \in \mathcal{T}} p(\mathbf{s}_1) p_{\theta}(\mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|} \mid \mathbf{s}_1) \log \frac{p_{\theta}(\mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|} \mid \mathbf{s}_1)}{p_{\text{ref}}(\mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|} \mid \mathbf{s}_1)}  \\
+\end{aligned}
+$$ {#eq-kl-grad-expansion-known-transition}
+
+## 简写为 Contextual Bandit
+
+为了方便书写，我们可以进一步将模型简化为 contextual bandit，即令 $\mathbf{s}_1 = \mathbf{x} \in \mathcal{P}, (\mathbf{a}_1, \cdots, \mathbf{s}_T, \mathbf{a}_T) = \mathbf{y} \in \mathcal{R}$，其中 $\mathcal{P}, \mathcal{R}$ 分别表示 prompt / response 空间，则 KL 散度变为：
+
+$$
+\begin{aligned}
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{(\mathbf{x}, \mathbf{y}) \sim p_{\theta}}\left[\log \frac{\pi_{\theta}(\mathbf{y} \mid \mathbf{x})}{\pi_{\text{ref}}(\mathbf{y} \mid \mathbf{x})}\right] \\
+& = \sum_{(x, y) \in \mathcal{T}} p_{\theta}(x, y) \left(\sum_{t=1}^{T} \log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) \\
+& = \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right)
+\end{aligned}
+$$ {#eq-def-kl-cb}
+
+其梯度变为：
+
+$$
+\begin{aligned}
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \nabla_{\theta} \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) \\
+& = \sum_{(x, y) \in \mathcal{T}} p(s) \nabla_{\theta} \left(\pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right)\right)
+\end{aligned}
+$$ {#eq-def-kl-grad-cb}
+
+其中梯度项可以进一步展开为：
+
+$$
+\begin{aligned}
+& \nabla_{\theta} \left(\pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right)\right) \\
+=& \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) + \pi_{\theta}(y \mid x) \nabla_{\theta} \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) \\
+=& \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) + \pi_{\theta}(y \mid x) \frac{1}{\pi_\theta(y \mid x)} \nabla_{\theta} \pi_{\theta}(y \mid x) \\
+=& \left(\nabla_{\theta} \pi_{\theta}(y \mid x)\right) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) + \nabla_{\theta} \pi_{\theta}(y \mid x) \\
+=& \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x)
+\end{aligned}
+$$ {#eq-def-kl-grad-cb-grad-term}
+
+代入回 KL 梯度表达式：
+
+$$
+\begin{aligned}
+& \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \\
+=& \sum_{(x, y) \in \mathcal{T}} p(s) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x) \\
+=& \sum_{(x, y) \in \mathcal{T}} p(s) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x) \\
+=& \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)} \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \\
+=& \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x) \\
+=& \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
+=& \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] + \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] \\
+=& \mathbb{E}_{(x, y) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x)\right]
+\end{aligned}
+$$ {#eq-def-kl-grad-cb-expect}
+
+这里为了重新获得期望形式，引入了 $1 = \pi_{\theta}(y \mid x) / \pi_{\theta}(y \mid x)$，并利用了 $\nabla_{\theta} \log \pi_{\theta}(y \mid x) = \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)}$ 和 $\mathbb{E}_{(x, y) \sim p_{\theta}} \left[\nabla_{\theta} \log \pi_{\theta}(y \mid x)\right] = 0$。
+
+进行 Monte Carlo 估计：
+
+$$
+\begin{aligned}
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & \approx \frac{1}{N} \sum_{i=1}^{N} \left(\log \frac{\pi_{\theta}(y_i \mid x_i)}{\pi_{\text{ref}}(y_i \mid x_i)}\right) \nabla_{\theta} \log \pi_{\theta}(y_i \mid x_i)
+\end{aligned}
+$$ {#eq-def-kl-grad-cb-mc}
+
+其中 $(\mathbf{x}_i, \mathbf{y}_i) \sim p_{\theta}$。
+
+## 还原为已知环境决策过程
+
+将上面的 KL 梯度表达式还原为已知环境决策过程建模的形式：
+
+$$
+\begin{aligned}
+& \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]\\
+=& \mathbb{E}_{(\mathbf{x}, \mathbf{y}) \sim p_{\theta}} \left[\left(\log \frac{\pi_{\theta}(\mathbf{y} \mid \mathbf{x})}{\pi_{\text{ref}}(\mathbf{y} \mid \mathbf{x})}\right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{y} \mid \mathbf{x})\right] \\
+=& \mathbb{E}_{(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T}) \sim p_{\theta}} \left[\left(\sum_{t=1}^{T} \log \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_t)}\right) \left(\sum_{t=1}^{T} \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_t)\right)\right]
+\end{aligned}
+$$ {#eq-def-kl-grad-kt-mc}
+
+对应的 Monte Carlo 估计式为：
+
+$$
+\begin{aligned}
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & \approx \frac{1}{N} \sum_{i=1}^{N}  \left(\sum_{t=1}^{T}\log \frac{\pi_{\theta}(a_{i, t} \mid s_{1, t}, \cdots, a_{i, t-1}, s_{i, t})}{\pi_{\text{ref}}(a_{i, t} \mid s_{1, t}, \cdots, a_{i, t-1}, s_{i, t})}\right) \left(\sum_{t=1}^{T} \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{1, t}, \cdots, a_{i, t-1}, s_{i, t})\right)
+\end{aligned}
+$$ {#eq-def-kl-grad-kt-mc-loss}
+
+## 利用因果性技巧化简 KL 梯度估计^[https://www.wikiwand.com/en/articles/Policy_gradient_method]
+
+因果性技巧（Causality Trick）是分析序列决策过程时一个非常有用的技巧，其充分利用了因果性与“对数（条件）似然的梯度在似然（条件）概率分布上的期望为 0” 这两个性质。
+
+对于任何 $0 \leq t \leq |\tau|$，我们有
+$$
+\begin{aligned}
+& \mathbb{E}_{\mathbf{a}_t \sim \pi_\theta(\cdot \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) }\left[\nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t\right) \right] \\
+=& \sum_{a_t \in \mathcal{A}} \pi_\theta(a_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \nabla_\theta \log \pi_\theta(a_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \\
+=& \sum_{a_j \in \mathcal{A}} \pi_\theta(a_j \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_j) \cdot 0 \\
+=& 0
+\end{aligned}
+$$ {#eq-score-expect-zero}
+
+更进一步，如果 $\mathbf{\Psi}_{t'}$ 是一个与 $\mathbf{a}_t, \mathbf{s}_{t+1}, \mathbf{a}_{t+1}, \ldots$ 独立的随机变量，那么
+$$
+\begin{aligned}
+& \mathbb{E}_{\tau \sim p_\theta}\left[\mathbf{\Psi}_{t'} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t\right) \right] \\
+=& \mathbb{E}_{(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \sim p_\theta} \left[ \mathbb{E}_{(\mathbf{a}_t, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) \sim p_{\theta}(\cdot \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t} )} \left[ \mathbf{\Psi}_{t'} \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \right]
+ \right] \\
+=& \mathbb{E}_{(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \sim p_\theta} \left[ \mathbb{E}_{\mathbf{a}_t \sim \pi_{\theta}(\cdot \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t} )} \left[ \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \mathbb{E}_{
+    (\mathbf{s}_{t+1}, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) \sim p_{\theta}(\cdot \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}, \mathbf{a}_{t})} \left[\mathbf{\Psi}_{t'} \right] \right]
+ \right] \\
+=& \mathbb{E}_{(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \sim p_\theta} \left[ \mathbb{E}_{\mathbf{a}_t \sim \pi_{\theta}(\cdot \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t} )} \left[ \mathbf{\Psi}_{t'} \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \right]
+ \right] \\
+=& \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \sim p_\theta} \left[
+            \mathbb{E}_{\mathbf{a}_t \sim \pi_\theta(\cdot \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\left[\mathbf{\Psi}_{t'} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t\right) \right] 
+        \right] \\
+=& \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \sim p_\theta} \left[ \mathbb{E}_{\mathbf{a}_t \sim \pi_\theta(\cdot \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t)}\left[\mathbf{\Psi}_{t'} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t\right) \right] \right] \\
+=& \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t) \sim p_\theta} \left[ \mathbf{\Psi}_{t'} \cdot 0 \right] \\
+=& 0
+\end{aligned}
+$$ {#eq-score-indep-mul-expect-zero}
+
+其中，为了利用 [@eq-score-expect-zero] 的结论，我们利用了全期望定律，即
+
+$$
+\mathbb{E}_{(\mathbf{x}, \mathbf{y}) \sim p} \left[\mathbf{x}\right] = \mathbb{E}_{\mathbf{y} \sim p} \left[\mathbb{E}_{\mathbf{x} \sim p(\cdot \mid \mathbf{y})} [\mathbf{x}] \right]
+$$ {#eq-law-of-total-expectation}
+
+来引入我们想要的期望。
+
+$$
+\begin{aligned}
+& \mathbb{E}_{\tau \sim p_\theta}\left[\mathbf{\Psi}_i \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t\right) \right] \\
+=& \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \Psi_{t'} \nabla_\theta \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \\
+=& \sum_{\tau \in \mathcal{T}} p_\theta(s_1, a_1, \cdots, s_t) \pi_\theta(a_t \mid s_1, a_1, \cdots, s_t) p_\theta(s_{t+1}, \cdots, s_{|\tau|}, a_{|\tau|} \mid s_1, a_1, \cdots, s_t, a_t) \Psi_{t'} \nabla_\theta \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \\
+=& \sum_{(s_{1}, a_{1}, \cdots, s_{t})} p_\theta(s_1, a_1, \cdots, s_t)  \sum_{(a_{t}, s_{t+1}, \cdots, s_{|\tau|}, a_{|\tau|})} \pi_\theta(a_t \mid s_1, a_1, \cdots, s_t) \Psi_{t'} \nabla_\theta p_\theta(s_{t+1}, \cdots, a_{|\tau|} \mid s_1, a_1, \cdots, s_t, a_t) \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right)  \\
+=& \sum_{(s_{1}, a_{1}, \cdots, s_{t})} p_\theta(s_1, a_1, \cdots, s_t) \sum_{a_t \in \mathcal{A}}  \pi_\theta(a_t \mid s_1, a_1, \cdots, s_t) \nabla_\theta \log \pi_\theta\left(a_t \mid s_1, a_1, \cdots, s_t\right) \sum_{(s_{t+1}, \cdots, s_{|\tau|}, a_{|\tau|})}  p_\theta(s_{t+1}, \cdots, a_{|\tau|} \mid s_1, a_1, \cdots, s_t, a_t) \Psi_{t'} \\
+\end{aligned}
+$$ {#eq-score-indep-mul-expect-zero}
+
+
+考虑 Monte Carlo 估计式 [@eq-def-kl-grad-kt-mc-loss] 中的估计量，将对数条件似然梯度的求和展开，考虑其中任意一项乘积的期望：
+
+$$
+\mathbb{E}_{\mathbf{\tau_{i}} \sim p_{\theta}} \left[
+\log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})} \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})
+\right]
+$$ {#eq-def-kl-grad-kt-mc-loss-estimator-one-grad}
+
+
+由于序列决策过程满足因果性，即 $\forall t' < t$，$\mathbf{s}_{t'}, \mathbf{a}_{t'}$ 独立于 $\mathbf{s}_{t}, \mathbf{a}_{t}$，则可令 $\mathbf{\Psi}_{t'} = \nabla_{\theta} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})} $，其独立于 $\mathbf{s}_{i, t}, \mathbf{a}_{i, t}, \ldots$，利用 [@eq-score-indep-mul-expect-zero] 的性质，则有
+$$
+\forall t' < t, \mathbb{E}_{\mathbf{\tau_{i}} \sim p_{\theta}} \left[
+\log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})} \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})
+\right] = 0
+$$ {#eq-thm-kl-grad-kt-mc-loss-estimator-one-grad-previous-zero}
+
+
+将 [@eq-thm-kl-grad-kt-mc-loss-estimator-one-grad-previous-zero] 代入 KL 梯度表达式 (@eq-def-kl-grad-kt-mc) ，即可简化得到：
+
+$$
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] =  \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[\sum_{t=1}^{T} \left(\sum_{t'=t}^{T} \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})}{\pi_{\text{ref}}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{t}) \right]
+$$ {#eq-def-kl-grad-kt-reduce}
+
+对应的 Monte Carlo 估计式为：
+
+$$
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \approx \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_i|} \left(\sum_{t'=t}^{|\tau_i|} \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})}{\pi_{\text{ref}}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})} \right) \nabla_{\theta} \log \pi_{\theta}(a_{i, t} \mid s_{i, 1}, \cdots, a_{i, t-1}, s_{i, t})
+$$ {#eq-def-kl-grad-kt-reduce-mc}
+
+同样，要使用自动微分在反向传播时计算该梯度估计式，我们需要构造对应的 loss 函数：
+
+$$
+\mathcal{L}^{KL}_{\theta} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_i|} \text{nograd}\left (\sum_{t'=t}^{|\tau_i|} \log \frac{\pi_{\theta}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})}{\pi_{\text{ref}}(a_{i, t'} \mid s_{i, 1}, \cdots, a_{i, t'-1}, s_{i, t'})} \right) \log \pi_{\theta}(a_{i, t} \mid s_{i, 1}, \cdots, a_{i, t-1}, s_{i, t})
+$$ {#eq-def-kl-grad-kt-reduce-mc-loss}
+
+这里也可以看到，KL loss 项正确的实现要求：
+
+1. 在序列内 token 间，对对数条件概率先求和，得到 KL 样本值，
+2. 再在序列间求均值。
+
+因此 OpenRLHF (@eq-def-kl-loss-grad-estim-openrlhf) 与 verl (@eq-def-kl-loss-grad-estim-verl) 的权重都是错误的。
+
+## KL 梯度优化可以实现为 KL 样本值 reward {#sec-kl-grad-as-kl-reward}
+
+在 [@eq-def-kl-grad-kt-reduce] 中，令 $k\left(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t'}, \mathbf{a}_{t'}\right) = \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t'-1}, \mathbf{s}_{t'})}$，则有：
+$$
+\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] =  \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[\sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t-1}, \mathbf{s}_{t}) \right]
+$$ {#eq-def-kl-grad-kt-reduce-k}
+
+不难注意到 [@eq-def-kl-grad-kt-reduce-k] 中 $k$ 与 [@eq-pg-est-ret] 中 reward $r$ 在形式上的相似性，这也解释了为什么先前的工作要将 KL 样本值放进 reward。
+
+类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等。感兴趣的读者可以进一步参考 UCB CS285^[https://rail.eecs.berkeley.edu/deeprlcourse/] 等材料。
+
+# off-policy 设置下如何估计 KL 散度的梯度
+
+上面的推导中，我们假设了 RL 是 on-policy 设置，即采样策略即为最新策略 $\pi_\theta$。
+
+在这一节，我们进一步考虑 off-policy 设置，即一次采样获得样本会用于多次更新，除了第一次更新，采样策略 $\pi_{\theta_{\text{old}}}$ 与最新策略 $\pi_\theta$ 都会不同。off-policy 设置给 KL 散度优化带来的问题在于，我们需要优化最新策略 $\pi_\theta$ 的 KL 散度，但却没有来自 $p_{\theta}$ 的样本，这意味着我们无法直接使用梯度估计式 [@eq-def-kl-grad-kt-reduce-mc]。
+
+## 流行 LLM RL 框架中的 KL 优化实现忽略了 off-policy 问题
+
+遗憾的是，对于 KL 优化，GRPO 等工作，以及目前流行的 LLM RL 框架中，包括 TRL，都忽略了 off-policy 问题：对于 $\pi_\theta \neq \pi_{\theta_{\text{old}}}$，尽管没有来自最新策略 $p_{\theta}$ 的样本，却仍然在使用基于 on-policy 设置的优化方式。
+
+### TRL
+
+TRL 在 [@lst-trl-kl-reward] 中计算 KL 样本值使用的 `logprobs` 及其对应的轨迹样本均来自采样策略 $\pi_{\theta_{\text{old}}}$。对应代码可见 [@lst-trl-sample-and-calc-old-logprob]。
+
+```{#lst-trl-sample-and-calc-old-logprob .python lst-cap="TRL 使用采样样本并使用 $\pi_{\theta_{\text{old}}}$ 计算对数似然^[https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L406-L432]"}
+queries = data["input_ids"].to(device)
+# ...
+
+with unwrap_model_for_generation(
+    self.model, #...
+) as unwrapped_model:
+    query_responses, logitss = batch_generation(
+        unwrapped_model.policy,
+        queries,
+        # ...
+    )
+
+
+for i in range(0, queries.shape[0], args.local_rollout_forward_batch_size):
+    # ...
+    logits = logitss[i : i + args.local_rollout_forward_batch_size]
+    logprob = selective_log_softmax(logits, response)
+```
+
+注意，基于 $\mathbf{\tau} \sim \pi_{\theta_{\text{old}}}$ 计算的 KL 样本值可以用于估计 $\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_{\theta_{\text{old}}} \mid \pi_{\text{ref}}\right]$，在第一次更新时，由于 $\pi_\theta = \pi_{\theta_{\text{old}}}$，所以也可以用于估计 $\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \mid \pi_{\text{ref}}\right]$。但问题在于，从第二次更新开始，$\pi_\theta \neq \pi_{\theta_{\text{old}}}$，而我们仍然希望估计 $\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \mid \pi_{\text{ref}}\right]$。
+
+随后进行多轮 PPO 更新时，TRL 并没有基于当前策略 $\pi_{\theta}$ 重新估计 $\nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \mid \pi_{\text{ref}}\right]$。对应代码可见 [@lst-trl-ppo-update]。
+
+```{#lst-trl-ppo-update .python lst-cap="TRL PPO 多轮更新"}
+# Do multiple epochs of PPO training, with a fresh random shuffle in each epoch
+for ppo_epoch_idx in range(args.num_ppo_epochs):
+    b_inds = np.random.permutation(args.local_batch_size)
+    minibatch_idx = 0
+    for mini_batch_start in range(0, args.local_batch_size, args.local_mini_batch_size):
+        mini_batch_end = mini_batch_start + args.local_mini_batch_size
+        mini_batch_inds = b_inds[mini_batch_start:mini_batch_end]
+        gradient_accumulation_idx = 0
+        for micro_batch_start in range(0, args.local_mini_batch_size, args.per_device_train_batch_size):
+            with accelerator.accumulate(model):
+                micro_batch_end = micro_batch_start + args.per_device_train_batch_size
+                micro_batch_inds = mini_batch_inds[micro_batch_start:micro_batch_end]
+                mb_advantage = advantages[micro_batch_inds]
+                mb_responses = responses[micro_batch_inds]
+                mb_query_responses = query_responses[micro_batch_inds]
+                mb_logprobs = logprobs[micro_batch_inds]
+                mb_return = returns[micro_batch_inds]
+                mb_values = values[micro_batch_inds]
+
+
+                output, vpred_temp = forward(model, mb_query_responses, processing_class.pad_token_id)
+                logits = output.logits[:, context_length - 1 : -1]
+                logits /= args.temperature + 1e-7
+                new_logprobs = selective_log_softmax(logits, mb_responses)
+                new_logprobs = torch.masked_fill(
+                    new_logprobs, padding_mask[micro_batch_inds], INVALID_LOGPROB
+                )
+                vpred = vpred_temp[:, context_length - 1 : -1].squeeze(-1)
+                vpred = torch.masked_fill(vpred, padding_mask_p1[micro_batch_inds], 0)
+                vpredclipped = torch.clamp(
+                    vpred,
+                    mb_values - args.cliprange_value,
+                    mb_values + args.cliprange_value,
+                )
+                vf_losses1 = torch.square(vpred - mb_return)
+                vf_losses2 = torch.square(vpredclipped - mb_return)
+                vf_loss_max = torch.max(vf_losses1, vf_losses2)
+                vf_loss = 0.5 * masked_mean(vf_loss_max, ~padding_mask_p1[micro_batch_inds])
+                vf_clipfrac = masked_mean(
+                    (vf_losses2 > vf_losses1).float(), ~padding_mask_p1[micro_batch_inds]
+                )
+                logprobs_diff = new_logprobs - mb_logprobs
+                ratio = torch.exp(logprobs_diff)
+                pg_losses = -mb_advantage * ratio
+                pg_losses2 = -mb_advantage * torch.clamp(ratio, 1.0 - args.cliprange, 1.0 + args.cliprange)
+                pg_loss_max = torch.max(pg_losses, pg_losses2)
+                pg_loss = masked_mean(pg_loss_max, ~padding_mask[micro_batch_inds])
+                loss = pg_loss + args.vf_coef * vf_loss
+                accelerator.backward(loss)
+                optimizer.step()
+                optimizer.zero_grad()
+```
+
+### OpenRLHF
+
+类似地，OpenRLHF 在 [@lst-openrlhf-calc-kl-estimator] 中计算 KL 样本值使用的 `log_probs` 在 `make_experience` 时被计算，和对应的样本 `sequences` 都来自采样策略 $\pi_{\theta_{\text{old}}}$，而非当前策略 $\pi_{\theta}$。对应代码可见 [@lst-openrlhf-sample-and-calc-old-logprob]。
+
+```{#lst-openrlhf-sample-and-calc-old-logprob .python lst-cap="OpenRLHF 采样样本并使用 $\pi_{\theta_{\text{old}}}$ 计算对数似然"}
+# https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595
+def make_experience(self, samples: Samples) -> Experience:
+    """
+    Turn samples into experience by calculating logprobs, values, rewards, and kl divergence.
+    """
+    # ...
+    # https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L673-L680
+    action_log_probs = self.actor(
+        sequences,
+        num_actions,
+        # ...
+    )
+    # ...
+    # https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L704-L709
+    kl = compute_approx_kl(
+        action_log_probs,
+        base_action_log_probs,
+        # ...
+    )
+```
+
+从 [@lst-openrlhf-calc-kl-loss] 可见，OpenRLHF 在多次更新中，对于 KL reward，并没有重新计算，还是沿用了基于 $\pi_{\theta_{\text{old}}}$ 的 KL 样本值。注意，虽然其中 KL loss 项的计算使用了基于 $\pi_{\theta}$ 计算的对数似然，但如 [@sec-kl-loss-impl] 所述，KL loss 项的实现通常是错误的，且同样依赖于 on-policy 设置。
+
+
+### verl
+
+从 [@lst-verl-kl-reward] 可见，verl 同样使用 $\pi_{\theta_{\text{old}}}$ 计算 KL 样本值。
+
+从 [@lst-verl-kl-loss] 可见，verl 在多次更新中，对于 KL reward，也会沿用基于 $\pi_{\theta_{\text{old}}}$ 的 KL 样本值。
+
+## 利用重要性采样处理 off-policy 设置
+
+off-policy 设置下，我们没有来自最新策略 $\pi_{\theta}$ 的样本，而只能使用来自采样策略 $\pi_{\theta_{\text{old}}}$ 的样本，但我们仍然希望估计 $\nabla_{\theta} \mathbb{D}_{\text{KL}} \left[\pi_\theta \mid \pi_{\text{ref}}\right]$。
+
+熟悉 off-policy PG 的读者可能已经想到了，我们可以使用重要性采样（Importance Sampling，IS）技巧来解决这一问题，即
+
+$$
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[f(\mathbf{\tau})\right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) f(\tau)  = \sum_{\tau \in \mathcal{T}} p_{\theta_{\text{old}}}(\tau) \frac{p_{\theta}(\tau)}{p_{\theta_{\text{old}}}(\tau)} f(\tau) = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}} \left[\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} f(\mathbf{\tau})\right]
+$$ {#eq-is-off-policy-kl}
+
+利用重要性采样 (@eq-is-off-policy-kl) ，KL 梯度表达式 [@eq-def-kl-grad-kt-reduce] 可以转化为：
+
+$$
+\begin{aligned}
+& \nabla_{\theta} \mathbb{D}_{\text{KL}} \left[\pi_\theta \mid \pi_{\text{ref}}\right] \\
+=&  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right] \\
+=&  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \frac{p_{\theta}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}{p_{\theta_{\text{old}}}(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{T}, \mathbf{a}_{T})}  \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})  \right] \\
+=&  \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}}\left[ \left(\prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}\right) \sum_{t=1}^{|\mathbf{\tau}|} \left(\sum_{t'=t}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})}{\pi_{\text{ref}}(\mathbf{a}_{t'} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t'-1}, \mathbf{s}_{t'})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t}) \right]
+\end{aligned}
+$$ {#eq-def-kl-grad-kt-reduce-is}
+
+
+对应的 Monte Carlo 估计式为：
+
+$$
+\begin{aligned}
+& \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \\
+\approx& \frac{1}{N} \sum_{i=1}^{N} \left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t}) \\
+=& \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\mathbf{\tau}_{i}|} \left(\left(\prod_{t=1}^{|\mathbf{\tau}_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\mathbf{\tau}_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1}) }{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})
+\end{aligned}
+$$ {#eq-def-kl-grad-kt-reduce-is-mc}
+
+对应的 loss 函数为：
+
+$$
+\mathcal{L}^{KL}_{\theta} = - \frac{1}{N} \sum_{i=1}^{N} \sum_{t=1}^{|\tau_{i}|} \text{nograd}\left(\left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right)\sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})} \right) \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, t})
+$$ {#eq-def-kl-grad-kt-reduce-is-mc-loss}
+
+
+类似 [@eq-def-kl-grad-kt-reduce-k]，我们可以令 
+
+$$
+k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}
+$$ {#eq-def-kl-reward-is}
+
+注意，[@eq-def-kl-reward-is] 中的 $k$ 需要对于每个新的 $\pi_{\theta}$ 重新计算。
+
+# 结论：如何正确地在 RL 中优化 KL 散度
+
+## 修正 GRPO 公式中的 KL 项
+
+GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 对于 KL 优化主要存在两个错误：
+
+1. 忽略了 KL 优化的 off-policy 问题
+2. 错误地将 KL 估计器应用于条件概率
+
+对于这两个问题，在 [@eq-grpo-obj-kl-fixed] 的基础上，仿照 [@eq-def-kl-reward-is]，我们可以按如下方式修正：
+
+$$
+\begin{aligned}
+& \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
+& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right\} 
+\end{aligned}
+$$ {#eq-grpo-obj-kl-fixed-is}
+
+## 修正流行 LLM RL 框架中的 KL 优化实现
+
+目前流行的 LLM RL 框架中的 KL 优化实现，除了 GRPO 公式中体现的两个问题之外，还存在以下问题：
+
+1. 实现单独的 KL loss 项时，默认不去除任何梯度，（这可能是误以为直接前向传播估计 KL 散度，再反向传播就能得到正确的梯度导致的）
+2. 错误地实现了平均操作
+
+对于这些问题，可以按照如下思路修正：
+
+1. 为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项
+2. 应用 KL 估计器时，先对于序列内 token 间的对数条件概率求和，得到轨迹联合概率，再代入公式
+3. 如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 [@eq-def-kl-reward-is] 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）
+4. 如果不希望应用 reward 优化的其他技术，可以按 [@eq-def-kl-grad-kt-reduce-is-mc-loss] 实现为 KL loss 项
+
+# 讨论
+
+## 对于 KL 梯度更好的估计样本量
+
+如 [@sec-kl-grad-as-kl-reward] 所述，PG 使用了许多其他技术来改进其梯度估计，能否使用类似技术改进 KL 梯度估计？
+
+此外，John Schulman 的博客是针对估计 KL 散度分析了不同的估计样本量。但这些分析对于估计 KL 散度的梯度是否还成立？
+
+## KL-Regularized RL 的理论优势
+
+最近基于可验证 reward 的 RL 非常流行，其很大程度上避免了 reward hacking，直觉上，我们似乎不再需要相对于参考策略的 KL 正则化。
+
+然而，也有一些工作指出，KL-Regularized RL 在理论上还有许多其他优势。例如 @zhao2025logregretkl 证明了 KL-regularized RL 的 regret 只有 $\mathcal{O}(\log T)$，而常见的基于 contextual bandit 或 MDP 建模的 RL 方法 regret 通常不低于 $\mathcal{O}(\sqrt{T})$。粗浅地说，这是因为 KL 正则化目标项的存在，使得 value 分解有了特别的性质，例如凸性更强。
+
+# 附录 {.appendix}
+
+::: {.callout-tip}
+
+本文的作者（童雨轩）仍在寻找北美的 Ph.D. 或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页^[https://tongyx361.github.io]来获取进一步了解。
+
+:::
+
+## 致谢 {.appendix}
+
+感谢生广明、Wei Xiong、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论。
+
+感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
+
+
+## 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？” {.appendix}
+
+笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题^[https://x.com/pufanyi/status/1888845956684370202]：
+
+> A small question about GRPO: I noticed that the KL divergence in GRPO is written as KL(new || old), while TRPO and PPO use KL(old || new) as the constraint/penalty. Is there a difference between the two? Would modifying this part have any impact?
+>
+> TRPO [@schulman2015trpo]
+
+$$
+\begin{aligned}
+& \underset{\theta}{\text{maximize}}~L_{\theta_{\text {old }}}(\theta) \\
+& \text { subject to } \bar{D}_{\mathrm{KL}}^{\rho_{\theta_{\text {old }}}}\left(\theta_{\text {old }}, \theta\right) \leq \delta
+\end{aligned}
+$$ {#eq-trpo}
+
+> PPO [@schulman2017ppo]
+
+$$ 
+L^{K L P E N}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(\mathbf{y}_t \mid \mathbf{x}_t\right)}{\pi_{\theta_{\text {old }}}\left(\mathbf{y}_t \mid \mathbf{x}_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid \mathbf{x}_t\right), \pi_\theta\left(\cdot \mid \mathbf{x}_t\right)\right]\right]
+$$ {#eq-ppo-klpen}
+
+> GRPO [@shao2024deepseekmath]
+
+$$
+\begin{aligned}
+& \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
+& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|}\left\{\min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right]-\beta \mathbb{D}_{K L}\left[\pi_\theta \mid \pi_{\text{ref}}\right]\right\}
+\end{aligned}
+$$ {#eq-grpo}
+
+这个问题本身的答案是非常简单的。
+
+首先，这个问题混淆了两种不同的 KL 惩罚项：
+
+1. $\text{KL}[\pi_{\theta_{\text{old}}},\pi_{\theta}]$，其作用是约束最新策略 $\pi_{\theta}$不要离采样策略$\pi_{\theta_{\text{old}}}$ 太远，避免过大的更新导致策略崩溃，从而构成信任域（Trust Region, TR），也就是 TRPO 中的 TR。而 PPO 作为 TRPO 的近似实现，继承了这一点。
+2. $\text{KL}[\pi_{\theta},\pi_{\theta_{\text{ref}}}]$，其作用是约束最新策略 $\pi_{\theta}$不要离参考策略$\pi_{\theta_{\text{ref}}}$ 太远，从而更充分地利用参考策略中的先验。
+
+另外，这个问题忽略了 TRPO/PPO 公式中的 KL 损失项与 GRPO 公式中的 clip 函数实际上是出于同一目的，即约束 $\text{KL}[\pi_{\theta_{\text{old}}},\pi_{\theta}]$。如 PPO 论文第 3-4 节所说，两者可以相互替代或结合使用：
+
+> Let $r_t(\theta)$denote the probability ratio$r_{t}(\theta)=\frac{\pi_{\theta}\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}$, so $r\left(\theta_{\text{old}}\right)=1$. TRPO maximizes a "surrogate" objective
+
+$$
+L^{\text{CPI}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left[r_t(\theta) \hat{A}_t\right] .
+$$
+
+> ...
+>
+> The main objective we propose is the following:
+
+$$
+L^{\text{CLIP}}(\theta)=\hat{\mathbb{E}}_t\left[\min \left(r_t(\theta) \hat{A}_t, \text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\right]
+$$
+
+> where ePsilon is a hyperparameter, say, $\epsilon=0.2$. The motivation for this objective is as follows. The first term inside the $\min$ is $L^{C P I}$. The second term, $\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $r_t$outside of the interval$[1-\epsilon, 1+\epsilon]$.
+>
+> ...
+>
+> **Another approach, which can be used as an alternative to the clipped surrogate objective, or in addition to it, is to use a penalty on KL divergence**, and to adapt the penalty coefficient so that we achieve some target value of the KL divergence $d_{\text {targ }}$ each policy update. In our experiments, we found that the KL penalty performed worse than the clipped surrogate objective, however, we've included it here because it's an important baseline.
+>
+> In the simplest instantiation of this algorithm, we perform the following steps in each policy update:
+>
+> - Using several epochs of minibatch SGD, optimize the KL-penalized objective
+
+$$
+L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t-\beta \mathrm{KL}\left[\pi_{\theta_{\text {old }}}\left(\cdot \mid s_t\right), \pi_\theta\left(\cdot \mid s_t\right)\right]\right]
+$$
+
+> 
+
+顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 $r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}$就是$K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]$ 中对单个样本 $(s_t, a_t)$ 的值中 $\log$ 的真数。

@@ -1,0 +1,26 @@
+# options specified here will apply to all posts in this folder
+title-block-banner: true
+date-format: YYYY/MM/DD
+license: CC BY
+# toc
+toc: true
+toc-location: right-body
+toc-expand: true # Set to false to void covering overflowing content
+number-sections: true
+# code
+code-fold: true
+code-overflow: wrap
+code-line-numbers: true
+code-link: true
+code-tools: true
+# links
+link-external-icon: true
+link-external-newwindow: true
+# references
+bibliography: references.bib
+# footnote
+reference-location: section
+
+# freeze computational output
+# (see https://quarto.org/docs/projects/code-execution.html#freeze)
+freeze: true
