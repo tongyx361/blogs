@@ -1149,7 +1149,14 @@ $$
 \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[f(\mathbf{\tau})\right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) f(\tau)  = \sum_{\tau \in \mathcal{T}} p_{\theta_{\text{old}}}(\tau) \frac{p_{\theta}(\tau)}{p_{\theta_{\text{old}}}(\tau)} f(\tau) = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta_{\text{old}}}} \left[\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} f(\mathbf{\tau})\right]
 $$ {#eq-is-off-policy-kl}
 
-利用重要性采样 (@eq-is-off-policy-kl) ，KL 梯度表达式 [@eq-def-kl-grad-kt-reduce] 可以转化为：
+此处，重要性采样系数 $\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})}$ 可以仿照 [@eq-dp-expansion] 展开为：
+
+$$
+\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} = \prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{\pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}
+$$ {#eq-is-coef-expansion}
+^[实际计算中，[@eq-is-coef-expansion] 由于涉及到 $|\mathbf{\tau}|$ 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。]
+
+利用重要性采样 (@eq-is-off-policy-kl, @eq-is-coef-expansion) ，KL 梯度表达式 [@eq-def-kl-grad-kt-reduce] 可以转化为：
 
 $$
 \begin{aligned}
@@ -1200,7 +1207,7 @@ GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 对于 KL 优化主要存在两
 $$
 \begin{aligned}
 & \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
-& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right\} 
+& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old}}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] \right\} -\beta \left(\prod_{t=1}^{|o_{i}|}\frac{\pi_{\theta}(o_{i, t} | q, o_{i,\lt t})}{ \pi_{\theta_{\text{old}}}(o_{i, t} | q, o_{i,\lt t})}\right) k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right)
 \end{aligned}
 $$ {#eq-grpo-obj-kl-fixed-is}
 
@@ -1236,7 +1243,7 @@ $$ {#eq-grpo-obj-kl-fixed-is}
 
 ::: {.callout-tip}
 
-本文的作者（童雨轩）仍在寻找北美的 Ph.D. 或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页^[https://tongyx361.github.io]来获取进一步了解。
+本文的作者（童雨轩）仍在寻求北美的 Ph.D. 或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页^[https://tongyx361.github.io]来获取进一步了解。
 
 :::
 
