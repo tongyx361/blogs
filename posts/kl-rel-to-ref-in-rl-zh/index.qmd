@@ -763,34 +763,33 @@ $$ {#eq-kl-grad-est-dp}
 
 一个自然的问题是，如果使用 $k_2$ 或 $k_3$ 等其他估计量，会得到什么结果？
 
-如 [@sec-kl-estim-no-mean] 所述，使用 $k_2$ 或 $k_3$ 等其他估计量，求和时通常无法得到联合概率，也就无法实现类似 [@eq-kl-grad-est-dp] 中的效果了。具体来说，其他估计量分别在优化
+如 [@sec-kl-estim-no-mean] 所述，使用 $k_2$ 或 $k_3$ 等其他估计量，求和时通常无法得到联合概率。具体来说，其他估计量分别在优化
 
-- k2: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \frac{1}{2} \left( \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right)^{2} \right]$
-- k3: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} (\frac{\pi_{\text{ref}} \left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} - 1 - \log \frac{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}) \right]$
+- $k_2$: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \frac{1}{2} \left( \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} \right)^{2} \right]$
+- $k_3$: $- \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} (\frac{\pi_{\text{ref}} \left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)} - 1 - \log \frac{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}{\pi_{\theta}\left(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t \right)}) \right]$
 
-显然，这里的求和无法得到联合概率。
+显然，这里的求和无法得到联合概率，也就无法实现类似 [@eq-kl-grad-est-dp] 中的效果了。
 
 而如果先计算出联合概率，则只需考虑 
 
 $$
 \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right) \right] 
-\approx \nabla_{\theta} \frac{1}{N} k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right)
+\approx \nabla_{\theta} - \frac{1}{N} k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right)
 \approx \nabla_{\theta} - \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
 $$ {#eq-kl-reward-grad-expect-general}
 
 应当仍然符合条件。
 
-### 小结：KL reward 中，需要先计算出联合概率，再应用估计器
+### 小结：on-policy 设置下修正 GRPO 的 reward 项
 
-暂时不考虑 off-policy 问题，GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 应当修正 KL 项如下：
+暂时不考虑 off-policy 问题，根据 [@eq-kl-reward-grad-expect-general], GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 应当修正 KL 项如下：
 
 $$
 \begin{aligned}
 & \mathcal{J}_{\text{GRPO}}(\theta)=\mathbb{E}\left[q \sim P(Q),\left\{o_i\right\}_{i=1}^G \sim \pi_{\theta_{o l d}}(O \mid q)\right] \\
-& \frac{1}{G} \sum_{i=1}^G \frac{1}{\left|o_i\right|} \left\{ \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right] -\beta k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right) \right\} 
+& \frac{1}{G} \sum_{i=1}^G \left\{ \frac{1}{\left|o_i\right|} \sum_{t=1}^{\left|o_i\right|} \min \left[\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{o l d}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \hat{A}_{i, t}, \text{clip}\left(\frac{\pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\pi_{\theta_{\text {old }}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}, 1-\varepsilon, 1+\varepsilon\right) \hat{A}_{i, t}\right]  \right\}  -\beta k\left( \frac{\prod_{t=1}^{|o_i|} \pi_{\text{ref}}\left(o_{i, t} \mid q, o_{i,\lt t}\right)}{\prod_{t=1}^{|o_i|} \pi_\theta\left(o_{i, t} \mid q, o_{i,\lt t}\right)} \right)
 \end{aligned}
 $$ {#eq-grpo-obj-kl-fixed}
-
 
 # 推导 on-policy 设置下 KL 散度的梯度估计方法 {#sec-derive-kld-grad}
 
