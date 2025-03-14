@@ -12,9 +12,7 @@ copyright:
 # abstract
 abstract-title: Takeways
 abstract: |
-    对于 LLM RL 中相对于参考策略的 KL 优化，
-    
-    GRPO 公式
+    对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式
 
     - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算并添加重要性采样系数解决
     - 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
@@ -25,8 +23,8 @@ abstract: |
     - KL loss 项的平均操作存在错误。
   
     本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
+toc-expand: false
 # language
-lang: zh
 toc-title: 目录
 categories:
     - Chinese 中文
@@ -763,17 +761,17 @@ $k_2$ 或 $k_3$ 等其他估计量导致的一个问题，求和时通常无法�
 
 显然，这里的求和无法得到联合概率，也就无法实现类似 [@eq-kl-grad-est-dp] 中的效果了。
 
-而如果先计算出联合概率，则只需考虑 
+### 小结：在 on-policy 设置下修正 GRPO 目标的 KL 项
+
+若对动作对数条件似然计算 KL 估计样本量，则由于涉及到求和，$k_1$ 之外的估计量通常没有良好定义。
+
+但是若放弃对动作条件似然计算 KL 估计样本量，而是对求和之后的对数（条件）似然进行计算，则只需满足
 
 $$
 \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[  k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right) \right] 
 \approx \nabla_{\theta} - \frac{1}{N} k\left(\frac{ p_{\text{ref}}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}{ p_{\theta}\left(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_t, \mathbf{a}_t  \right)}\right)
 \approx \nabla_{\theta} - \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
 $$ {#eq-kl-reward-grad-expect-general}
-
-应当仍然符合条件。
-
-### 小结：on-policy 设置下修正 GRPO 的 reward 项
 
 暂时不考虑 off-policy 问题，根据 [@eq-kl-reward-grad-expect-general], GRPO 公式 (@eq-grpo-obj, @eq-grpo-obj-kl-term) 应当修正 KL 项如下：
 
@@ -784,7 +782,7 @@ $$
 \end{aligned}
 $$ {#eq-grpo-obj-kl-fixed}
 
-# 推导 on-policy 设置下 KL 散度的梯度估计方法 {#sec-derive-kld-grad}
+# 推导 on-policy 设置下 KL 散度的梯度估计 {#sec-derive-kld-grad}
 
 前文中，我们分析了流行的 LLM RL 框架中对 KL 散度优化的实现，并得出了结论。另一种思路是直接推导出 KL 散度的梯度估计表达式，并据此实现代码。
 

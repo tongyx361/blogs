@@ -7,13 +7,10 @@ website:
   navbar:
     right:
       - icon: person
-        text: About
         href: https://tongyx361.github.io
       - icon: twitter-x
-        text: X
         href: https://x.com/tongyx361
       - icon: github
-        text: GitHub
         href: https://github.com/tongyx361
 format:
   html: 

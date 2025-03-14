@@ -20,7 +20,8 @@ link-external-newwindow: true
 bibliography: references.bib
 # footnote
 reference-location: section
-
+# language
+lang: en
 # freeze computational output
 # (see https://quarto.org/docs/projects/code-execution.html#freeze)
 freeze: true
