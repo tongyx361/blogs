@@ -144,7 +144,7 @@
     "href": "posts/kl-rel-to-ref-in-rl-zh/index.html#修正流行-llm-rl-框架中的-kl-优化实现",
     "title": "重新思考 RL 中的 KL 梯度优化",
     "section": "7.2 修正流行 LLM RL 框架中的 KL 优化实现",
-    "text": "7.2 修正流行 LLM RL 框架中的 KL 优化实现\n目前流行的 LLM RL 框架中的 KL 优化实现，除了 GRPO 公式中体现的两个问题之外，还存在以下问题：\n\n实现单独的 KL loss 项时，默认不去除任何梯度，（这可能是误以为直接前向传播估计 KL 散度，再反向传播就能得到正确的梯度导致的）\n错误地实现了平均操作\n\n对于这些问题，可以按照如下思路修正：\n\n为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 \\(\\pi_\\theta\\) 重新计算 KL loss / reward 项\n应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式\n如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 Equation 55 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）\n如果不希望应用 reward 优化的其他技术，可以按 Equation 54 实现为 KL loss 项"
+    "text": "7.2 修正流行 LLM RL 框架中的 KL 优化实现\n目前流行的 LLM RL 框架中的 KL 优化实现，除了 GRPO 公式中体现的两个问题之外，还存在以下问题：\n\n实现单独的 KL loss 项时，默认不去除任何梯度，（这可能是误以为直接前向传播估计 KL 散度，再反向传播就能得到正确的梯度导致的）\n错误地实现了平均操作\n\n对于这些问题，可以按照如下思路修正：\n\n为 KL 项添加重要性采样，这需要从第二轮更新开始，每次基于新的 \\(\\pi_\\theta\\) 重新计算 KL loss / reward 项，包括重要性采样系数\n应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式\n如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 Equation 55 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）\n如果不希望应用 reward 优化的其他技术，可以按 Equation 54 实现为 KL loss 项"
   },
   {
     "objectID": "posts/kl-rel-to-ref-in-rl-zh/index.html#对于-kl-梯度更好的估计样本量",

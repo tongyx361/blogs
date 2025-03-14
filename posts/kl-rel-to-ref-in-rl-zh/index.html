@@ -1613,7 +1613,7 @@ k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\pr
 </ol>
 <p>对于这些问题，可以按照如下思路修正：</p>
 <ol type="1">
-<li>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 <span class="math inline">\(\pi_\theta\)</span> 重新计算 KL loss / reward 项</li>
+<li>为 KL 项添加重要性采样，这需要从第二轮更新开始，每次基于新的 <span class="math inline">\(\pi_\theta\)</span> 重新计算 KL loss / reward 项，包括重要性采样系数</li>
 <li>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</li>
 <li>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;55</a> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</li>
 <li>如果不希望应用 reward 优化的其他技术，可以按 <a href="#eq-def-kl-grad-kt-reduce-is-mc-loss" class="quarto-xref">Equation&nbsp;54</a> 实现为 KL loss 项</li>
@@ -3618,7 +3618,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-1220"><a href="#cb2-1220"></a></span>
 <span id="cb2-1221"><a href="#cb2-1221"></a>对于这些问题，可以按照如下思路修正：</span>
 <span id="cb2-1222"><a href="#cb2-1222"></a></span>
-<span id="cb2-1223"><a href="#cb2-1223"></a><span class="ss">1. </span>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项</span>
+<span id="cb2-1223"><a href="#cb2-1223"></a><span class="ss">1. </span>为 KL 项添加重要性采样，这需要从第二轮更新开始，每次基于新的 $\pi_\theta$ 重新计算 KL loss / reward 项，包括重要性采样系数</span>
 <span id="cb2-1224"><a href="#cb2-1224"></a><span class="ss">2. </span>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</span>
 <span id="cb2-1225"><a href="#cb2-1225"></a><span class="ss">3. </span>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-reward-is</span><span class="co">]</span> 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</span>
 <span id="cb2-1226"><a href="#cb2-1226"></a><span class="ss">4. </span>如果不希望应用 reward 优化的其他技术，可以按 <span class="co">[</span><span class="ot">@eq-def-kl-grad-kt-reduce-is-mc-loss</span><span class="co">]</span> 实现为 KL loss 项</span>

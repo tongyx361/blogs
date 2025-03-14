@@ -1881,7 +1881,7 @@ font-style: inherit;"># ...</span></span>
 </ol>
 <p>对于这些问题，可以按照如下思路修正：</p>
 <ol type="1">
-<li>为 KL 项添加重要性采样系数，这需要从第二轮更新开始，每次基于新的 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%5Ctheta"> 重新计算 KL loss / reward 项</li>
+<li>为 KL 项添加重要性采样，这需要从第二轮更新开始，每次基于新的 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%5Ctheta"> 重新计算 KL loss / reward 项，包括重要性采样系数</li>
 <li>应用 KL 估计样本量时，先对于序列内 token 间的对数条件似然求和，得到轨迹联合概率，再代入公式</li>
 <li>如果希望像对于 reward 优化一样使用基线、折扣、GAE等技术，可以按 Equation&nbsp;55 实现为 KL reward 项（尽管这些技术背后的考量并不一定适合 KL 散度，例如 reward 是允许自定义的，但 KL 散度有明确的定义）</li>
 <li>如果不希望应用 reward 优化的其他技术，可以按 Equation&nbsp;54 实现为 KL loss 项</li>
