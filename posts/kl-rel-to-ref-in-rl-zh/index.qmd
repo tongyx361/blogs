@@ -722,7 +722,7 @@ $$ {#eq-pg-est-ret}
 类比 $r_{t'}$ 导出的梯度期望，将负的 KL 样本量 $- \log \frac{\pi_\theta\left(a_t \mid s_t \right)}{\pi_{\text{ref}}\left(a_t \mid s_t \right)}$ 加入 reward $r_{t'}$ 代入其中，导出的梯度期望为：
 
 $$
-\mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|} \nabla_\theta \log \pi_\theta\left(a_t \mid s_t \right) \sum_{t'=1}^{|\tau|} - \log \frac{\pi_\theta\left(a_{t'} \mid s_{t'} \right)}{\pi_{\text{ref}}\left(a_{t'} \mid s_{t'} \right)} \right] = \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}\right]
+\mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|}  \left( \nabla_\theta \log \pi_\theta\left(a_t \mid s_t \right) \right) \sum_{t'=1}^{|\tau|} - \log \frac{\pi_\theta\left(a_{t'} \mid s_{t'} \right)}{\pi_{\text{ref}}\left(a_{t'} \mid s_{t'} \right)} \right] = \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}\right]
 $$ {#eq-kl-grad-est-markov-1}
 
 注意，以上推导假设 RL 优化的序列决策过程满足一阶 Markov 性质 (@eq-def-markov-prop)。
@@ -790,9 +790,7 @@ $$ {#eq-grpo-obj-kl-fixed}
 $$
 \begin{aligned}
 \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
-& \propto \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
-& = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
-& \cdot \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right)
+& \propto \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right)
 \end{aligned}
 $$ {#eq-kl-expansion-sum}
 
@@ -859,7 +857,6 @@ $$ {#eq-def-kl-grad-cb-grad-term}
 $$
 \begin{aligned}
 & \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] \\
-=& \sum_{(x, y) \in \mathcal{T}} p(s) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x) \\
 =& \sum_{(x, y) \in \mathcal{T}} p(s) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \pi_{\theta}(y \mid x) \\
 =& \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \frac{\nabla_{\theta} \pi_{\theta}(y \mid x)}{\pi_{\theta}(y \mid x)} \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \\
 =& \sum_{(x, y) \in \mathcal{T}} p(s) \pi_{\theta}(y \mid x) \left(\log \frac{\pi_{\theta}(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + 1\right) \nabla_{\theta} \log \pi_{\theta}(y \mid x) \\
@@ -963,7 +960,7 @@ $$
 $$ {#eq-def-kl-grad-kt-mc-loss-estimator-one-grad}
 
 
-由于序列决策过程满足因果性，即 $\forall t' < t$，$\mathbf{s}_{t'}, \mathbf{a}_{t'}$ 独立于 $\mathbf{s}_{t}, \mathbf{a}_{t}$，则可令 $\mathbf{\Psi}_{t'} = \nabla_{\theta} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})} $，其独立于 $\mathbf{s}_{i, t}, \mathbf{a}_{i, t}, \ldots$，利用 [@eq-score-indep-mul-expect-zero] 的性质，则有
+由于序列决策过程满足因果性，即 $\forall t' < t$，$\mathbf{s}_{t'}, \mathbf{a}_{t'}$ 独立于 $\mathbf{s}_{t}, \mathbf{a}_{t}$，则可令 $\mathbf{\Psi}_{t'} = \nabla_{\theta} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t'})}$，其独立于 $\mathbf{s}_{i, t}, \mathbf{a}_{i, t}, \ldots$，利用 [@eq-score-indep-mul-expect-zero] 的性质，则有
 $$
 \forall t' < t, \mathbb{E}_{\mathbf{\tau_{i}} \sim p_{\theta}} \left[
 \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t'-1}, \mathbf{s}_{i, t'})} \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{i, t} \mid \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})
