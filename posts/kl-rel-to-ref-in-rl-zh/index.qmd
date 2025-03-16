@@ -1293,7 +1293,7 @@ $$ {#eq-grpo}
 
 另外，这个问题忽略了 TRPO/PPO 公式中的 KL 损失项与 GRPO 公式中的 clip 函数实际上是出于同一目的，即约束 $\text{KL}[\pi_{\theta_{\text{old}}},\pi_{\theta}]$。如 PPO 论文第 3-4 节所说，两者可以相互替代或结合使用：
 
-> Let $r_t(\theta)$denote the probability ratio$r_{t}(\theta)=\frac{\pi_{\theta}\left(a_t \mid s_t\right)}{\left.\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}$, so $r\left(\theta_{\text{old}}\right)=1$. TRPO maximizes a "surrogate" objective
+> Let $r_t(\theta)$ denote the probability ratio $r_{t}(\theta)=\frac{\pi_{\theta}\left(a_t \mid s_t\right)}{\left(\pi_{\theta_{\text {old }}}\left|a_t\right| s_t\right)}$, so $r\left(\theta_{\text{old}}\right)=1$. TRPO maximizes a "surrogate" objective
 
 $$
 L^{\text{CPI}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)} \hat{A}_t\right]=\hat{\mathbb{E}}_t\left[r_t(\theta) \hat{A}_t\right] .
@@ -1307,11 +1307,11 @@ $$
 L^{\text{CLIP}}(\theta)=\hat{\mathbb{E}}_t\left[\min \left(r_t(\theta) \hat{A}_t, \text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t\right)\right]
 $$
 
-> where ePsilon is a hyperparameter, say, $\epsilon=0.2$. The motivation for this objective is as follows. The first term inside the $\min$ is $L^{C P I}$. The second term, $\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $r_t$outside of the interval$[1-\epsilon, 1+\epsilon]$.
+> where epsilon is a hyperparameter, say, $\epsilon=0.2$. The motivation for this objective is as follows. The first term inside the $\min$ is $L^{\text{CPI}}$. The second term, $\text{clip}\left(r_t(\theta), 1-\epsilon, 1+\epsilon\right) \hat{A}_t$, modifies the surrogate objective by clipping the probability ratio, which removes the incentive for moving $r_t$ outside of the interval $[1-\epsilon, 1+\epsilon]$.
 >
 > ...
 >
-> **Another approach, which can be used as an alternative to the clipped surrogate objective, or in addition to it, is to use a penalty on KL divergence**, and to adapt the penalty coefficient so that we achieve some target value of the KL divergence $d_{\text {targ }}$ each policy update. In our experiments, we found that the KL penalty performed worse than the clipped surrogate objective, however, we've included it here because it's an important baseline.
+> **Another approach, which can be used as an alternative to the clipped surrogate objective, or in addition to it, is to use a penalty on KL divergence**, and to adapt the penalty coefficient so that we achieve some target value of the KL divergence $d_{\text{targ}}$ each policy update. In our experiments, we found that the KL penalty performed worse than the clipped surrogate objective, however, we've included it here because it's an important baseline.
 >
 > In the simplest instantiation of this algorithm, we perform the following steps in each policy update:
 >
