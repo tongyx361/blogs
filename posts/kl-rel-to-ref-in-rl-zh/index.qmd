@@ -628,51 +628,50 @@ $$ {#eq-kl-loss-grad-expect-k1-no-intra-traj-mean}
 
 无论哪种情况，$k_1$ 导出的优化量都非常奇怪。同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。
 
-但保守起见，我们仍然保留该条件推导 $k_2$ 梯度的表达式。
+接下来，我们忽略这一项进行推导。
 
 ### $k_2$ 导出的梯度
 
 向 [@eq-def-kl-loss-grad-expect-openrlhf] 代入 $k = k_2 = \frac{1}{2} (\log r)^2 = \frac{1}{2} \left(\log \frac{\pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}\right)^2$，导出的单条轨迹 $\mathbf{\tau} \sim p_{\theta}$ 的梯度为
 $$
 \begin{aligned}
-& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} k\\
-=& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta}  \frac{1}{2} \left(\log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)^2 \\
-=& \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \\
-=& - \frac{1}{|\mathbf{\tau}|} \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
-=& - \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\theta}(\mathbf{\tau})} \right) \nabla_{\theta} \sum_{t=1}^{|\mathbf{\tau}|}  \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
-=& \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\text{ref}}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})
+& \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta} k\\
+=& \sum_{t=1}^{|\mathbf{\tau}|}  \nabla_{\theta}  \frac{1}{2} \left(\log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)^2 \\
+=& \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \\
+=& \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
 \end{aligned}
 $$ {#eq-kl-loss-grad-sample-k2}
 
-则其导出的梯度期望满足：
+显然，
 
 $$
 \begin{aligned}
-& \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) \right] \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  \left[ \nabla_{\theta} (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) -  \nabla_{\theta} \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
-=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \frac{1}{|\tau|}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
-=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  p_{\theta} \left[ \frac{1}{|\tau|} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
-=& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right) \right] \\
-= & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right]
+& \sum_{t=1}^{|\mathbf{\tau}|} \left( \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \\
+\neq & \left( \sum_{t=1}^{|\mathbf{\tau}|}  \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})} \right) \left( \sum_{t=1}^{|\mathbf{\tau}|} \nabla_{\theta} \log \pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t}) \right) \\
+=& \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau})
+\end{aligned}
+$$ {#eq-kl-loss-grad-sample-k2-wrong}
+
+然而，
+
+$$
+\begin{aligned}
+& \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} p_{\theta}(\tau) \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) \right] \\
+=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  \left[ \nabla_{\theta} (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) -  \nabla_{\theta} \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  p_{\theta} \left[ \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
+=& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right) \right] \\
+= & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] \\
+= & \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
 \end{aligned}
 $$ {#eq-kl-loss-grad-expect-k2-wrong}
 
 此处利用了 $\log p(x) \nabla_{\theta} p(x) = \nabla_{\theta} (\log p(x) - 1) p(x)$
 
-尽管 $k_2$ 的优化量相对复杂，但注意，如果不对同一轨迹中的 “$k_2$ 估计量”求均值，则其优化量将变为：
-
-$$
-\begin{aligned}
-\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[\log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right] = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[\log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] = \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
-\end{aligned}
-$$ {#eq-kl-loss-grad-expect-k2}
-
-此时，最小化 $k_2$ loss 项，确实是在优化 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$。
-
-这也进一步说明了，对同一轨迹中的 “KL 估计量” 求均值，这一操作应当是错误的。
+因此，最小化 $k_2$ loss 项 (@eq-kl-loss-grad-sample-k2-wrong) ，并非在优化 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$。
 
 ### 为什么不应该对同一轨迹中的 “KL 估计量” 求均值 {#sec-kl-estim-no-mean}
 
@@ -697,13 +696,9 @@ $$ {#eq-kl-loss-grad-sample-k3}
 
 而剩余部分似乎很难通过消去 $\pi_{\theta}(\mathbf{\tau})$ 来提出 $\nabla_{\theta}$ 并准确分析。但显然也并非在优化 KL 散度。
 
-### 小结：”KL loss 项“中，只有基于 $k_2$ 相对合理
+### 小结：流行的 ”KL loss 项“ 实现并不合理
 
-综上所述，对于 OpenRLHF 实现的 “KL loss 项”，若修正去除对同一轨迹内的 “KL 估计量” 求均值这一操作，则
-
-1. $k_1$ 导出的梯度期望为 0，在平均意义上不改变分布。
-2. $k_2$ 导出的梯度能够正确优化 KL 散度。
-3. $k_3$ 导出的梯度十分复杂，难以分析，但并非在优化 KL 散度。
+综上所述，对于 OpenRLHF 实现的 “KL loss 项”，若修正去除对同一轨迹内的 “KL 估计量” 求均值这一操作，则 $k_1$ 导出的梯度期望为 0，在平均意义上不改变分布；而 $k_2$，$k_3$ 导出的梯度仍然十分复杂，难以分析，但也并非在优化 KL 散度，这可能是因为其错误地将 KL 估计样本量应用于动作对数条件似然并求和，但这一操作实际上并没有良好定义。
 
 ## 分析流行的 “KL reward 项“ 实现
 
@@ -1326,6 +1321,8 @@ $$
 顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 $r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}$就是$K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]$ 中对单个样本 $(s_t, a_t)$ 的值中 $\log$ 的真数。
 
 ## 致谢 {.appendix}
+
+感谢王浩然对本文提供的重要反馈。
 
 感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。
 
