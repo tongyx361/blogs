@@ -37,14 +37,20 @@
 <li>错误地计算了平均操作。</li>
 </ol>
 <p>由于 on-policy 设置更加简单，但也已经暴露了上述大部分问题，我们可以先从 on-policy 设置开始讨论，后续再考虑 off-policy 设置。</p>
+<aside id="footnotes" class="footnotes footnotes-end-of-section">
+<hr>
+<ol>
+<li id="fn1"><p>http://joschu.net/blog/kl-approx.html↩︎</p></li>
+</ol>
+</aside>
 </section>
 <section id="sec-popular-llm-rl-kl-optim" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> 流行 LLM RL 框架中 on-policy KL 优化的实现</h1>
 <p>我们可以先回顾目前流行的 LLM RL 框架中对于 KL 优化的实现。以下我们以</p>
 <ol type="1">
-<li>TRL<sup>1</sup>，</li>
-<li>OpenRLHF<sup>2</sup> <span class="citation" data-cites="hu2024openrlhf">(Hu et al. 2024)</span></li>
-<li>verl<sup>3</sup> <span class="citation" data-cites="sheng2024hybridflow">(Sheng et al. 2024)</span></li>
+<li>TRL<sup>2</sup>，</li>
+<li>OpenRLHF<sup>3</sup> <span class="citation" data-cites="hu2024openrlhf">(Hu et al. 2024)</span></li>
+<li>verl<sup>4</sup> <span class="citation" data-cites="sheng2024hybridflow">(Sheng et al. 2024)</span></li>
 </ol>
 <p>为例。</p>
 <p>熟悉这些框架的读者可以跳过本节，直接从 Section&nbsp;3 开始阅读。</p>
@@ -54,7 +60,7 @@
 <div id="lst-trl-kl-reward" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-trl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;1: TRL 计算 KL 样本值 <img src="https://latex.codecogs.com/png.latex?%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bref%7D%7D%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D"> 并从 reward 中减去<sup>4</sup>
+Listing&nbsp;1: TRL 计算 KL 样本值 <img src="https://latex.codecogs.com/png.latex?%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bref%7D%7D%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D"> 并从 reward 中减去<sup>5</sup>
 </figcaption>
 <div aria-describedby="lst-trl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-trl-kl-reward" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-trl-kl-reward-1"><span class="co" style="color: #5E5E5E;
@@ -85,13 +91,13 @@ font-style: inherit;">+=</span> scores</span></code></pre></div>
 </figure>
 </div>
 <p>这可能会引起疑惑：为什么要将 KL 样本值从 reward 中减去？我们先将对此的讨论推迟到 Section&nbsp;2.4。</p>
-<aside id="footnotes" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-2" class="footnotes footnotes-end-of-section">
 <hr>
-<ol>
-<li id="fn1"><p>https://github.com/huggingface/trl↩︎</p></li>
-<li id="fn2"><p>https://github.com/OpenRLHF/OpenRLHF↩︎</p></li>
-<li id="fn3"><p>https://github.com/volcengine/verl↩︎</p></li>
-<li id="fn4"><p>https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L500-506↩︎</p></li>
+<ol start="2">
+<li id="fn2"><p>https://github.com/huggingface/trl↩︎</p></li>
+<li id="fn3"><p>https://github.com/OpenRLHF/OpenRLHF↩︎</p></li>
+<li id="fn4"><p>https://github.com/volcengine/verl↩︎</p></li>
+<li id="fn5"><p>https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L500-506↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -103,7 +109,7 @@ font-style: inherit;">+=</span> scores</span></code></pre></div>
 <div id="lst-openrlhf-calc-kl-estimator" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-openrlhf-calc-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 <sup>5</sup>
+Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 <sup>6</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-openrlhf-calc-kl-estimator" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-openrlhf-calc-kl-estimator-1"><span class="kw" style="color: #003B4F;
@@ -407,10 +413,10 @@ font-style: inherit;">return</span> reward</span></code></pre></div>
 </div>
 </figure>
 </div>
-<aside id="footnotes-2" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-3" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="5">
-<li id="fn5"><p>https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/models/utils.py#L7-L88↩︎</p></li>
+<ol start="6">
+<li id="fn6"><p>https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/models/utils.py#L7-L88↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -420,7 +426,7 @@ font-style: inherit;">return</span> reward</span></code></pre></div>
 <div id="lst-openrlhf-calc-kl-loss" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-openrlhf-calc-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 <sup>6</sup>
+Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 <sup>7</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-openrlhf-calc-kl-loss" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-openrlhf-calc-kl-loss-1"><span class="kw" style="color: #003B4F;
@@ -641,10 +647,10 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
 </figure>
 </div>
-<aside id="footnotes-3" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-4" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="6">
-<li id="fn6"><p>https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_trainer.py#L337-L470↩︎</p></li>
+<ol start="7">
+<li id="fn7"><p>https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_trainer.py#L337-L470↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -657,7 +663,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <div id="lst-verl-kl-reward" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-verl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <sup>7</sup>
+Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <sup>8</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-verl-kl-reward" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-verl-kl-reward-1"><span class="kw" style="color: #003B4F;
@@ -731,10 +737,10 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
 </figure>
 </div>
-<aside id="footnotes-4" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-5" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="7">
-<li id="fn7"><p>https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/trainer/ppo/ray_trainer.py#L131-L160↩︎</p></li>
+<ol start="8">
+<li id="fn8"><p>https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/trainer/ppo/ray_trainer.py#L131-L160↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -744,7 +750,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <div id="lst-verl-kl-loss" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-verl-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 <sup>8</sup>
+Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 <sup>9</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-verl-kl-loss" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-verl-kl-loss-1"><span class="kw" style="color: #003B4F;
@@ -920,10 +926,10 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
 </figure>
 </div>
-<aside id="footnotes-5" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-6" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="8">
-<li id="fn8"><p>https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/workers/actor/dp_actor.py#L226-L327↩︎</p></li>
+<ol start="9">
+<li id="fn9"><p>https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/workers/actor/dp_actor.py#L226-L327↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -983,32 +989,32 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 </section>
 <section id="将轨迹展开为状态-动作序列" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="将轨迹展开为状态-动作序列"><span class="header-section-number">3.2</span> 将轨迹展开为状态-动作序列</h2>
-<p>RL 文献中通常会将轨迹 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7B%5Ctau%7D"> 展开为状态-动作序列 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D">：<sup>9</sup></p>
+<p>RL 文献中通常会将轨迹 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7B%5Ctau%7D"> 展开为状态-动作序列 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D">：<sup>10</sup></p>
 <p><span id="eq-def-kl-theta-ref-state-action-ag"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20&amp;%20=%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Clog%20%5Cfrac%7Bp_%7B%5Ctheta%7D%5Cleft(%5Cmathbf%7B%5Ctau%7D%5Cright)%7D%7Bp_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7B%5Ctau%7D%5Cright)%7D%5Cright%5D%20%5C%5C%0A&amp;%20=%20%5Cmathbb%7BE%7D_%7B%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Clog%20%5Cfrac%7Bp_%7B%5Ctheta%7D%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%5Cright)%7D%7Bp_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%5Cright)%7D%5Cright%5D%20%5C%5C%0A&amp;%20=%20%5Cmathbb%7BE%7D_%7B%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Clog%20%5Cfrac%7Bp(%5Cmathbf%7Bs%7D_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%7D%7Bp(%5Cmathbf%7Bs%7D_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%7D%5Cright%5D%20%5C%5C%0A&amp;%20=%20%5Cmathbb%7BE%7D_%7B%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%7D%5Cright%5D%20%5C%5C%0A%5Cend%7Baligned%7D%0A%5Ctag%7B4%7D"></span></p>
 <p>其中 <img src="https://latex.codecogs.com/png.latex?%7C%5Cmathbf%7B%5Ctau%7D%7C"> 为轨迹动作数的随机变量。</p>
 <p>此处利用了联合概率的展开，以 <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D"> 为例：</p>
 <p><span id="eq-dp-expansion"><img src="https://latex.codecogs.com/png.latex?%0Ap_%7B%5Ctheta%7D(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D)%20=%20p(%5Cmathbf%7Bs%7D_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%0A%5Ctag%7B5%7D"></span></p>
 <p>注意区分整体概率分布 <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D">、策略（条件）概率分布 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> 与状态转移概率分布 <img src="https://latex.codecogs.com/png.latex?p">。</p>
-<aside id="footnotes-6" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-7" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="9">
-<li id="fn9"><p>这里我们离开了 GRPO 的符号系统，换用了 RL 文献中更常见的状态-动作符号系统。实际上，<img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bq%7D"> 对应于 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bs%7D_1">，而 <img src="https://latex.codecogs.com/png.latex?%7B%5Cmathbf%7Bo%7D%7D"> 对应于 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7B%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_T,%20%5Cmathbf%7Ba%7D_T%7D">。↩︎</p></li>
+<ol start="10">
+<li id="fn10"><p>这里我们离开了 GRPO 的符号系统，换用了 RL 文献中更常见的状态-动作符号系统。实际上，<img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bq%7D"> 对应于 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bs%7D_1">，而 <img src="https://latex.codecogs.com/png.latex?%7B%5Cmathbf%7Bo%7D%7D"> 对应于 <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7B%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_T,%20%5Cmathbf%7Ba%7D_T%7D">。↩︎</p></li>
 </ol>
 </aside>
 </section>
 <section id="markov-决策过程中的-kl-散度" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="markov-决策过程中的-kl-散度"><span class="header-section-number">3.3</span> Markov 决策过程中的 KL 散度</h2>
-<p>实际上，RL 文献中还经常将序列决策过程建模为一阶 Markov 决策过程（Markov Decision Process, MDP<sup>10</sup>。</p>
+<p>实际上，RL 文献中还经常将序列决策过程建模为一阶 Markov 决策过程（Markov Decision Process, MDP<sup>11</sup>。</p>
 <p>Markov 决策过程要求序列中的条件概率满足 Markov 性质，即只依赖于最新的 <img src="https://latex.codecogs.com/png.latex?n"> 个历史状态和动作，而非全部的历史信息，对应的过程称为 <img src="https://latex.codecogs.com/png.latex?n"> 阶 Markov 过程。以 <img src="https://latex.codecogs.com/png.latex?n=1"> 为例：</p>
 <p><span id="eq-def-markov-prop"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cpi(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%20&amp;%20=%20%5Cpi(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t)%20%5C%5C%0Ap(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%20&amp;%20=%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%20%5C%5C%0A%5Cend%7Baligned%7D%0A%5Ctag%7B6%7D"></span></p>
 <p>则 Equation&nbsp;5 中的联合概率可以进一步简化为：</p>
 <p><span id="eq-dp-expansion-markov-1"><img src="https://latex.codecogs.com/png.latex?%0Ap(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D)%20=%20p(s_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%0A%5Ctag%7B7%7D"></span></p>
 <p>如果考虑一阶 Markov 过程，则 Equation&nbsp;4 中的 KL 可以进一步简化为：</p>
 <p><span id="eq-def-kl-theta-ref-state-action-markov-1"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20=%20&amp;%20=%20%5Cmathbb%7BE%7D_%7B%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t)%7D%5Cright%5D%20%5C%5C%0A&amp;%20=%20%5Cmathbb%7BE%7D_%7B%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t)%7D%5Cright%5D%20%5C%5C%0A%5Cend%7Baligned%7D%0A%5Ctag%7B8%7D"></span></p>
-<aside id="footnotes-7" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-8" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="10">
-<li id="fn10"><p>https://www.wikiwand.com/zh-cn/articles/%E9%A6%AC%E5%8F%AF%E5%A4%AB%E6%B1%BA%E7%AD%96%E9%81%8E%E7%A8%8B↩︎</p></li>
+<ol start="11">
+<li id="fn11"><p>https://www.wikiwand.com/zh-cn/articles/%E9%A6%AC%E5%8F%AF%E5%A4%AB%E6%B1%BA%E7%AD%96%E9%81%8E%E7%A8%8B↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -1026,13 +1032,13 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 </section>
 <section id="通常使用-monte-carlo-方法估计-kl-散度" class="level3" data-number="3.5.2">
 <h3 data-number="3.5.2" class="anchored" data-anchor-id="通常使用-monte-carlo-方法估计-kl-散度"><span class="header-section-number">3.5.2</span> 通常使用 Monte Carlo 方法估计 KL 散度</h3>
-<p>所以，我们通常基于若干轨迹样本使用 Monte Carlo 方法<sup>11</sup>来估计 RL 中的 KL 散度，例如：</p>
+<p>所以，我们通常基于若干轨迹样本使用 Monte Carlo 方法<sup>12</sup>来估计 RL 中的 KL 散度，例如：</p>
 <p><span id="eq-def-rl-kl-mc-k1"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20&amp;%20=%20%5Cfrac%7B1%7D%7B%5Cleft%7C%5Cmathcal%7BT%7D%5Cright%7C%7D%20%5Csum_%7B(s_1,%20a_1,%20%5Ccdots,%20s_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20a_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D)%20%5Cin%20%5Cmathcal%7BT%7D%7D%20%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_t%20%5Cmid%20%20s_1,%20a_1,%20%5Ccdots,%20s_t)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(a_t%20%5Cmid%20s_1,%20a_1,%20%5Ccdots,%20s_t)%7D%20%5C%5C%0A&amp;%20%5Capprox%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Cleft(%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau_%7Bi%20%7D%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,1%7D,%20a_%7Bi,1%7D,%20%5Ccdots,%20s_%7Bi,t%7D)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,1%7D,%20a_%7Bi,1%7D,%20%5Ccdots,%20s_%7Bi,t%7D)%7D%5Cright)%0A%5Cend%7Baligned%7D%0A%5Ctag%7B10%7D"></span></p>
 <p>其中，<img src="https://latex.codecogs.com/png.latex?%5Cleft(%5Cmathbf%7Bs%7D_%7Bi,1%7D,%20%5Cmathbf%7Ba%7D_%7Bi,1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bi,%7C%5Cmathbf%7B%5Ctau_%7Bi%7D%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7Bi,%7C%5Cmathbf%7B%5Ctau_%7Bi%7D%7D%7C%7D%5Cright)%20%5Csim%20p_%7B%5Ctheta%7D">，<img src="https://latex.codecogs.com/png.latex?N"> 为估计使用的轨迹样本数量。</p>
-<aside id="footnotes-8" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-9" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="11">
-<li id="fn11"><p>https://www.wikiwand.com/zh-hans/articles/%E8%92%99%E5%9C%B0%E5%8D%A1%E7%BE%85%E6%96%B9%E6%B3%95↩︎</p></li>
+<ol start="12">
+<li id="fn12"><p>https://www.wikiwand.com/zh-hans/articles/%E8%92%99%E5%9C%B0%E5%8D%A1%E7%BE%85%E6%96%B9%E6%B3%95↩︎</p></li>
 </ol>
 </aside>
 </section>
@@ -1041,7 +1047,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <p>实际上，Monte Carlo 方法允许使用样本导出的不同估计量，而不必是统计量定义中的样本量。不同的估计量有不同的偏差（Bias）和方差（Variance），从而构成了估计量选择之间的权衡。</p>
 <p>设 KL 估计量为 <img src="https://latex.codecogs.com/png.latex?k">，则对应的 KL 估计值为</p>
 <p><span id="eq-def-rl-kl-mc-general"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20&amp;%20%5Capprox%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20k(%5Ctau_i)%0A%5Cend%7Baligned%7D%0A%5Ctag%7B11%7D"></span></p>
-<p>例如 Section&nbsp;2.2.1 提到，OpenRLHF 引入了 3 种 KL 散度的估计方法，分别称为 <code>k1</code>, <code>k2</code>, <code>k3</code>，这应该是主要参考了 John Schulman 的博客 “Approximating KL Divergence”<sup>12</sup>。</p>
+<p>例如 Section&nbsp;2.2.1 提到，OpenRLHF 引入了 3 种 KL 散度的估计方法，分别称为 <code>k1</code>, <code>k2</code>, <code>k3</code>，这应该是主要参考了 John Schulman 的博客 “Approximating KL Divergence”。</p>
 <p>verl 则考虑了更多估计方法。实际上，verl 还考虑了直接计算条件 KL 散度<sup>13</sup>，但目前还没有实现。对应代码可见 Listing&nbsp;6。</p>
 <div id="lst-verl-kl-estimator" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
@@ -1187,10 +1193,9 @@ font-style: inherit;">NotImplementedError</span></span></code></pre></div>
 <p>由于 <img src="https://latex.codecogs.com/png.latex?k_1">、<img src="https://latex.codecogs.com/png.latex?k_2">、<img src="https://latex.codecogs.com/png.latex?k_3"> 三种估计量最为流行，我们将以这三种估计量为例展开分析。</p>
 <p>考虑 <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20%5Capprox%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20k_j(%5Ctau_i)">，其中 <img src="https://latex.codecogs.com/png.latex?%5Ctau_i%20%5Csim%20p_%7B%5Ctheta%7D">，令 <img src="https://latex.codecogs.com/png.latex?r%20=%20%5Cfrac%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Ctau_i)%7D%7B%5Cpi_%7B%5Ctheta%7D(%5Ctau_i)%7D">，注意，此处 <img src="https://latex.codecogs.com/png.latex?r"> 并非 KL 定义中的样本量，而是其倒数，则：</p>
 <p><span id="eq-def-kl-estimators"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0Ak_%7B1%7D%20&amp;%20=%20-%20%5Clog%20r%20%5C%5C%0Ak_%7B2%7D%20&amp;%20=%20%5Cfrac%7B1%7D%7B2%7D%20(%5Clog%20r)%5E2%20%5C%5C%0Ak_%7B3%7D%20&amp;%20=%20(r%20-%201)%20-%20%5Clog%20r%0A%5Cend%7Baligned%7D%0A%5Ctag%7B12%7D"></span></p>
-<aside id="footnotes-9" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-10" class="footnotes footnotes-end-of-section">
 <hr>
-<ol start="12">
-<li id="fn12"><p>http://joschu.net/blog/kl-approx.html↩︎</p></li>
+<ol start="13">
 <li id="fn13"><p>这里的条件 KL 散度只需要遍历整个词表，代价可能是可以接受的。↩︎</p></li>
 <li id="fn14"><p>https://github.com/volcengine/verl/blob/f8acd9017b4db4eead1f34beb39fce9c39143194/verl/trainer/ppo/core_algos.py#L351-L383↩︎</p></li>
 </ol>
@@ -1323,7 +1328,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <p>实际上，还可以扩展到任意序列决策过程，即要求条件概率依赖于所有历史状态和动作，则对应的 KL 梯度期望为：</p>
 <p><span id="eq-kl-grad-est-dp"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A&amp;%20%5Cnabla_%7B%5Ctheta%7D-%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%20%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%5Ctheta%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%20%5Cright%5D%20%5C%5C%0A%5Cto&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%20%5Csum_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%5Ctheta%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%20%5Cright%5D%20%5C%5C%0A=%20&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%20%20%5Clog%20%5Cfrac%7B%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%5Ctheta%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%7B%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%7D%20%5Cright%5D%20%5C%5C%0A=%20&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%20%20%5Clog%20%5Cfrac%7B%20p(%5Cmathbf%7Bs%7D_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%5Ctheta%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%20%7D%7B%20p(%5Cmathbf%7Bs%7D_1)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Ba%7D_t%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t%20%5Cright)%20%5Cprod_%7Bt=1%7D%5E%7B%7C%5Cmathbf%7B%5Ctau%7D%7C-1%7D%20p(%5Cmathbf%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_t,%20%5Cmathbf%7Ba%7D_t)%20%7D%20%5Cright%5D%20%5C%5C%0A=%20&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%20%20%5Clog%20%5Cfrac%7B%20p_%5Ctheta%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%20%5Cright)%7D%7B%20p_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7Bs%7D_1,%20%5Cmathbf%7Ba%7D_1,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D,%20%5Cmathbf%7Ba%7D_%7B%7C%5Cmathbf%7B%5Ctau%7D%7C%7D%20%20%5Cright)%7D%20%5Cright%5D%20%5C%5C%0A=%20&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%20%5Cleft%5B%20%5Clog%20%5Cfrac%7Bp_%7B%5Ctheta%7D%5Cleft(%5Cmathbf%7B%5Ctau%7D%5Cright)%7D%7Bp_%7B%5Ctext%7Bref%7D%7D%5Cleft(%5Cmathbf%7B%5Ctau%7D%5Cright)%7D%20%5Cright%5D%20%5C%5C%0A=%20&amp;%20%5Cnabla_%7B%5Ctheta%7D%20-%20%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20%5C%5C%0A%5Cend%7Baligned%7D%0A%5Ctag%7B27%7D"></span></p>
 <p>可见，计算 KL 样本量并放入 reward 中，导出的梯度期望即为两个分布的 KL 散度的负梯度，则最大化 reward，就会最小化 KL 散度，是正确的做法。</p>
-<aside id="footnotes-10" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-11" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="15">
 <li id="fn15"><p>https://rail.eecs.berkeley.edu/deeprlcourse/deeprlcourse/static/slides/lec-5.pdf↩︎</p></li>
@@ -1413,7 +1418,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <li>再在序列间求均值。</li>
 </ol>
 <p>因此 OpenRLHF (Equation&nbsp;13) 与 verl (Equation&nbsp;14) 的权重都是错误的。</p>
-<aside id="footnotes-11" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-12" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="16">
 <li id="fn16"><p>https://www.wikiwand.com/en/articles/Policy_gradient_method↩︎</p></li>
@@ -1425,7 +1430,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <p>在 Equation&nbsp;46 中，令 <img src="https://latex.codecogs.com/png.latex?k%5Cleft(%5Cmathbf%7Bs%7D_%7B1%7D,%20%5Cmathbf%7Ba%7D_%7B1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bt'%7D,%20%5Cmathbf%7Ba%7D_%7Bt'%7D%5Cright)%20=%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_%7Bt'%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_%7B1%7D,%20%5Cmathbf%7Ba%7D_%7B1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bt'-1%7D,%20%5Cmathbf%7Bs%7D_%7Bt'%7D)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_%7Bt'%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_%7B1%7D,%20%5Cmathbf%7Ba%7D_%7B1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bt'-1%7D,%20%5Cmathbf%7Bs%7D_%7Bt'%7D)%7D">，则有： <span id="eq-def-kl-grad-kt-reduce-k"><img src="https://latex.codecogs.com/png.latex?%0A%5Cnabla_%7B%5Ctheta%7D%20%5Cmathbb%7BD%7D_%7B%5Ctext%7BKL%7D%7D%5Cleft%5B%5Cpi_%5Ctheta%20%5C%7C%20%5Cpi_%7B%5Ctext%7Bref%7D%7D%5Cright%5D%20=%20%20%5Cmathbb%7BE%7D_%7B%5Cmathbf%7B%5Ctau%7D%20%5Csim%20p_%5Ctheta%7D%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7BT%7D%20%5Cleft(%5Csum_%7Bt'=t%7D%5E%7BT%7D%20k%5Cleft(%5Cmathbf%7Bs%7D_%7B1%7D,%20%5Cmathbf%7Ba%7D_%7B1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bt'%7D,%20%5Cmathbf%7Ba%7D_%7Bt'%7D%5Cright)%20%5Cright)%20%5Cnabla_%7B%5Ctheta%7D%20%5Clog%20%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cmathbf%7Bs%7D_%7B1%7D,%20%5Cmathbf%7Ba%7D_%7B1%7D,%20%5Ccdots,%20%5Cmathbf%7Bs%7D_%7Bt-1%7D,%20%5Cmathbf%7Bs%7D_%7Bt%7D)%20%5Cright%5D%0A%5Ctag%7B49%7D"></span></p>
 <p>不难注意到 Equation&nbsp;49 中 <img src="https://latex.codecogs.com/png.latex?k"> 与 Equation&nbsp;25 中 reward <img src="https://latex.codecogs.com/png.latex?r"> 在形式上的相似性，这也解释了为什么先前的工作要将 KL 样本值放进 reward。</p>
 <p>类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等。感兴趣的读者可以进一步参考 UCB CS285<sup>17</sup> 等材料。</p>
-<aside id="footnotes-12" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-13" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="17">
 <li id="fn17"><p>https://rail.eecs.berkeley.edu/deeprlcourse/↩︎</p></li>
@@ -1751,7 +1756,7 @@ font-style: inherit;">*</span> vf_loss</span>
 </div>
 </figure>
 </div>
-<aside id="footnotes-13" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-14" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="18">
 <li id="fn18"><p>https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L406-L432↩︎</p></li>
@@ -1846,7 +1851,7 @@ font-style: inherit;"># ...</span></span>
 <p>类似 Equation&nbsp;49，我们可以令</p>
 <p><span id="eq-def-kl-reward-is"><img src="https://latex.codecogs.com/png.latex?%0Ak(%5Cmathbf%7Bs%7D_%7Bi,%201%7D,%20%5Ccdots,%20%5Cmathbf%7Ba%7D_%7Bi,%20t-1%7D,%20%5Cmathbf%7Bs%7D_%7Bi,%20t%7D)%20=%20%5Cleft(%5Cprod_%7Bt=1%7D%5E%7B%7C%5Ctau_%7Bi%7D%7C%7D%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_%7Bi,%20t%7D%20%7C%20%5Cmathbf%7Bs%7D_%7Bi,%201%7D,%20%5Ccdots,%20%5Cmathbf%7Ba%7D_%7Bi,%20t-1%7D,%20%5Cmathbf%7Bs%7D_%7Bi,%20t%7D)%7D%7B%20%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bold%7D%7D%7D(%5Cmathbf%7Ba%7D_%7Bi,%20t%7D%20%7C%20%5Cmathbf%7Bs%7D_%7Bi,%201%7D,%20%5Ccdots,%20%5Cmathbf%7Ba%7D_%7Bi,%20t-1%7D,%20%5Cmathbf%7Bs%7D_%7Bi,%20t%7D)%7D%5Cright)%20%5Csum_%7Bt'=t%7D%5E%7B%7C%5Ctau_%7Bi%7D%7C%7D%20%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cmathbf%7Ba%7D_%7Bi,%20t'%7D%20%7C%20%5Cmathbf%7Bs%7D_%7Bi,%20t'%7D,%20%5Ccdots,%20%5Cmathbf%7Ba%7D_%7Bi,%20t-1%7D)%7D%7B%5Cpi_%7B%5Ctext%7Bref%7D%7D(%5Cmathbf%7Ba%7D_%7Bi,%20t'%7D%20%7C%20%5Cmathbf%7Bs%7D_%7Bi,%20t'%7D,%20%5Ccdots,%20%5Cmathbf%7Ba%7D_%7Bi,%20t-1%7D)%7D%0A%5Ctag%7B55%7D"></span></p>
 <p>注意，Equation&nbsp;55 中的 <img src="https://latex.codecogs.com/png.latex?k"> 需要对于每个新的 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> 重新计算。</p>
-<aside id="footnotes-14" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-15" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="19">
 <li id="fn19"><p>实际计算中，Equation&nbsp;51 由于涉及到 <img src="https://latex.codecogs.com/png.latex?%7C%5Cmathbf%7B%5Ctau%7D%7C"> 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。↩︎</p></li>
@@ -1915,6 +1920,7 @@ Tip
 
 
 
+
 </div></section><section id="相关工作" class="level2 appendix" data-number="9.1"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.1</span> 相关工作</h2><div class="quarto-appendix-contents">
 
 <p>与本文同期也有许多精彩的讨论，由于笔者还没能通读全文，此处仅提供链接，不作概括，欢迎感兴趣的读者自行阅读：</p>
@@ -1922,7 +1928,7 @@ Tip
 <li><a href="https://zhuanlan.zhihu.com/p/28440962040">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/28735759256">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</a></li>
 </ul>
-<aside id="footnotes-15" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-16" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="20">
 <li id="fn20"><p>https://tongyx361.github.io↩︎</p></li>
@@ -1974,7 +1980,7 @@ Tip
 
 </blockquote>
 <p>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 <img src="https://latex.codecogs.com/png.latex?r_t(%5Ctheta)=%5Cfrac%7B%5Cpi_%5Ctheta%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%20%7Bold%20%7D%7D%7D%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D">就是<img src="https://latex.codecogs.com/png.latex?K%20L%5Cleft%5B%5Cpi_%7B%5Ctheta_%7Bd%20d%7D%7D,%20%5Cpi_%5Ctheta%5Cright%5D=%5Cmathbb%7BE%7D_%7Ba_t%20%5Csim%20%5Cpi_%7B%5Ctheta_%7Bd%20t%7D%7D%5Cleft(%5Ccdot%20%5Cmid%20s_t%5Cright)%7D%5Cleft%5B%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta_%7Bd%20t%7D%7D%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%7B%5Cpi_%5Ctheta%5Cleft(a_t%20%5Cmid%20s_t%5Cright)%7D%5Cright%5D"> 中对单个样本 <img src="https://latex.codecogs.com/png.latex?(s_t,%20a_t)"> 的值中 <img src="https://latex.codecogs.com/png.latex?%5Clog"> 的真数。</p>
-<aside id="footnotes-16" class="footnotes footnotes-end-of-section">
+<aside id="footnotes-17" class="footnotes footnotes-end-of-section">
 <hr>
 <ol start="21">
 <li id="fn21"><p>https://x.com/pufanyi/status/1888845956684370202↩︎</p></li>
@@ -1985,6 +1991,35 @@ Tip
 <p>感谢王浩然对本文提供的重要反馈。</p>
 <p>感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。</p>
 <p>感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。</p>
+</div></section><section id="引用" class="level2 appendix" data-number="9.4"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.4</span> 引用</h2><div class="quarto-appendix-contents">
+
+<p>BibTeX:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">tong2025kl</span>,</span>
+<span id="cb2-2">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">author</span> = {童雨轩},</span>
+<span id="cb2-3">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">title</span> = {重新思考 {RL} 中的 {KL} 梯度优化},</span>
+<span id="cb2-4">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">year</span> = {2025},</span>
+<span id="cb2-5">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},</span>
+<span id="cb2-6">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">urldate</span> = {2025-03-09},</span>
+<span id="cb2-7">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">language</span> = {Chinese},</span>
+<span id="cb2-8">}</span></code></pre></div>
+<p>文本：</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div>
 
 
 <!-- -->
