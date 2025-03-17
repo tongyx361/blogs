@@ -450,7 +450,7 @@ $$
 \end{aligned}
 $$ {#eq-def-rl-kl-mc-k1}
 
-其中，$\left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}$，$N$ 为估计使用的轨迹样本数量。
+其中，$\mathbf{\tau_{i}} = \left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}$，$N$ 为估计使用的轨迹样本数量。
 
 ### 不同的 KL 估计量
 
