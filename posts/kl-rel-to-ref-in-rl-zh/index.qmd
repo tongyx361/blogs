@@ -434,8 +434,8 @@ $$ {#eq-def-kl-theta-ref-state-action-markov-1}
 实际实现中，我们几乎不可能直接计算出 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$，因为 RL 中的 KL 散度定义要对轨迹空间求均值，而轨迹空间的大小 $\left|\mathcal{T}\right|$ 与轨迹最大长度 $T = \max_{\mathbf{\tau} \in \mathcal{T}} |\mathbf{\tau}|$ 成指数关系：
 $$
 \begin{aligned}
-\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{|\mathbf{\tau}|}) \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
-& = \frac{1}{\left|\mathcal{T}\right|} \sum_{(s_1, a_1, \cdots, s_{|\tau|}, a_{|\tau|}) \in \mathcal{T}} \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}}\left[\sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(\mathbf{a}_t \mid  \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}{\pi_{\text{ref}}(\mathbf{a}_t \mid \mathbf{s}_1, \mathbf{a}_1, \cdots,\mathbf{s}_t)}\right] \\
+& = \sum_{\tau \in \mathcal{T}} p_{\theta} (\mathbf{\tau}) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
 \end{aligned}
 $$ {#eq-def-rl-kl-avg-over-traj}
 
@@ -445,7 +445,7 @@ $$ {#eq-def-rl-kl-avg-over-traj}
 
 $$
 \begin{aligned}
-\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \frac{1}{\left|\mathcal{T}\right|} \sum_{(s_1, a_1, \cdots, s_{|\mathbf{\tau}|}, a_{|\mathbf{\tau}|}) \in \mathcal{T}} \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)} \\
+\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] & = \sum_{\tau \in \mathcal{T}} p_{\theta} (\mathbf{\tau}) \left(\sum_{t=1}^{|\tau|} \log \frac{\pi_{\theta}(a_t \mid  s_1, a_1, \cdots, s_t)}{\pi_{\text{ref}}(a_t \mid s_1, a_1, \cdots, s_t)}\right) \\
 & \approx \frac{1}{N} \sum_{i=1}^{N} \left(\sum_{t=1}^{|\mathbf{\tau_{i }}|} \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)
 \end{aligned}
 $$ {#eq-def-rl-kl-mc-k1}
@@ -624,7 +624,7 @@ $$ {#eq-kl-loss-grad-expect-k1-no-intra-traj-mean}
 
 无论哪种情况，$k_1$ 导出的优化量都非常奇怪，不太可能出于实现者的本意。同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。
 
-接下来，我们忽略这一项进行推导。
+接下来，我们将直接忽略这一操作，即将 $\frac{1}{|\tau|}$ 一项替换为 $1$。
 
 ### $k_2$ 导出的梯度
 
@@ -653,12 +653,12 @@ $$ {#eq-kl-loss-grad-sample-k2-wrong}
 $$
 \begin{aligned}
 & \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} p_{\theta}(\tau) \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) \right] \\
-=& \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  \left[ \nabla_{\theta} (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) -  \nabla_{\theta} \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
-=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
-=& \nabla_{\theta} \frac{1}{|\mathcal{T}|} \sum_{\tau \in \mathcal{T}}  p_{\theta} \left[ \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
+=& \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} \log p_{\theta}(\tau) \\
+=& \sum_{\tau \in \mathcal{T}} \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} \right) \nabla_{\theta} p_{\theta}(\tau) \\
+=& \sum_{\tau \in \mathcal{T}} \left[ \left( \log p_{\theta}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) - \left( \log p_{\text{ref}}(\tau) \right) \nabla_{\theta} p_{\theta}(\tau) \right] \\
+=& \sum_{\tau \in \mathcal{T}}  \left[ \nabla_{\theta} (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) -  \nabla_{\theta} \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \sum_{\tau \in \mathcal{T}}  \left[ (\log p_{\theta}(\tau) - 1) p_{\theta}(\tau) - \log p_{\text{ref}}(\tau) p_{\theta}(\tau) \right] \\
+=& \nabla_{\theta} \sum_{\tau \in \mathcal{T}}  p_{\theta} \left[ \left( \log \frac{p_{\theta}(\tau)}{p_{\text{ref}}(\tau)} - 1 \right) \right] \\
 =& \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \left( \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} - 1 \right) \right] \\
 = & \nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[  \log \frac{p_{\theta}(\mathbf{\tau})}{p_{\text{ref}}(\mathbf{\tau})} \right] \\
 = & \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]
@@ -668,12 +668,6 @@ $$ {#eq-kl-loss-grad-expect-k2-wrong}
 此处利用了 $\log p(x) \nabla_{\theta} p(x) = \nabla_{\theta} (\log p(x) - 1) p(x)$
 
 因此，最小化 $k_2$ loss 项 (@eq-kl-loss-grad-sample-k2-wrong) ，并非在优化 $\mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right]$。
-
-### 为什么不应该对同一轨迹中的 “KL 估计量” 求均值 {#sec-kl-estim-no-mean}
-
-回顾 KL 估计量公式 (@eq-def-kl-estimators) ，应当注意到这些估计量是直接作用于似然 $p_{\theta}(\mathbf{\tau})$，而没有保证作用于概率后求积/对数和仍然有意义。例如 $k_2$，$k_3$ 的和就包含并非概率的奇怪结果。
-
-接下来我们将直接忽略这一操作，即去除 $\frac{1}{|\tau|}$ 这一项。
 
 ### $k_3$ 导出的梯度
 
@@ -699,7 +693,7 @@ $$ {#eq-kl-loss-grad-sample-k3}
 1. $k_1$ 导出的梯度
    1. 若修正去除对同一轨迹内的 “KL 估计量” 求均值这一操作，则其期望为 0，在平均意义上不改分布，
    2. 而如果不去除求均值带来的权重，则会导致输出长度减小。
-2. $k_2$，$k_3$ 导出的梯度则十分复杂，难以分析，但都并非在优化 KL 散度，这可能是因为其错误地将 KL 估计样本量应用于动作对数条件似然并求和，但这一操作实际上并没有良好定义。
+2. $k_2$，$k_3$ 导出的梯度则十分复杂，难以分析，但都并非在优化 KL 散度，这可能是因为其错误地将 KL 估计样本量应用于动作对数条件似然并求和。回顾 KL 估计量公式 (@eq-def-kl-estimators) ，应当注意到这些估计量是直接作用于似然 $p_{\theta}(\mathbf{\tau})$，而没有保证作用于概率后求积/对数和仍然有意义。
 
 ## 分析流行的 “KL reward 项“ 实现
 
