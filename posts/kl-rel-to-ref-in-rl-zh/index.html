@@ -1071,12 +1071,18 @@ k_{3} &amp; = (r - 1) - \log r
 \tag{18}\]</span></span></p>
 <p>此处利用了 <span class="math inline">\(p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) = \frac{1}{p_{\theta}(\tau)} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\tau) = \nabla_{\theta} p_{\theta}(\tau)\)</span>。</p>
 <p>所以 <span class="math inline">\(k_1\)</span> loss 项优化的量是 <span class="math inline">\(\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \frac{1}{|\mathbf{\tau}|} \right]\)</span>。这意味着该优化过程会降低采样轨迹的长度。</p>
-<p>特别地，当不对同一轨迹中的 “<span class="math inline">\(k_1\)</span> 估计量”求均值时，可以直接去掉 <span class="math inline">\(\frac{1}{|\tau|}\)</span> 这一项，得到 <span id="eq-kl-loss-grad-expect-k1-no-intra-traj-mean"><span class="math display">\[
-\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ 1 \right] = 0
-\tag{19}\]</span></span></p>
+<p>特别地，当不对同一轨迹中的 “<span class="math inline">\(k_1\)</span> 估计量”求均值，而是求和时，可以直接将 <span class="math inline">\(\frac{1}{|\tau|}\)</span> 这一项替换为 <span class="math inline">\(1\)</span>，得到 <span id="eq-kl-loss-grad-expect-k1-no-intra-traj-mean"><span class="math display">\[
+\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) = \sum_{\tau \in \mathcal{T}} \nabla_{\theta} p_{\theta} = \nabla_{\theta} \sum_{\tau \in \mathcal{T}} p_{\theta} = \nabla_{\theta} 1 = 0
+\tag{19}\]</span></span><a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a></p>
 <p>这意味着使用该梯度更新参数，在平均意义上不会引起参数及其导出的分布改变。</p>
-<p>无论哪种情况，<span class="math inline">\(k_1\)</span> 导出的优化量都非常奇怪，不太可能出于实现者的本意。同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。</p>
-<p>接下来，我们将直接忽略这一操作，即将 <span class="math inline">\(\frac{1}{|\tau|}\)</span> 一项替换为 <span class="math inline">\(1\)</span>。</p>
+<p>无论哪种情况，<span class="math inline">\(k_1\)</span> 导出的优化量都非常奇怪，不太可能出于实现者的本意。</p>
+<p>同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。接下来，我们将忽略这一操作，即将 <span class="math inline">\(\frac{1}{|\tau|}\)</span> 一项替换为 <span class="math inline">\(1\)</span>。</p>
+<aside id="footnotes-11" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<hr>
+<ol start="15">
+<li id="fn15"><p>此处对数似然的梯度的期望值为 0，是一个著名的性质，会在接下来频繁用到。<a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</aside>
 </section>
 <section id="k_2-导出的梯度" class="level3" data-number="4.1.3">
 <h3 data-number="4.1.3" class="anchored" data-anchor-id="k_2-导出的梯度"><span class="header-section-number">4.1.3</span> <span class="math inline">\(k_2\)</span> 导出的梯度</h3>
@@ -1125,7 +1131,7 @@ k_{3} &amp; = (r - 1) - \log r
 =&amp; - \left( \sum_{t=1}^{|\mathbf{\tau}|} \frac{ \pi_{\text{ref}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})}{\pi_{\theta}^{2}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t})} \nabla_{\theta}  \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t}) \right) + \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \\
 \end{aligned}
 \tag{23}\]</span></span></p>
-<p>参考 <a href="#eq-kl-loss-grad-sample-k1" class="quarto-xref">Equation&nbsp;17</a> 的推导，<span class="math inline">\(\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \log p_{\theta}(\mathbf{\tau}) \right] = 0\)</span>，不妨直接省略。</p>
+<p>其中，根据 <a href="#eq-kl-loss-grad-expect-k1-no-intra-traj-mean" class="quarto-xref">Equation&nbsp;19</a>，<span class="math inline">\(\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] = 0\)</span>，不妨直接省略。</p>
 <p>而剩余部分似乎很难通过消去 <span class="math inline">\(\pi_{\theta}(\mathbf{\tau})\)</span> 来提出 <span class="math inline">\(\nabla_{\theta}\)</span> 并准确分析。但显然也并非在优化 KL 散度。</p>
 </section>
 <section id="小结流行的-kl-loss-项-实现并不合理" class="level3" data-number="4.1.5">
@@ -1153,7 +1159,7 @@ k_{3} &amp; = (r - 1) - \log r
 <p><span id="eq-pg-est-ret"><span class="math display">\[
 \nabla_\theta \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[\sum_{t=1}^{|\mathbf{\tau}|} r(\mathbf{s}_t, \mathbf{a}_t) \right] = \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|} \nabla_\theta \log \pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right) \sum_{t'=1}^{|\tau|} r(s_{t'}, a_{t'}) \right]
 \tag{25}\]</span></span></p>
-<p>简洁起见，这里省略了该估计方式正确性的证明，有兴趣的读者可以参考 UCB CS285 “Policy Gradient” 一讲<a href="#fn15" class="footnote-ref" id="fnref15" role="doc-noteref"><sup>15</sup></a>。</p>
+<p>简洁起见，这里省略了该估计方式正确性的证明，有兴趣的读者可以参考 UCB CS285 “Policy Gradient” 一讲<a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a>。</p>
 <p>类比 <span class="math inline">\(r_{t'}\)</span> 导出的梯度期望，将负的 KL 样本量 <span class="math inline">\(- \log \frac{\pi_\theta\left(a_t \mid s_t \right)}{\pi_{\text{ref}}\left(a_t \mid s_t \right)}\)</span> 加入 reward <span class="math inline">\(r_{t'}\)</span> 代入其中，导出的梯度期望为：</p>
 <p><span id="eq-kl-grad-est-markov-1"><span class="math display">\[
 \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\tau|}  \left( \nabla_\theta \log \pi_\theta\left(a_t \mid s_t \right) \right) \sum_{t'=1}^{|\tau|} - \log \frac{\pi_\theta\left(a_{t'} \mid s_{t'} \right)}{\pi_{\text{ref}}\left(a_{t'} \mid s_{t'} \right)} \right] = \nabla_{\theta} - \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[ \sum_{t=1}^{|\mathbf{\tau}|} \log \frac{\pi_\theta\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}{\pi_{\text{ref}}\left(\mathbf{a}_t \mid \mathbf{s}_t \right)}\right]
@@ -1172,10 +1178,10 @@ k_{3} &amp; = (r - 1) - \log r
 \end{aligned}
 \tag{27}\]</span></span></p>
 <p>可见，计算 KL 样本量并放入 reward 中，导出的梯度期望即为两个分布的 KL 散度的负梯度，则最大化 reward，就会最小化 KL 散度，是正确的做法。</p>
-<aside id="footnotes-11" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-12" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="15">
-<li id="fn15"><p>https://rail.eecs.berkeley.edu/deeprlcourse/deeprlcourse/static/slides/lec-5.pdf<a href="#fnref15" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="16">
+<li id="fn16"><p>https://rail.eecs.berkeley.edu/deeprlcourse/deeprlcourse/static/slides/lec-5.pdf<a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </section>
@@ -1307,7 +1313,7 @@ k_{3} &amp; = (r - 1) - \log r
 \tag{39}\]</span></span></p>
 </section>
 <section id="利用因果性技巧化简-kl-梯度估计" class="level2" data-number="5.4">
-<h2 data-number="5.4" class="anchored" data-anchor-id="利用因果性技巧化简-kl-梯度估计"><span class="header-section-number">5.4</span> 利用因果性技巧化简 KL 梯度估计<a href="#fn16" class="footnote-ref" id="fnref16" role="doc-noteref"><sup>16</sup></a></h2>
+<h2 data-number="5.4" class="anchored" data-anchor-id="利用因果性技巧化简-kl-梯度估计"><span class="header-section-number">5.4</span> 利用因果性技巧化简 KL 梯度估计<a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a></h2>
 <p>因果性技巧（Causality Trick）是分析序列决策过程时一个非常有用的技巧，其充分利用了因果性与“对数（条件）似然的梯度在似然（条件）概率分布上的期望为 0” 这两个性质。</p>
 <p>对于任何 <span class="math inline">\(0 \leq t \leq |\tau|\)</span>，我们有 <span id="eq-score-expect-zero"><span class="math display">\[
 \begin{aligned}
@@ -1378,10 +1384,10 @@ k_{3} &amp; = (r - 1) - \log r
 <li>再在序列间求均值。</li>
 </ol>
 <p>因此 OpenRLHF (<a href="#eq-def-kl-loss-grad-estim-openrlhf" class="quarto-xref">Equation&nbsp;13</a>) 与 verl (<a href="#eq-def-kl-loss-grad-estim-verl" class="quarto-xref">Equation&nbsp;14</a>) 的权重都是错误的。</p>
-<aside id="footnotes-12" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-13" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="16">
-<li id="fn16"><p>https://www.wikiwand.com/en/articles/Policy_gradient_method<a href="#fnref16" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="17">
+<li id="fn17"><p>https://www.wikiwand.com/en/articles/Policy_gradient_method<a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </section>
@@ -1391,11 +1397,11 @@ k_{3} &amp; = (r - 1) - \log r
 \nabla_{\theta} \mathbb{D}_{\text{KL}}\left[\pi_\theta \| \pi_{\text{ref}}\right] =  \mathbb{E}_{\mathbf{\tau} \sim p_\theta}\left[\sum_{t=1}^{T} \left(\sum_{t'=t}^{T} k\left(\mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t'}, \mathbf{a}_{t'}\right) \right) \nabla_{\theta} \log \pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \mathbf{a}_{1}, \cdots, \mathbf{s}_{t-1}, \mathbf{s}_{t}) \right]
 \tag{49}\]</span></span></p>
 <p>不难注意到 <a href="#eq-def-kl-grad-kt-reduce-k" class="quarto-xref">Equation&nbsp;49</a> 中 <span class="math inline">\(k\)</span> 与 <a href="#eq-pg-est-ret" class="quarto-xref">Equation&nbsp;25</a> 中 reward <span class="math inline">\(r\)</span> 在形式上的相似性，这也解释了为什么先前的工作要将 KL 样本值放进 reward。</p>
-<p>类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等。感兴趣的读者可以进一步参考 UCB CS285<a href="#fn17" class="footnote-ref" id="fnref17" role="doc-noteref"><sup>17</sup></a> 等材料。</p>
-<aside id="footnotes-13" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<p>类似地，我们可以利用 PG 的其他技巧，进一步减小该估计的方差，例如减去 baseline 等。感兴趣的读者可以进一步参考 UCB CS285<a href="#fn18" class="footnote-ref" id="fnref18" role="doc-noteref"><sup>18</sup></a> 等材料。</p>
+<aside id="footnotes-14" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="17">
-<li id="fn17"><p>https://rail.eecs.berkeley.edu/deeprlcourse/<a href="#fnref17" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="18">
+<li id="fn18"><p>https://rail.eecs.berkeley.edu/deeprlcourse/<a href="#fnref18" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </section>
@@ -1413,7 +1419,7 @@ k_{3} &amp; = (r - 1) - \log r
 <div id="lst-trl-sample-and-calc-old-logprob" class="python listing quarto-float quarto-figure quarto-figure-left anchored">
 <figure class="quarto-float quarto-float-lst figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-lst" id="lst-trl-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Listing&nbsp;7: TRL 使用采样样本并使用 <span class="math inline">\(\pi_{\theta_{\text{old}}}\)</span> 计算对数似然<a href="#fn18" class="footnote-ref" id="fnref18" role="doc-noteref"><sup>18</sup></a>
+Listing&nbsp;7: TRL 使用采样样本并使用 <span class="math inline">\(\pi_{\theta_{\text{old}}}\)</span> 计算对数似然<a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a>
 </figcaption>
 <div aria-describedby="lst-trl-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="sourceCode" id="lst-trl-sample-and-calc-old-logprob"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-trl-sample-and-calc-old-logprob-1"><a href="#lst-trl-sample-and-calc-old-logprob-1" aria-hidden="true" tabindex="-1"></a>queries <span class="op">=</span> data[<span class="st">"input_ids"</span>].to(device)</span>
@@ -1498,10 +1504,10 @@ Listing&nbsp;8: TRL PPO 多轮更新
 </div>
 </figure>
 </div>
-<aside id="footnotes-14" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-15" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="18">
-<li id="fn18"><p>https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L406-L432<a href="#fnref18" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="19">
+<li id="fn19"><p>https://github.com/huggingface/trl/blob/e3244d2d096ff1e2e248c931d06d39e165e20623/trl/trainer/ppo_trainer.py#L406-L432<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </section>
@@ -1554,7 +1560,7 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 <p>此处，重要性采样系数 <span class="math inline">\(\frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})}\)</span> 可以仿照 <a href="#eq-dp-expansion" class="quarto-xref">Equation&nbsp;5</a> 展开为：</p>
 <p><span id="eq-is-coef-expansion"><span class="math display">\[
 \frac{p_{\theta}(\mathbf{\tau})}{p_{\theta_{\text{old}}}(\mathbf{\tau})} = \prod_{t=1}^{|\mathbf{\tau}|} \frac{\pi_{\theta}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}{\pi_{\theta_{\text{old}}}(\mathbf{a}_{t} \mid \mathbf{s}_{1}, \cdots, \mathbf{a}_{t-1}, \mathbf{s}_{t})}
-\tag{51}\]</span></span> <a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a></p>
+\tag{51}\]</span></span> <a href="#fn20" class="footnote-ref" id="fnref20" role="doc-noteref"><sup>20</sup></a></p>
 <p>利用重要性采样 (<a href="#eq-is-off-policy-kl" class="quarto-xref">Equation&nbsp;50</a>, <a href="#eq-is-coef-expansion" class="quarto-xref">Equation&nbsp;51</a>) ，KL 梯度表达式 <a href="#eq-def-kl-grad-kt-reduce" class="quarto-xref">Equation&nbsp;46</a> 可以转化为：</p>
 <p><span id="eq-def-kl-grad-kt-reduce-is"><span class="math display">\[
 \begin{aligned}
@@ -1581,10 +1587,10 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 k(\mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t}) = \left(\prod_{t=1}^{|\tau_{i}|}\frac{\pi_{\theta}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}{ \pi_{\theta_{\text{old}}}(\mathbf{a}_{i, t} | \mathbf{s}_{i, 1}, \cdots, \mathbf{a}_{i, t-1}, \mathbf{s}_{i, t})}\right) \sum_{t'=t}^{|\tau_{i}|} \log \frac{\pi_{\theta}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}{\pi_{\text{ref}}(\mathbf{a}_{i, t'} | \mathbf{s}_{i, t'}, \cdots, \mathbf{a}_{i, t-1})}
 \tag{55}\]</span></span></p>
 <p>注意，<a href="#eq-def-kl-reward-is" class="quarto-xref">Equation&nbsp;55</a> 中的 <span class="math inline">\(k\)</span> 需要对于每个新的 <span class="math inline">\(\pi_{\theta}\)</span> 重新计算。</p>
-<aside id="footnotes-15" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-16" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="19">
-<li id="fn19"><p>实际计算中，<a href="#eq-is-coef-expansion" class="quarto-xref">Equation&nbsp;51</a> 由于涉及到 <span class="math inline">\(|\mathbf{\tau}|\)</span> 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。<a href="#fnref19" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="20">
+<li id="fn20"><p>实际计算中，<a href="#eq-is-coef-expansion" class="quarto-xref">Equation&nbsp;51</a> 由于涉及到 <span class="math inline">\(|\mathbf{\tau}|\)</span> 次连乘，方差大且数值稳定性差，需要利用因果性、近似等技术来化简。本文目前省略该部分，后续将会更新相关内容。<a href="#fnref20" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </section>
@@ -1649,7 +1655,7 @@ Tip
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>本文的作者（童雨轩）仍在寻求北美的 Ph.D.&nbsp;或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页<a href="#fn20" class="footnote-ref" id="fnref20" role="doc-noteref"><sup>20</sup></a>来获取进一步了解。</p>
+<p>本文的作者（童雨轩）仍在寻求北美的 Ph.D.&nbsp;或 RA 机会。如果你觉得本文对你有帮助，欢迎浏览其主页<a href="#fn21" class="footnote-ref" id="fnref21" role="doc-noteref"><sup>21</sup></a>来获取进一步了解。</p>
 </div>
 </div>
 
@@ -1663,15 +1669,15 @@ Tip
 <li><a href="https://zhuanlan.zhihu.com/p/28440962040">GRPO 中的 KL Loss 实现细节问题 - Hongyu Zang @ 知乎</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/28735759256">k2 loss就是比k3 loss好！以及GRPO_off-policy - Yiming Liu @ 知乎</a></li>
 </ul>
-<aside id="footnotes-16" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-17" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="20">
-<li id="fn20"><p>https://tongyx361.github.io<a href="#fnref20" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="21">
+<li id="fn21"><p>https://tongyx361.github.io<a href="#fnref21" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </div></section><section id="写作契机trpoppo-与-grpo-中的-kl-为什么不一样" class="level2 appendix" data-number="9.2"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.2</span> 写作契机：“TRPO/PPO 与 GRPO 中的 KL 为什么不一样？”</h2><div class="quarto-appendix-contents">
 
-<p>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题<a href="#fn21" class="footnote-ref" id="fnref21" role="doc-noteref"><sup>21</sup></a>：</p>
+<p>笔者对 RL 中 KL 优化相关问题的思考主要开始于 X 上 Fanyi Pu 提出了这样一个问题<a href="#fn22" class="footnote-ref" id="fnref22" role="doc-noteref"><sup>22</sup></a>：</p>
 <blockquote class="blockquote">
 <p>A small question about GRPO: I noticed that the KL divergence in GRPO is written as KL(new || old), while TRPO and PPO use KL(old || new) as the constraint/penalty. Is there a difference between the two? Would modifying this part have any impact?</p>
 <p>TRPO <span class="citation" data-cites="schulman2015trpo">(<a href="#ref-schulman2015trpo" role="doc-biblioref">Schulman et al. 2015</a>)</span></p>
@@ -1733,10 +1739,10 @@ L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid 
 
 </blockquote>
 <p>顺带，还可以从以下角度理解两者的共通之处：clip 函数约束的 <span class="math inline">\(r_t(\theta)=\frac{\pi_\theta\left(a_t \mid s_t\right)}{\pi_{\theta_{\text {old }}}\left(a_t \mid s_t\right)}\)</span>就是<span class="math inline">\(K L\left[\pi_{\theta_{d d}}, \pi_\theta\right]=\mathbb{E}_{a_t \sim \pi_{\theta_{d t}}\left(\cdot \mid s_t\right)}\left[\log \frac{\pi_{\theta_{d t}}\left(a_t \mid s_t\right)}{\pi_\theta\left(a_t \mid s_t\right)}\right]\)</span> 中对单个样本 <span class="math inline">\((s_t, a_t)\)</span> 的值中 <span class="math inline">\(\log\)</span> 的真数。</p>
-<aside id="footnotes-17" class="footnotes footnotes-end-of-section" role="doc-footnote">
+<aside id="footnotes-18" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
-<ol start="21">
-<li id="fn21"><p>https://x.com/pufanyi/status/1888845956684370202<a href="#fnref21" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<ol start="22">
+<li id="fn22"><p>https://x.com/pufanyi/status/1888845956684370202<a href="#fnref22" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </aside>
 </div></section><section id="致谢" class="level2 appendix" data-number="9.3"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.3</span> 致谢</h2><div class="quarto-appendix-contents">
@@ -3034,16 +3040,16 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb4-615"><a href="#cb4-615"></a></span>
 <span id="cb4-616"><a href="#cb4-616"></a>所以 $k_1$ loss 项优化的量是 $\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left<span class="co">[</span><span class="ot"> \frac{1}{|\mathbf{\tau}|} \right</span><span class="co">]</span>$。这意味着该优化过程会降低采样轨迹的长度。</span>
 <span id="cb4-617"><a href="#cb4-617"></a></span>
-<span id="cb4-618"><a href="#cb4-618"></a>特别地，当不对同一轨迹中的 “$k_1$ 估计量”求均值时，可以直接去掉 $\frac{1}{|\tau|}$ 这一项，得到</span>
+<span id="cb4-618"><a href="#cb4-618"></a>特别地，当不对同一轨迹中的 “$k_1$ 估计量”求均值，而是求和时，可以直接将 $\frac{1}{|\tau|}$ 这一项替换为 $1$，得到</span>
 <span id="cb4-619"><a href="#cb4-619"></a>$$</span>
-<span id="cb4-620"><a href="#cb4-620"></a>\nabla_{\theta} \mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left<span class="co">[</span><span class="ot"> 1 \right</span><span class="co">]</span> = 0</span>
-<span id="cb4-621"><a href="#cb4-621"></a>$$ {#eq-kl-loss-grad-expect-k1-no-intra-traj-mean}</span>
+<span id="cb4-620"><a href="#cb4-620"></a>\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] = \sum_{\tau \in \mathcal{T}} p_{\theta}(\tau) \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) = \sum_{\tau \in \mathcal{T}} \nabla_{\theta} p_{\theta} = \nabla_{\theta} \sum_{\tau \in \mathcal{T}} p_{\theta} = \nabla_{\theta} 1 = 0</span>
+<span id="cb4-621"><a href="#cb4-621"></a>$$ {#eq-kl-loss-grad-expect-k1-no-intra-traj-mean}^<span class="co">[</span><span class="ot">此处对数似然的梯度的期望值为 0，是一个著名的性质，会在接下来频繁用到。</span><span class="co">]</span></span>
 <span id="cb4-622"><a href="#cb4-622"></a></span>
 <span id="cb4-623"><a href="#cb4-623"></a>这意味着使用该梯度更新参数，在平均意义上不会引起参数及其导出的分布改变。</span>
 <span id="cb4-624"><a href="#cb4-624"></a></span>
-<span id="cb4-625"><a href="#cb4-625"></a>无论哪种情况，$k_1$ 导出的优化量都非常奇怪，不太可能出于实现者的本意。同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。</span>
+<span id="cb4-625"><a href="#cb4-625"></a>无论哪种情况，$k_1$ 导出的优化量都非常奇怪，不太可能出于实现者的本意。</span>
 <span id="cb4-626"><a href="#cb4-626"></a></span>
-<span id="cb4-627"><a href="#cb4-627"></a>接下来，我们将直接忽略这一操作，即将 $\frac{1}{|\tau|}$ 一项替换为 $1$。</span>
+<span id="cb4-627"><a href="#cb4-627"></a>同时，对同一轨迹中的 KL 估计量求均值这一操作，也很有可能是错误的。接下来，我们将忽略这一操作，即将 $\frac{1}{|\tau|}$ 一项替换为 $1$。</span>
 <span id="cb4-628"><a href="#cb4-628"></a></span>
 <span id="cb4-629"><a href="#cb4-629"></a><span class="fu">### $k_2$ 导出的梯度</span></span>
 <span id="cb4-630"><a href="#cb4-630"></a></span>
@@ -3101,7 +3107,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb4-682"><a href="#cb4-682"></a>\end{aligned}</span>
 <span id="cb4-683"><a href="#cb4-683"></a>$$ {#eq-kl-loss-grad-sample-k3}</span>
 <span id="cb4-684"><a href="#cb4-684"></a></span>
-<span id="cb4-685"><a href="#cb4-685"></a>参考 <span class="co">[</span><span class="ot">@eq-kl-loss-grad-sample-k1</span><span class="co">]</span> 的推导，$\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \log p_{\theta}(\mathbf{\tau}) \right] = 0$，不妨直接省略。</span>
+<span id="cb4-685"><a href="#cb4-685"></a>其中，根据 <span class="co">[</span><span class="ot">@eq-kl-loss-grad-expect-k1-no-intra-traj-mean</span><span class="co">]</span>，$\mathbb{E}_{\mathbf{\tau} \sim p_{\theta}} \left[ \nabla_{\theta} \log p_{\theta}(\mathbf{\tau}) \right] = 0$，不妨直接省略。</span>
 <span id="cb4-686"><a href="#cb4-686"></a></span>
 <span id="cb4-687"><a href="#cb4-687"></a>而剩余部分似乎很难通过消去 $\pi_{\theta}(\mathbf{\tau})$ 来提出 $\nabla_{\theta}$ 并准确分析。但显然也并非在优化 KL 散度。</span>
 <span id="cb4-688"><a href="#cb4-688"></a></span>
