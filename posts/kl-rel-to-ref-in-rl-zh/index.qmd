@@ -14,16 +14,18 @@ abstract-title: Takeways
 abstract: |
     对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式
 
-    - 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决
-    - 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman 原分析不符（对应导出的梯度也可能因此而错误）
+    1) 没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决
+    2) 先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman "Approximating KL Divergence"^[http://joschu.net/blog/kl-approx.html] 分析不符（对应导出的梯度也可能因此而错误）
     
     目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：
 
-    - 在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度
-    - KL loss 项的平均操作存在错误。
+    3) 在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度
+    4) KL loss 项的平均操作存在错误。
   
     本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
 toc-expand: false
+# citation
+citation: false # Manual citation
 # language
 toc-title: 目录
 categories:
@@ -462,7 +464,7 @@ $$
 \end{aligned}
 $$ {#eq-def-rl-kl-mc-general}
 
-例如 [@sec-openrlhf-kl-reward] 提到，OpenRLHF 引入了 3 种 KL 散度的估计方法，分别称为 `k1`, `k2`, `k3`，这应该是主要参考了 John Schulman 的博客 "Approximating KL Divergence"^[http://joschu.net/blog/kl-approx.html]。
+例如 [@sec-openrlhf-kl-reward] 提到，OpenRLHF 引入了 3 种 KL 散度的估计方法，分别称为 `k1`, `k2`, `k3`，这应该是主要参考了 John Schulman 的博客 "Approximating KL Divergence"。
 
 verl 则考虑了更多估计方法。实际上，verl 还考虑了直接计算条件 KL 散度^[这里的条件 KL 散度只需要遍历整个词表，代价可能是可以接受的。]，但目前还没有实现。对应代码可见 [@lst-verl-kl-estimator]。
 
@@ -1324,3 +1326,24 @@ $$
 感谢生广明、Wei Xiong、刘仁彪、刘威、Weixun Wang、Yiming Liu、Haibin Lin 等关于相关问题的有益讨论以及对于本文的有益反馈。
 
 感谢 Cursor 和 Mathpix 在书写 LaTeX 时提供的巨大帮助。
+
+## 引用 {.appendix}
+
+BibTeX:
+
+```BibTeX
+@online{tong2025kl,
+  author = {童雨轩},
+  title = {重新思考 {RL} 中的 {KL} 梯度优化},
+  year = {2025},
+  url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},
+  urldate = {2025-03-09},
+  language = {Chinese},
+}
+```
+
+文本：
+
+```text
+童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.
+```

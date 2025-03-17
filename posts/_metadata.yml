@@ -20,6 +20,8 @@ link-external-newwindow: true
 bibliography: references.bib
 # footnote
 reference-location: section
+# citation
+citation: true
 # language
 lang: en
 # comments
