@@ -914,7 +914,7 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{
 &amp; \approx \frac{1}{N} \sum_{i=1}^{N} \left(\sum_{t=1}^{|\mathbf{\tau_{i }}|} \log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}{\pi_{\text{ref}}(a_{i,t} \mid s_{i,1}, a_{i,1}, \cdots, s_{i,t})}\right)
 \end{aligned}
 \tag{10}\]</span></span></p>
-<p>其中，<span class="math inline">\(\left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}\)</span>，<span class="math inline">\(N\)</span> 为估计使用的轨迹样本数量。</p>
+<p>其中，<span class="math inline">\(\mathbf{\tau_{i}} = \left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}\)</span>，<span class="math inline">\(N\)</span> 为估计使用的轨迹样本数量。</p>
 <aside id="footnotes-9" class="footnotes footnotes-end-of-section" role="doc-footnote">
 <hr>
 <ol start="12">
@@ -2869,7 +2869,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb4-450"><a href="#cb4-450"></a>\end{aligned}</span>
 <span id="cb4-451"><a href="#cb4-451"></a>$$ {#eq-def-rl-kl-mc-k1}</span>
 <span id="cb4-452"><a href="#cb4-452"></a></span>
-<span id="cb4-453"><a href="#cb4-453"></a>其中，$\left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}$，$N$ 为估计使用的轨迹样本数量。</span>
+<span id="cb4-453"><a href="#cb4-453"></a>其中，$\mathbf{\tau_{i}} = \left(\mathbf{s}_{i,1}, \mathbf{a}_{i,1}, \cdots, \mathbf{s}_{i,|\mathbf{\tau_{i}}|}, \mathbf{a}_{i,|\mathbf{\tau_{i}}|}\right) \sim p_{\theta}$，$N$ 为估计使用的轨迹样本数量。</span>
 <span id="cb4-454"><a href="#cb4-454"></a></span>
 <span id="cb4-455"><a href="#cb4-455"></a><span class="fu">### 不同的 KL 估计量</span></span>
 <span id="cb4-456"><a href="#cb4-456"></a></span>
