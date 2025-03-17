@@ -1310,10 +1310,11 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 <h3 data-number="4.1.5" class="anchored" data-anchor-id="小结流行的-kl-loss-项-实现并不合理"><span class="header-section-number">4.1.5</span> 小结：流行的 ”KL loss 项“ 实现并不合理</h3>
 <p>综上所述，对于 OpenRLHF 实现的 “KL loss 项”，</p>
 <ol type="1">
+<li>对同一轨迹内的 “KL 估计量” 求均值这一操作很可能是错误的，正确操作应当为求和，对应于根据对数条件概率求对数联合概率。</li>
 <li><img src="https://latex.codecogs.com/png.latex?k_1"> 导出的梯度
 <ol type="1">
-<li>若修正去除对同一轨迹内的 “KL 估计量” 求均值这一操作，则其期望为 0，在平均意义上不改分布，</li>
-<li>而如果不去除求均值带来的权重，则会导致输出长度减小。</li>
+<li>若对同一轨迹内的 “KL 估计量” 求均值，则会导致输出长度减小，</li>
+<li>而如果修正为求和，则其期望为 0，在平均意义上不改分布。</li>
 </ol></li>
 <li><img src="https://latex.codecogs.com/png.latex?k_2">，<img src="https://latex.codecogs.com/png.latex?k_3"> 导出的梯度则十分复杂，难以分析，但都并非在优化 KL 散度，这可能是因为其错误地将 KL 估计样本量应用于动作对数条件似然并求和。回顾 KL 估计量公式 (Equation&nbsp;12) ，应当注意到这些估计量是直接作用于似然 <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D(%5Cmathbf%7B%5Ctau%7D)">，而没有保证作用于概率后求积/对数和仍然有意义。</li>
 </ol>
