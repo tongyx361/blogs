@@ -2,7 +2,6 @@
 title: "verl Tutorial"
 author:
   name: "Yuxuan Tong"
-  email: "tongyuxuan361@gmail.com"
 ---
 
 # RL as Data Flow Graph
