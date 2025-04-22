@@ -16,8 +16,6 @@ code-tools: true
 # links
 link-external-icon: true
 link-external-newwindow: true
-# references
-bibliography: references.bib
 # footnote
 reference-location: section
 # citation

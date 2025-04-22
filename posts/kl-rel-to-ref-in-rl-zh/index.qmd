@@ -24,6 +24,8 @@ abstract: |
   
     本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。
 toc-expand: false
+# references
+bibliography: references.bib
 # citation
 citation: false # Manual citation
 # language
