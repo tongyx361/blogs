@@ -2,7 +2,6 @@
 title: "verl Tutorial"
 author:
   name: "Yuxuan Tong"
-  email: "tongyuxuan361@gmail.com"
 format:
   revealjs:
     smaller: true
@@ -32,7 +31,7 @@ Taking the Proximal Policy Optimization (PPO) algorithm using a reward model and
 
 # Implementing Execution Pattern with verl Code
 
-We take the verl default implementation as an example.
+We take the verl [@sheng2024hybridflow] default implementation as an example.
 
 ## Entrypoint
 
@@ -270,7 +269,26 @@ def func_generator(self, method_name,
   return func
 ```
 
+# Programming Guide for verl
+
+TODO
+
+1. Customizing Dataset
+2. Customizing Reward Manager
+3. Customizing Loss
+4. Customizing "Advantages"
+5. ...
+
 # Latest Features in verl
+
+TODO
 
 1. Multi-Turn Based on Async Engine
 2. ...
+
+---
+
+**References**
+
+::: {#refs}
+:::

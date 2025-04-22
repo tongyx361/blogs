@@ -18,6 +18,8 @@ link-external-icon: true
 link-external-newwindow: true
 # footnote
 reference-location: section
+# references
+bibliography: references.bib
 # citation
 citation: true
 # language
