@@ -9,7 +9,7 @@
 <link>https://tongyx361.github.io/blogs/</link>
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
-<generator>quarto-1.6.42</generator>
+<generator>quarto-1.6.43</generator>
 <lastBuildDate>Sun, 09 Mar 2025 00:00:00 GMT</lastBuildDate>
 <item>
   <title>重新思考 RL 中的 KL 梯度优化</title>
@@ -2068,6 +2068,14 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <category>Technical 技术</category>
   <guid>https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh/</guid>
   <pubDate>Sun, 09 Mar 2025 00:00:00 GMT</pubDate>
+</item>
+<item>
+  <title></title>
+  <dc:creator>Yuxuan Tong</dc:creator>
+  <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
+  <description><![CDATA[ undefined ]]></description>
+  <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
+  <pubDate>Tue, 22 Apr 2025 13:30:39 GMT</pubDate>
 </item>
 </channel>
 </rss>
