@@ -8,17 +8,17 @@ format:
     embed-resources: true
 ---
 
-# RL as Data Flow Graph
+# RL as Dataflow Graph
 
-## Different RL Algorithms' Data Flow Graphs
+## Different RL Algorithms' Dataflow Graphs
 
-Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a data flow graph, consisting of 3 stages.
+Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of 3 stages.
 
 ![](./assets/rl-dataflow-examples.png){.lightbox}
 
-# Implementing Data Flow Graph as Execution Pattern
+# Implementing Dataflow Graph as Execution Pattern
 
-In practice, we should implement the data flow graph with device placement,
+In practice, we should implement the dataflow graph with device placement,
 
 1. optimizing the throughput
 2. while restricted by the temporal dependencies and device resources
@@ -79,7 +79,7 @@ for resource_pool, class_dict in self.resource_pool_to_cls.items():
 
 Between worker procedures, verl adopts a single-controller paradigm to maximize the flexibility, which allows the users to
 
-- focus on the data flow graph 
+- focus on the dataflow graph 
 - without worrying about the distributed implementation.
 
 verl runs the worker procedures sequentially within the global resource pool by default.
