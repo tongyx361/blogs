@@ -13,15 +13,17 @@ website:
       - icon: github
         href: https://github.com/tongyx361
 format:
-  html: 
+  html: # posts 
     theme: # https://quarto.org/docs/output-formats/html-themes.html
-      light:
-        - latera
-        - brand
-      dark:
-        - darkly
-        - brand
+      light: latera
+      dark: darkly
     css: styles.css
+  revealjs: # blogs
+    smaller: true
+    embed-resources: true
+    # Slide Numbers
+    show-slide-number: all
+    theme: beige
 
 execute:
   freeze: auto
