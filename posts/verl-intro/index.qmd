@@ -3,6 +3,7 @@ title: "verl: Flexible and Efficient RL for LLMs"
 author:
   name: "Yuxuan Tong"
   affiliation: "ByteDance Seed & Tsinghua University"
+  email: tongyuxuan.361@bytedance.com
 date: "2025-04-26"
 format:
   revealjs:
@@ -16,15 +17,15 @@ toc: false
 
 # Background
 
-## RL as Dataflow Graph
+## RL as Dataflow Graph {.smaller}
 
 ![](./assets/rl-dataflow-examples.png){fig-align="center" height=300 .lightbox}
 
-Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:
+Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a **dataflow graph**, consisting of:
 
-1. multiple models: actor, critic, reference, reward model, etc.
-2. multiple stages: generating, preparing experiences, training
-3. multiple workloads: generation, inference, training
+1. **multiple models**: actor, critic, reference, reward model, etc.
+2. **multiple stages**: generating, preparing experiences, training
+3. **multiple workloads**: generation, inference, training
 
 ## Implementing Dataflow Graph as Execution Pattern
 
@@ -43,7 +44,7 @@ Specifically, we:
 
 # verl: Efficient and Flexible RL for LLMs
 
-From 0.2.0.post2 till now (after 0.3.0.post1), we have achieved speedup of  ~1.4x in the DAPO (w/o dynamic sampling) workload.
+From 0.2.0.post2 till now (after 0.3.0.post1), we have achieved a speedup of  ~1.4x in the DAPO (w/o dynamic sampling) workload.
 
 ## Paradigm: Hybrid-Controller
 
@@ -60,11 +61,9 @@ verl introduces a hybrid-controller paradigm, consisting of
 
 :::
 
-## Flexibility: Single-Controller
+## Flexibility: Single-Controller {.smaller}
 
-Thanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the `fit` function.
-
-## RL Algorithms Examples {.smaller .unnumbered}
+Thanks to the programming model of single-controller, verl allows implementing different RL algorithms by **only modifying a few lines**, usually only in the `fit` function.
 
 :::: {.columns}
 
@@ -119,24 +118,13 @@ verl implements a hybrid engine that can switch between the different procudures
 
 ---
 
-### Diverse Parallelism Strategies {.smaller}
+### Diverse Parallelism Strategies
 
-Thanks to the hybrid engine, verl allows flexibly switching between different parallelism strategies to achieve the optimal performance.
+Thanks to the hybrid engine, verl allows flexibly switching between parallelism strategies to optimize the performance.
 
 :::: {.columns}
 
-::: {.column width="49%"}
-
-Generation:
-
-::: {.nonincremental}
-- Tensor Parallelism
-- Data Parallelism
-:::
-
-:::
-
-::: {.column width="49%"}
+::: {.column width="60%"}
 
 Training & Inference:
 
@@ -151,6 +139,17 @@ Training & Inference:
 
 :::
 
+::: {.column width="40%"}
+
+Generation:
+
+::: {.nonincremental}
+- Tensor Parallelism
+- Data Parallelism
+:::
+
+:::
+
 ::::
 
 ---
@@ -160,8 +159,6 @@ Training & Inference:
 Data Parallelism (DP) like FSDP is the most commonly used parallelism strategy.
 
 However, DP performance might be damaged by load imbalance, which is especially severe in long-context training.
-
----
 
 verl implements the following feature to improve load balance:
 
@@ -188,7 +185,7 @@ So here comes the second feature:
 
 # Programming Guide
 
-## Customizing the Dataset
+## Customizing the Dataset {.smaller}
 
 A canonical RL dataset in verl has the following fields:
 
@@ -271,7 +268,7 @@ An example CLI config could be:
 
 ---
 
-The custom reward function defined in the `.py` file is required to accept the parameters passed from the reward manager `__call__` method. For example, the `NaiveRewardManager` is defined as follows:
+The function defined in `.py` should accept the parameters passed from **the reward manager `__call__` method**. Taking `NaiveRewardManager` as an example:
 
 ```{#lst-verl-custom-reward-function-call .python lst-cap="How a reward function is called in NaiveRewardManager."}
 class NaiveRewardManager:
@@ -288,7 +285,7 @@ class NaiveRewardManager:
 
 . . .
 
-To implement more complex features, you might also want to directly add a new reward manager like `PRIMERewardManager` or `DAPORewardManager`.
+For more complex features, you can also add a new reward manager like `PRIMERewardManager` or `DAPORewardManager`.
 
 ## Customizing the Loss Function
 
@@ -383,7 +380,7 @@ For more details, please check [their PR #1037](https://github.com/volcengine/ve
 
 . . .
 
-Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to [Xibin Wu](https://github.com/wuxibin89) for his great work!
+Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to our awesome collegue [Xibin Wu](https://github.com/wuxibin89) for his great work!
 
 ## Other Updates
 
@@ -395,7 +392,12 @@ Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`]
 
 For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
 
-# Thanks for Listening! {.center .unnumbered .smaller}
+# Thanks for Listening! {.unnumbered}
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
 
 For related resources like 
 
@@ -409,4 +411,12 @@ For related resources like
 
 etc., please scan the QR code:
 
-![](./assets/qrcode-verl-iclr25.png){fig-align="center" height=200 .lightbox}
+:::
+
+::: {.column width="40%"}
+
+![](./assets/qrcode-verl-iclr25.png){fig-align="center" .lightbox}
+
+:::
+
+::::
