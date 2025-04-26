@@ -201,9 +201,17 @@ A canonical RL dataset in verl has the following fields:
 
 . . .
 
+For VLM RL, verl expects fields `"images"` and/or `"videos"`
+
+. . .
+
 For examples, please check the `examples/data_preprocess`.
 
 ---
+
+You could also customize the field names via config. Please check the `data` section in config files like `ppo_trainer.yaml` for more details.
+
+. . .
 
 For further customization, verl provides the `data.custom_cls` config,
 
@@ -377,6 +385,15 @@ For more details, please check [their PR #1037](https://github.com/volcengine/ve
 
 Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to [Xibin Wu](https://github.com/wuxibin89) for his great work!
 
+## Other Updates
+
+1. Full support for [RL with AMD (ROCm Kernel) hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
+2. Full support for VLM RL based on SGLang
+3. ...
+
+. . .
+
+For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
 
 # Thanks for Listening! {.center .unnumbered .smaller}
 
