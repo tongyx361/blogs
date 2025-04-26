@@ -305,7 +305,7 @@
     "href": "posts/verl-intro/index.html#customizing-the-dataset",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "3.1 Customizing the Dataset",
-    "text": "3.1 Customizing the Dataset\nA canonical RL dataset in verl has the following fields:\n\nprompt: a list of messages {\"role\": \"...\", \"content\": \"...\"}\ndata_source: used to choose the reward function\nreward_model: a dict containing\n\n\"ground_truth\"\n\"style\" like \"model\" or \"rule\"\n\n(Optional) extra_info: a dict containing extra information\n\n\nFor examples, please check the examples/data_preprocess."
+    "text": "3.1 Customizing the Dataset\nA canonical RL dataset in verl has the following fields:\n\nprompt: a list of messages {\"role\": \"...\", \"content\": \"...\"}\ndata_source: used to choose the reward function\nreward_model: a dict containing\n\n\"ground_truth\"\n\"style\" like \"model\" or \"rule\"\n\n(Optional) extra_info: a dict containing extra information\n\n\nFor VLM RL, verl expects fields \"images\" and/or \"videos\"\n\n\nFor examples, please check the examples/data_preprocess."
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-reward",
@@ -341,5 +341,12 @@
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "4.2 Async Engine for Multi-Turn",
     "text": "4.2 Async Engine for Multi-Turn\nThe awesome SGLang RL team\n\nhas integrated the SGLang async engine into verl\nis validating an extensible tool interface OpenAIFunctionTool with end-to-end training\n\n\nFor more details, please check their PR #1037.\n\n\nBesides, our team also integrates the async engine based on vLLM V1 AsyncLLM. Kudos to Xibin Wu for his great work!"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#other-updates",
+    "href": "posts/verl-intro/index.html#other-updates",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "4.3 Other Updates",
+    "text": "4.3 Other Updates\n\nFull support for RL with AMD (ROCm Kernel) hardwares\nFull support for VLM RL based on SGLang\n…\n\n\nFor the most timely updates of important features, please keep an eye on verl’s README."
   }
 ]
