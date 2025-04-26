@@ -2,6 +2,8 @@
 title: "verl: Flexible and Efficient RL for LLMs"
 author:
   name: "Yuxuan Tong"
+  affiliation: "ByteDance Seed & Tsinghua University"
+date: "2025-04-26"
 format:
   revealjs:
     logo: ./assets/logo-bytedance-seed.png
@@ -371,3 +373,6 @@ For more details, please check [their PR #1037](https://github.com/volcengine/ve
 . . .
 
 Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to [Xibin Wu](https://github.com/wuxibin89) for his great work!
+
+
+# Thanks for Listening! {.center .unnumbered}
