@@ -37,6 +37,8 @@ Specifically, we:
 
 # verl: Efficient and Flexible RL for LLMs
 
+From 0.2.0.post2 till now (after 0.3.0.post1), we have achieved speedup of  ~1.4x in the DAPO workload.
+
 ## Paradigm: Hybrid-Controller
 
 verl introduces a hybrid-controller paradigm, consisting of
