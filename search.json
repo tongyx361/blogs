@@ -263,14 +263,14 @@
     "href": "posts/verl-intro/index.html#rl-as-dataflow-graph",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "1.1 RL as Dataflow Graph",
-    "text": "1.1 RL as Dataflow Graph\n\n\n\n\n\nReinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:\n\nmultiple models: actor, critic, reference policy, reward model, etc.\nmultiple stages: sampling trajectories, preparing experiences, training\nmultiple procedures: generation, inference, training"
+    "text": "1.1 RL as Dataflow Graph\n\n\n\n\n\nReinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:\n\nmultiple models: actor, critic, reference, reward model, etc.\nmultiple stages: generating, preparing experiences, training\nmultiple workloads: generation, inference, training"
   },
   {
     "objectID": "posts/verl-intro/index.html#implementing-dataflow-graph-as-execution-pattern",
     "href": "posts/verl-intro/index.html#implementing-dataflow-graph-as-execution-pattern",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "1.2 Implementing Dataflow Graph as Execution Pattern",
-    "text": "1.2 Implementing Dataflow Graph as Execution Pattern\n\n\n\n\n\nIn practice, we should implement the dataflow graph as execution pattern on GPU cluster.\nSpecifically, we:\n\ndesign the parallelism strategy and model placement to optimize the throughput\nwhile restricted by the temporal dependencies and device resources"
+    "text": "1.2 Implementing Dataflow Graph as Execution Pattern\nIn practice, we should implement the dataflow graph as execution pattern on GPU cluster.\n\n\n\n\n\n\nSpecifically, we:\n\ndesign the parallelism strategy and model placement to optimize the throughput\nwhile restricted by the temporal dependencies and device resources"
   },
   {
     "objectID": "posts/verl-intro/index.html#paradigm-hybrid-controller",
@@ -284,7 +284,14 @@
     "href": "posts/verl-intro/index.html#flexibility-single-controller",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "2.2 Flexibility: Single-Controller",
-    "text": "2.2 Flexibility: Single-Controller\nThanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the fit function.\n\n\n\n\n\nListing 1: PPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 2: GRPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = compute_advantage(batch, \"grpo\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nWith such flexibility, verl has supported diverse RL algorithms including PPO, GRPO, RLOO, ReMax, REINFORCE++, PRIME, DAPO, DrGRPO, etc."
+    "text": "2.2 Flexibility: Single-Controller\nThanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the fit function."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#rl-algorithms-examples",
+    "href": "posts/verl-intro/index.html#rl-algorithms-examples",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "RL Algorithms Examples",
+    "text": "RL Algorithms Examples\n\n\n\n\n\nListing 1: PPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 2: GRPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = compute_advantage(batch, \"grpo\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nWith such flexibility, verl has supported diverse RL algorithms including PPO, GRPO, RLOO, ReMax, REINFORCE++, PRIME, DAPO, DrGRPO, etc."
   },
   {
     "objectID": "posts/verl-intro/index.html#efficiency-mutli-controller",
@@ -319,14 +326,14 @@
     "href": "posts/verl-intro/index.html#customizing-the-training-logic",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "3.4 Customizing the Training Logic",
-    "text": "3.4 Customizing the Training Logic\nAs mentioned above, the main training logic is concentrated in the fit function of the trainer classes like RayPPOTrainer.\nFor example, the DAPORayTrainer class overrides the fit function to implement the “dynamic sampling” feature:\n\n\n\nListing 10: Simplified fit function in DAPORayTrainer.\n\n\nclass RayDAPOTrainer(RayPPOTrainer):\n  def fit(self):\n    for epoch in range(self.config.trainer.total_epochs):\n      batch = None\n      for batch_dict in self.train_dataloader:\n        new_batch = DataProto.from_single_dict(batch_dict)\n        num_gen_batches += 1\n        gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)\n        new_batch = new_batch.union(gen_batch_output)\n        if not self.config.algorithm.filter_groups.enable:\n          batch = new_batch\n        else:\n          # Getting `kept_traj_idxs` ...\n          new_batch = new_batch[kept_traj_idxs]\n          batch = new_batch if batch is None else DataProto.concat([batch, new_batch])\n          prompt_bsz = self.config.data.train_batch_size\n          if num_prompt_in_batch &lt; prompt_bsz:\n            max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches\n            if max_num_gen_batches &lt;= 0 or num_gen_batches &lt; max_num_gen_batches:\n                continue\n          else:\n            traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n\n            batch = batch[:traj_bsz]\n        # ..."
+    "text": "3.4 Customizing the Training Logic\nAs mentioned above, the main training logic is concentrated in the fit function of the trainer classes like RayPPOTrainer.\nFor example, the DAPORayTrainer class overrides the fit function to implement the “dynamic sampling” feature:\n(See the next slide for the code ➡️)"
   },
   {
     "objectID": "posts/verl-intro/index.html#efficient-rl-training-for-huge-moe-deepseek-v3-671b",
     "href": "posts/verl-intro/index.html#efficient-rl-training-for-huge-moe-deepseek-v3-671b",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "4.1 Efficient RL Training for Huge MoE DeepSeek-V3-671B",
-    "text": "4.1 Efficient RL Training for Huge MoE DeepSeek-V3-671B\nverl is approaching finishing the support for efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nMoE models with GPTModel class for actor and critic\nMulti-node inference\nParameter sharding manager for Megatron-Core V0.11 + latest version of inference engines\n\n\nFor more details, please check our PR #708."
+    "text": "4.1 Efficient RL Training for Huge MoE DeepSeek-V3-671B\nverl is approaching finishing the support for efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nMoE models with GPTModel class for actor and critic\nMulti-node inference\nParameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our PR #708."
   },
   {
     "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn",
