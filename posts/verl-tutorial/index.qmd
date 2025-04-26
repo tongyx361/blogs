@@ -5,6 +5,7 @@ author:
 format:
   revealjs:
     smaller: true
+    incremental: true
     embed-resources: true
 ---
 

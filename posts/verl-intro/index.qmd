@@ -1,0 +1,371 @@
+---
+title: "verl: Flexible and Efficient RL for LLMs"
+author:
+  name: "Yuxuan Tong"
+format:
+  revealjs:
+    logo: ./assets/logo-bytedance-seed.png
+    footer: "verl: Flexible and Efficient RL for LLMs"
+    smaller: true
+    incremental: true
+    embed-resources: true
+    code-line-numbers: true
+---
+
+# Background
+
+## RL as Dataflow Graph
+
+![](./assets/rl-dataflow-examples.png){fig-align="middle" height=300 .lightbox}
+
+Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:
+
+1. multiple models: actor, critic, reference policy, reward model, etc.
+2. multiple stages: sampling trajectories, preparing experiences, training
+3. multiple procedures: generation, inference, training
+
+## Implementing Dataflow Graph as Execution Pattern
+
+![](./assets/implement-ppo-w-device-placement.png){fig-align="middle" height=300 .lightbox}
+
+In practice, we should implement the dataflow graph as execution pattern on GPU cluster.
+
+Specifically, we:
+
+1. design the parallelism strategy and model placement to optimize the throughput
+2. while restricted by the temporal dependencies and device resources
+
+# verl: Efficient and Flexible RL for LLMs
+
+## Paradigm: Hybrid-Controller
+
+verl introduces a hybrid-controller paradigm, consisting of
+
+- a single-controller (e.g. `RayPPOTrainer`) that concentrates the training control logic in a single process
+- multiple multi-controllers (e.g. `ActorRolloutWorker`) that conduct the distributed computation in an complex but efficient way
+
+::: {.notes}
+
+"multi-controller", i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.
+
+- It can be understood as multiple processes run with `torchrun`, each of which runs the same program but processes different data, reducing the communication overhead.
+
+:::
+
+## Flexibility: Single-Controller
+
+Thanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the `fit` function.
+
+:::: {.columns}
+
+::: {.column width="49%"}
+```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO example code." code-line-numbers="7-8"}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = critic.compute_values(batch)
+    batch = compute_advantage(batch, "gae")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+:::
+
+::: {.column width="49%"}
+```{#lst-verl-fit-example-code-grpo .python lst-cap="GRPO example code." code-line-numbers="7"}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = compute_advantage(batch, "grpo")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+:::
+
+::::
+
+. . .
+
+With such flexibility, verl has supported diverse RL algorithms including [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [DrGRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
+
+## Efficiency: Mutli-Controller
+
+---
+
+### Hybrid Engine
+
+The optimal execution pattern for different procedures, e.g., training, generation, are usually different.
+
+Instead of splitting the devices to deploy different engines separately for different procedures, causing many bubbles,
+
+verl implements a hybrid engine that can switch between the different procudures on the same cluster, fully utilizing all the GPUs.
+
+---
+
+### Diverse Parallelism Strategies
+
+Thanks to the hybrid engine, verl allows flexibly switching between different parallelism strategies to achieve the optimal performance.
+
+:::: {.columns}
+
+::: {.column width="49%"}
+
+Generation (Prefilling & Decoding):
+
+::: {.nonincremental}
+- Tensor Parallelism: `tensor_model_parallel_size`
+- Data Parallelism: Auto-inferred from `tensor_model_parallel_size` and `world_size`
+:::
+
+:::
+
+::: {.column width="49%"}
+
+Training & Inference (Forward & Backward):
+
+::: {.nonincremental}
+- FSDP: `fsdp_size`
+- (DeepSpeed) Ulysses: `ulysses_sequence_parallel_size`
+- (Megatron) 3D Parallelism:
+  - `tensor_model_parallel_size`
+  - `pipeline_model_parallel_size`
+  - `context_parallel_size` & `sequence_parallel`
+:::
+
+:::
+
+::::
+
+---
+
+### DP Balancing
+
+Data Parallelism (DP) like FSDP is the most commonly used parallelism strategy.
+
+However, DP performance might be damaged by load imbalance, which is especially severe in long-context training.
+
+---
+
+verl implements the following feature to improve load balance:
+
+1. `balance_batch`: make the token numbers of the samples dispatched to each DP rank as balanced as possible by reordering the samples in each batch.
+
+---
+
+However, in gradient accumulation, it's not enough to only balance the total number of tokens for each rank in a batch, since DP syncs in the unit of micro batch. 
+
+So here comes the second feature:
+
+2. `use_dynamic_bsz`: deviding the batch into micro batches in such a way that the token numbers of the micro batches are as balanced as possible.
+
+---
+
+### Other Features
+
+1. Sequence Packing (`use_remove_padding`): verl can save computation by removing padding tokens based on Flash Attention 2.
+2. Gradient Checkpointing (`enable_gradient_checkpointing`)
+3. Torch Compile (`use_torch_compile`)
+4. Liger Kernel (`use_liger`)
+5. LoRA (`lora_rank` etc.)
+
+# Programming Guide
+
+## Customizing the Dataset
+
+A canonical RL dataset in verl has the following fields:
+
+- `prompt`: a list of messages `{"role": "...", "content": "..."}`
+- `data_source`: used to choose the reward function
+- `reward_model`: a dict containing
+  -  `"ground_truth"`
+  -  `"style"` like `"model"` or `"rule"`
+- (Optional) `extra_info`: a dict containing extra information
+
+. . .
+
+For examples, please check the `examples/data_preprocess`.
+
+---
+
+For further customization, verl provides the `data.custom_cls` config,
+
+```{#lst-verl-custom-cls .yaml lst-cap="Config for custom dataset class."}
+data:
+  custom_cls:
+    path: null # path to the `.py` file containing the `class` definition
+    name: null # the `class` name
+```
+
+. . .
+
+An example CLI config could be:
+
+```{#lst-verl-custom-cls-cli .bash lst-cap="Example config for custom dataset class."}
+--data.custom_cls.path=./examples/dataset/custom_dataset.py \
+--data.custom_cls.name=CustomDataset
+```
+
+---
+
+The custom dataset class defined in the `.py` file is required to accept the following initialization parameters:
+
+```{#lst-verl-custom-cls-init .python lst-cap="Custom dataset class initialization."}
+class CustomDataset: # You could also inherit from `RLHFDataset`
+  def __init__(
+      self,
+      data_files: Union[str, List[str]],
+      tokenizer: PreTrainedTokenizer,
+      config: DictConfig,
+      processor: Optional[ProcessorMixin] = None,
+  ):
+      ...
+```
+
+## Customizing the Reward
+
+verl allows to define custom reward function via the `custom_reward_function` config:
+
+```{#lst-verl-custom-reward-function .yaml lst-cap="Config for custom reward function."}
+custom_reward_function:
+  path: null # path to the `.py` file containing the function definition
+  name: compute_score # the function name after `def`
+reward_model:
+  reward_manager: naive
+```
+
+. . .
+
+An example CLI config could be:
+
+```{#lst-verl-custom-reward-function-cli .bash lst-cap="Example config for custom reward function."}
+--custom_reward_function.path=./examples/reward_fn/custom_reward_fn.py \
+--custom_reward_function.name=compute_score \
+--reward_model.reward_manager=naive
+```
+
+---
+
+The custom reward function defined in the `.py` file is required to accept the parameters passed from the reward manager `__call__` method. For example, the `NaiveRewardManager` is defined as follows:
+
+```{#lst-verl-custom-reward-function-call .python lst-cap="How a reward function is called in NaiveRewardManager."}
+class NaiveRewardManager:
+    def __call__(self, data: DataProto, return_dict: bool=False):
+        # Preprocessing for the input data
+        score = self.compute_score(
+            data_source=data_source,
+            solution_str=solution_str,
+            ground_truth=ground_truth,
+            extra_info=extra_info,
+        )
+        # Other processing for the final `reward`
+```
+
+. . .
+
+To implement more complex features, you might also want to directly add a new reward manager like `PRIMERewardManager` or `DAPORewardManager`.
+
+## Customizing the Loss Function
+
+To modify the loss function, the most convenient way is to
+
+1. search for the `.backward()` call
+2. modify functions like `compute_policy_loss`
+3. or add loss terms like `entropy_loss`
+
+---
+
+For example, the `DataParallelPPOActor.update_policy` method defines the loss function as follows:
+
+```{#lst-verl-actor-loss .python lst-cap="The loss function definition in DataParallelPPOActor." code-line-numbers="3-8,12,20,22"}
+class DataParallelPPOActor(BasePPOActor):
+    def update_policy(self, data: DataProto):
+        pg_loss = compute_policy_loss(
+            old_log_prob=old_log_prob,
+            log_prob=log_prob,
+            advantages=advantages,
+            # ...
+        )
+        entropy_loss = agg_loss(
+            loss_mat=entropy, # ...
+        )
+        policy_loss = pg_loss - entropy_loss * entropy_coeff
+
+        kld = kl_penalty(
+            logprob=log_prob, ref_logprob=ref_log_prob, # ...
+        )
+        kl_loss = agg_loss(
+            loss_mat=kld, # ...
+        )
+        policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
+
+        loss.backward()
+```
+
+## Customizing the Training Logic
+
+As mentioned above, the main training logic is concentrated in the `fit` function of the trainer classes like `RayPPOTrainer`.
+
+For example, the `DAPORayTrainer` class overrides the `fit` function to implement the "dynamic sampling" feature:
+
+```{#lst-verl-dapo-trainer-fit .python lst-cap="Simplified fit function in DAPORayTrainer." code-line-numbers="4,6,8,10,12-23"}
+class RayDAPOTrainer(RayPPOTrainer):
+  def fit(self):
+    for epoch in range(self.config.trainer.total_epochs):
+      batch = None
+      for batch_dict in self.train_dataloader:
+        new_batch = DataProto.from_single_dict(batch_dict)
+        num_gen_batches += 1
+        gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+        new_batch = new_batch.union(gen_batch_output)
+        if not self.config.algorithm.filter_groups.enable:
+          batch = new_batch
+        else:
+          # Getting `kept_traj_idxs` ...
+          new_batch = new_batch[kept_traj_idxs]
+          batch = new_batch if batch is None else DataProto.concat([batch, new_batch])
+          prompt_bsz = self.config.data.train_batch_size
+          if num_prompt_in_batch < prompt_bsz:
+            max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
+            if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
+                continue
+          else:
+            traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
+            batch = batch[:traj_bsz]
+        # ...
+```
+
+# Latest Features
+
+## Efficient RL Training for Huge MoE DeepSeek-V3-671B
+
+verl is approaching finishing the support for efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:
+
+1. MoE models with `GPTModel` class for actor and critic
+2. Multi-node inference
+3. Parameter sharding manager for Megatron-Core V0.11 + latest version of inference engines
+
+. . .
+
+For more details, please check [our PR #708](https://github.com/volcengine/verl/pull/708).
+
+## Async Engine for Multi-Turn
+
+The awesome SGLang RL team
+
+1. has integrated the SGLang async engine into verl
+2. is validating an extensible tool interface `OpenAIFunctionTool` with end-to-end training
+
+. . .
+
+For more details, please check [their PR #1037](https://github.com/volcengine/verl/pull/1037).
+
+. . .
+
+Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to [Xibin Wu](https://github.com/wuxibin89) for his great work!

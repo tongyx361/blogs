@@ -26,6 +26,11 @@ abstract: |
 toc-expand: false
 # citation
 citation: false # Manual citation
+# comments
+comments: # c.f. https://thedatasavvycorner.com/blogs/17-quarto-comments
+  hypothesis: true
+  giscus: 
+    repo: tongyx361/blogs
 # language
 toc-title: 目录
 categories:
