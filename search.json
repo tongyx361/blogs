@@ -1,5 +1,12 @@
 [
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Blogs 博客",
+    "section": "",
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n         \n          Author\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\nverl Tutorial\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong\n\n\n\n\n\n\n\n\n\n\n\n\nverl: Flexible and Efficient RL for LLMs\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong\n\n\n\n\n\n\n\n\n\n\n\n\n重新思考 RL 中的 KL 梯度优化\n\n\n修正 GRPO 公式与流行 LLM RL 框架\n\n\n\nChinese 中文\n\n\nTechnical 技术\n\n\n\n对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式\n\n没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决\n先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman “Approximating KL Divergence” 分析不符（对应导出的梯度也可能因此而错误）\n\n目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：\n\n在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度\nKL loss 项的平均操作存在错误。\n\n本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。 \n\n\n\n\n\nMar 9, 2025\n\n\n童雨轩\n\n\n\n\n\n\nNo matching items"
+  },
+  {
     "objectID": "posts/kl-rel-to-ref-in-rl-zh/index.html",
     "href": "posts/kl-rel-to-ref-in-rl-zh/index.html",
     "title": "重新思考 RL 中的 KL 梯度优化",
@@ -189,13 +196,6 @@
     "text": "9.4 引用\n\nBibTeX:\n@online{tong2025kl,\n  author = {童雨轩},\n  title = {重新思考 {RL} 中的 {KL} 梯度优化},\n  year = {2025},\n  url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},\n  urldate = {2025-03-09},\n  language = {Chinese},\n}\n文本：\n童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh."
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Blogs 博客",
-    "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n         \n          Author\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\nverl Tutorial\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong\n\n\n\n\n\n\n\n\n\n\n\n\n重新思考 RL 中的 KL 梯度优化\n\n\n修正 GRPO 公式与流行 LLM RL 框架\n\n\n\nChinese 中文\n\n\nTechnical 技术\n\n\n\n对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式\n\n没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决\n先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman “Approximating KL Divergence” 分析不符（对应导出的梯度也可能因此而错误）\n\n目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：\n\n在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度\nKL loss 项的平均操作存在错误。\n\n本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。 \n\n\n\n\n\nMar 9, 2025\n\n\n童雨轩\n\n\n\n\n\n\nNo matching items"
-  },
-  {
     "objectID": "posts/verl-tutorial/index.html#different-rl-algorithms-dataflow-graphs",
     "href": "posts/verl-tutorial/index.html#different-rl-algorithms-dataflow-graphs",
     "title": "verl Tutorial",
@@ -257,5 +257,82 @@
     "title": "verl Tutorial",
     "section": "",
     "text": "References\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024. “HybridFlow: A Flexible and Efficient RLHF Framework.” arXiv Preprint arXiv: 2409.19256."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#rl-as-dataflow-graph",
+    "href": "posts/verl-intro/index.html#rl-as-dataflow-graph",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "1.1 RL as Dataflow Graph",
+    "text": "1.1 RL as Dataflow Graph\n\n\n\n\n\nReinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:\n\nmultiple models: actor, critic, reference policy, reward model, etc.\nmultiple stages: sampling trajectories, preparing experiences, training\nmultiple procedures: generation, inference, training"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#implementing-dataflow-graph-as-execution-pattern",
+    "href": "posts/verl-intro/index.html#implementing-dataflow-graph-as-execution-pattern",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "1.2 Implementing Dataflow Graph as Execution Pattern",
+    "text": "1.2 Implementing Dataflow Graph as Execution Pattern\n\n\n\n\n\nIn practice, we should implement the dataflow graph as execution pattern on GPU cluster.\nSpecifically, we:\n\ndesign the parallelism strategy and model placement to optimize the throughput\nwhile restricted by the temporal dependencies and device resources"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#paradigm-hybrid-controller",
+    "href": "posts/verl-intro/index.html#paradigm-hybrid-controller",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "2.1 Paradigm: Hybrid-Controller",
+    "text": "2.1 Paradigm: Hybrid-Controller\nverl introduces a hybrid-controller paradigm, consisting of\n\na single-controller (e.g. RayPPOTrainer) that concentrates the training control logic in a single process\nmultiple multi-controllers (e.g. ActorRolloutWorker) that conduct the distributed computation in an complex but efficient way\n\n\n“multi-controller”, i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.\n\nIt can be understood as multiple processes run with torchrun, each of which runs the same program but processes different data, reducing the communication overhead."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#flexibility-single-controller",
+    "href": "posts/verl-intro/index.html#flexibility-single-controller",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "2.2 Flexibility: Single-Controller",
+    "text": "2.2 Flexibility: Single-Controller\nThanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the fit function.\n\n\n\n\n\nListing 1: PPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 2: GRPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = compute_advantage(batch, \"grpo\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nWith such flexibility, verl has supported diverse RL algorithms including PPO, GRPO, RLOO, ReMax, REINFORCE++, PRIME, DAPO, DrGRPO, etc."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#efficiency-mutli-controller",
+    "href": "posts/verl-intro/index.html#efficiency-mutli-controller",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "2.3 Efficiency: Mutli-Controller",
+    "text": "2.3 Efficiency: Mutli-Controller"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#customizing-the-dataset",
+    "href": "posts/verl-intro/index.html#customizing-the-dataset",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "3.1 Customizing the Dataset",
+    "text": "3.1 Customizing the Dataset\nA canonical RL dataset in verl has the following fields:\n\nprompt: a list of messages {\"role\": \"...\", \"content\": \"...\"}\ndata_source: used to choose the reward function\nreward_model: a dict containing\n\n\"ground_truth\"\n\"style\" like \"model\" or \"rule\"\n\n(Optional) extra_info: a dict containing extra information\n\n\nFor examples, please check the examples/data_preprocess."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#customizing-the-reward",
+    "href": "posts/verl-intro/index.html#customizing-the-reward",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "3.2 Customizing the Reward",
+    "text": "3.2 Customizing the Reward\nverl allows to define custom reward function via the custom_reward_function config:\n\n\n\nListing 6: Config for custom reward function.\n\n\ncustom_reward_function:\n  path: null # path to the `.py` file containing the function definition\n  name: compute_score # the function name after `def`\nreward_model:\n  reward_manager: naive\n\n\n\n\nAn example CLI config could be:\n\n\n\nListing 7: Example config for custom reward function.\n\n\n--custom_reward_function.path=./examples/reward_fn/custom_reward_fn.py \\\n--custom_reward_function.name=compute_score \\\n--reward_model.reward_manager=naive"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#customizing-the-loss-function",
+    "href": "posts/verl-intro/index.html#customizing-the-loss-function",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "3.3 Customizing the Loss Function",
+    "text": "3.3 Customizing the Loss Function\nTo modify the loss function, the most convenient way is to\n\nsearch for the .backward() call\nmodify functions like compute_policy_loss\nor add loss terms like entropy_loss"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#customizing-the-training-logic",
+    "href": "posts/verl-intro/index.html#customizing-the-training-logic",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "3.4 Customizing the Training Logic",
+    "text": "3.4 Customizing the Training Logic\nAs mentioned above, the main training logic is concentrated in the fit function of the trainer classes like RayPPOTrainer.\nFor example, the DAPORayTrainer class overrides the fit function to implement the “dynamic sampling” feature:\n\n\n\nListing 10: Simplified fit function in DAPORayTrainer.\n\n\nclass RayDAPOTrainer(RayPPOTrainer):\n  def fit(self):\n    for epoch in range(self.config.trainer.total_epochs):\n      batch = None\n      for batch_dict in self.train_dataloader:\n        new_batch = DataProto.from_single_dict(batch_dict)\n        num_gen_batches += 1\n        gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)\n        new_batch = new_batch.union(gen_batch_output)\n        if not self.config.algorithm.filter_groups.enable:\n          batch = new_batch\n        else:\n          # Getting `kept_traj_idxs` ...\n          new_batch = new_batch[kept_traj_idxs]\n          batch = new_batch if batch is None else DataProto.concat([batch, new_batch])\n          prompt_bsz = self.config.data.train_batch_size\n          if num_prompt_in_batch &lt; prompt_bsz:\n            max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches\n            if max_num_gen_batches &lt;= 0 or num_gen_batches &lt; max_num_gen_batches:\n                continue\n          else:\n            traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n\n            batch = batch[:traj_bsz]\n        # ..."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#efficient-rl-training-for-huge-moe-deepseek-v3-671b",
+    "href": "posts/verl-intro/index.html#efficient-rl-training-for-huge-moe-deepseek-v3-671b",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "4.1 Efficient RL Training for Huge MoE DeepSeek-V3-671B",
+    "text": "4.1 Efficient RL Training for Huge MoE DeepSeek-V3-671B\nverl is approaching finishing the support for efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nMoE models with GPTModel class for actor and critic\nMulti-node inference\nParameter sharding manager for Megatron-Core V0.11 + latest version of inference engines\n\n\nFor more details, please check our PR #708."
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn",
+    "href": "posts/verl-intro/index.html#async-engine-for-multi-turn",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "4.2 Async Engine for Multi-Turn",
+    "text": "4.2 Async Engine for Multi-Turn\nThe awesome SGLang RL team\n\nhas integrated the SGLang async engine into verl\nis validating an extensible tool interface OpenAIFunctionTool with end-to-end training\n\n\nFor more details, please check their PR #1037.\n\n\nBesides, our team also integrates the async engine based on vLLM V1 AsyncLLM. Kudos to Xibin Wu for his great work!"
   }
 ]
