@@ -284,14 +284,7 @@
     "href": "posts/verl-intro/index.html#flexibility-single-controller",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "2.2 Flexibility: Single-Controller",
-    "text": "2.2 Flexibility: Single-Controller\nThanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the fit function."
-  },
-  {
-    "objectID": "posts/verl-intro/index.html#rl-algorithms-examples",
-    "href": "posts/verl-intro/index.html#rl-algorithms-examples",
-    "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "RL Algorithms Examples",
-    "text": "RL Algorithms Examples\n\n\n\n\n\nListing 1: PPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 2: GRPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = compute_advantage(batch, \"grpo\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nWith such flexibility, verl has supported diverse RL algorithms including PPO, GRPO, RLOO, ReMax, REINFORCE++, PRIME, DAPO, DrGRPO, etc."
+    "text": "2.2 Flexibility: Single-Controller\nThanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the fit function.\n\n\n\n\n\nListing 1: PPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 2: GRPO example code.\n\n\nfor prompts in dataloader:\n    # Stage 1: Sampling Trajectories\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Preparing Experiences\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = compute_advantage(batch, \"grpo\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nWith such flexibility, verl has supported diverse RL algorithms including PPO, GRPO, RLOO, ReMax, REINFORCE++, PRIME, DAPO, DrGRPO, etc."
   },
   {
     "objectID": "posts/verl-intro/index.html#efficiency-mutli-controller",
@@ -340,7 +333,7 @@
     "href": "posts/verl-intro/index.html#async-engine-for-multi-turn",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "4.2 Async Engine for Multi-Turn",
-    "text": "4.2 Async Engine for Multi-Turn\nThe awesome SGLang RL team\n\nhas integrated the SGLang async engine into verl\nis validating an extensible tool interface OpenAIFunctionTool with end-to-end training\n\n\nFor more details, please check their PR #1037.\n\n\nBesides, our team also integrates the async engine based on vLLM V1 AsyncLLM. Kudos to Xibin Wu for his great work!"
+    "text": "4.2 Async Engine for Multi-Turn\nThe awesome SGLang RL team\n\nhas integrated the SGLang async engine into verl\nis validating an extensible tool interface OpenAIFunctionTool with end-to-end training\n\n\nFor more details, please check their PR #1037.\n\n\nBesides, our team also integrates the async engine based on vLLM V1 AsyncLLM. Kudos to our awesome collegue Xibin Wu for his great work!"
   },
   {
     "objectID": "posts/verl-intro/index.html#other-updates",
