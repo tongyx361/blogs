@@ -8,34 +8,38 @@ format:
   revealjs:
     logo: ./assets/logo-bytedance-seed.png
     footer: "verl: Flexible and Efficient RL for LLMs"
-    smaller: true
     incremental: true
     embed-resources: true
     code-line-numbers: true
+toc: false
 ---
 
 # Background
 
 ## RL as Dataflow Graph
 
-![](./assets/rl-dataflow-examples.png){fig-align="middle" height=300 .lightbox}
+![](./assets/rl-dataflow-examples.png){fig-align="center" height=300 .lightbox}
 
 Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:
 
-1. multiple models: actor, critic, reference policy, reward model, etc.
-2. multiple stages: sampling trajectories, preparing experiences, training
-3. multiple procedures: generation, inference, training
+1. multiple models: actor, critic, reference, reward model, etc.
+2. multiple stages: generating, preparing experiences, training
+3. multiple workloads: generation, inference, training
 
 ## Implementing Dataflow Graph as Execution Pattern
 
-![](./assets/implement-ppo-w-device-placement.png){fig-align="middle" height=300 .lightbox}
-
 In practice, we should implement the dataflow graph as execution pattern on GPU cluster.
+
+![](./assets/implement-ppo-w-device-placement.png){fig-align="center" height=400 .lightbox}
+
+::: {.notes}
 
 Specifically, we:
 
 1. design the parallelism strategy and model placement to optimize the throughput
 2. while restricted by the temporal dependencies and device resources
+
+:::
 
 # verl: Efficient and Flexible RL for LLMs
 
@@ -59,6 +63,8 @@ verl introduces a hybrid-controller paradigm, consisting of
 ## Flexibility: Single-Controller
 
 Thanks to the programming model of single-controller, verl allows implementing different RL algorithms by only modifying a few lines, usually only in the `fit` function.
+
+## RL Algorithms Examples {.smaller .unnumbered}
 
 :::: {.columns}
 
@@ -99,21 +105,21 @@ for prompts in dataloader:
 
 With such flexibility, verl has supported diverse RL algorithms including [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [DrGRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
 
-## Efficiency: Mutli-Controller
+## Efficiency: Mutli-Controller {.center}
 
 ---
 
 ### Hybrid Engine
 
-The optimal execution pattern for different procedures, e.g., training, generation, are usually different.
+The optimal execution pattern for different workloads, e.g., training, generation, are usually different.
 
-Instead of splitting the devices to deploy different engines separately for different procedures, causing many bubbles,
+Instead of splitting the devices to deploy different engines separately for different workloads, causing many bubbles,
 
 verl implements a hybrid engine that can switch between the different procudures on the same cluster, fully utilizing all the GPUs.
 
 ---
 
-### Diverse Parallelism Strategies
+### Diverse Parallelism Strategies {.smaller}
 
 Thanks to the hybrid engine, verl allows flexibly switching between different parallelism strategies to achieve the optimal performance.
 
@@ -121,26 +127,26 @@ Thanks to the hybrid engine, verl allows flexibly switching between different pa
 
 ::: {.column width="49%"}
 
-Generation (Prefilling & Decoding):
+Generation:
 
 ::: {.nonincremental}
-- Tensor Parallelism: `tensor_model_parallel_size`
-- Data Parallelism: Auto-inferred from `tensor_model_parallel_size` and `world_size`
+- Tensor Parallelism
+- Data Parallelism
 :::
 
 :::
 
 ::: {.column width="49%"}
 
-Training & Inference (Forward & Backward):
+Training & Inference:
 
 ::: {.nonincremental}
-- FSDP: `fsdp_size`
-- (DeepSpeed) Ulysses: `ulysses_sequence_parallel_size`
-- (Megatron) 3D Parallelism:
-  - `tensor_model_parallel_size`
-  - `pipeline_model_parallel_size`
-  - `context_parallel_size` & `sequence_parallel`
+- FSDP
+- (DeepSpeed) Ulysses
+- (Megatron) 3D Parallelism
+  - Tensor Parallelism
+  - Pipeline Parallelism
+  - Context / Sequence Parallelism
 :::
 
 :::
@@ -178,6 +184,7 @@ So here comes the second feature:
 3. Torch Compile (`use_torch_compile`)
 4. Liger Kernel (`use_liger`)
 5. LoRA (`lora_rank` etc.)
+6. ...
 
 # Programming Guide
 
@@ -287,28 +294,20 @@ To modify the loss function, the most convenient way is to
 
 For example, the `DataParallelPPOActor.update_policy` method defines the loss function as follows:
 
-```{#lst-verl-actor-loss .python lst-cap="The loss function definition in DataParallelPPOActor." code-line-numbers="3-8,12,20,22"}
+```{#lst-verl-actor-loss .python lst-cap="Simplified loss function definition in DataParallelPPOActor." code-line-numbers="3-6,8,13-14"}
 class DataParallelPPOActor(BasePPOActor):
     def update_policy(self, data: DataProto):
         pg_loss = compute_policy_loss(
-            old_log_prob=old_log_prob,
-            log_prob=log_prob,
-            advantages=advantages,
-            # ...
+            old_log_prob=old_log_prob, log_prob=log_prob,
+            advantages=advantages, # ...
         )
-        entropy_loss = agg_loss(
-            loss_mat=entropy, # ...
-        )
+        entropy_loss = agg_loss(loss_mat=entropy)
         policy_loss = pg_loss - entropy_loss * entropy_coeff
-
         kld = kl_penalty(
             logprob=log_prob, ref_logprob=ref_log_prob, # ...
         )
-        kl_loss = agg_loss(
-            loss_mat=kld, # ...
-        )
+        kl_loss = agg_loss(loss_mat=kld)
         policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
-
         loss.backward()
 ```
 
@@ -318,7 +317,11 @@ As mentioned above, the main training logic is concentrated in the `fit` functio
 
 For example, the `DAPORayTrainer` class overrides the `fit` function to implement the "dynamic sampling" feature:
 
-```{#lst-verl-dapo-trainer-fit .python lst-cap="Simplified fit function in DAPORayTrainer." code-line-numbers="4,6,8,10,12-23"}
+(See the next slide for the code ➡️)
+
+---
+
+```{#lst-verl-dapo-trainer-fit .python lst-cap="Simplified fit function in DAPORayTrainer, with dynamic sampling highlighted." code-line-numbers="4,6,8,10,12-23"}
 class RayDAPOTrainer(RayPPOTrainer):
   def fit(self):
     for epoch in range(self.config.trainer.total_epochs):
@@ -353,7 +356,7 @@ verl is approaching finishing the support for efficient RL training for huge MoE
 
 1. MoE models with `GPTModel` class for actor and critic
 2. Multi-node inference
-3. Parameter sharding manager for Megatron-Core V0.11 + latest version of inference engines
+3. Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines
 
 . . .
 
@@ -375,4 +378,18 @@ For more details, please check [their PR #1037](https://github.com/volcengine/ve
 Besides, our team also integrates [the async engine based on vLLM V1 `AsyncLLM`](https://github.com/volcengine/verl/pull/1138). Kudos to [Xibin Wu](https://github.com/wuxibin89) for his great work!
 
 
-# Thanks for Listening! {.center .unnumbered}
+# Thanks for Listening! {.center .unnumbered .smaller}
+
+For related resources like 
+
+::: {.nonincremental}
+1. Slack channel for Q&A
+2. Free GPU quota on Volcano Engine
+3. Out-of-the-box verl demo
+4. Slides
+5. Other links
+:::
+
+etc., please scan the QR code:
+
+![](./assets/qrcode-verl-iclr25.png){fig-align="center" height=200 .lightbox}
