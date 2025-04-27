@@ -51,7 +51,7 @@ From 0.2.0.post2 till now (after 0.3.0.post1), we have achieved a speedup of  ~1
 verl introduces a hybrid-controller paradigm, consisting of
 
 - a single-controller (e.g. `RayPPOTrainer`) that concentrates the training control logic in a single process
-- multiple multi-controllers (e.g. `ActorRolloutWorker`) that conduct the distributed computation in an complex but efficient way
+- multiple multi-controllers (e.g. `ActorRolloutWorker`) that conduct the distributed computation in a complex but efficient way
 
 ::: {.notes}
 
