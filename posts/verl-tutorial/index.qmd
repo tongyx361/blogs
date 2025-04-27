@@ -9,28 +9,35 @@ format:
     embed-resources: true
 ---
 
-# RL as Dataflow Graph
+# Background
 
-## Different RL Algorithms' Dataflow Graphs
+## RL as Dataflow Graph {.smaller}
 
-Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of 3 stages.
+![](./assets/rl-dataflow-examples.png){fig-align="center" height=300 .lightbox}
 
-![](./assets/rl-dataflow-examples.png){.lightbox}
+Reinforcement Learning (RL) for LLM Post-Training can typically be modeled as a **dataflow graph**, consisting of:
 
-# Implementing Dataflow Graph as Execution Pattern
+1. **multiple models**: actor, critic, reference, reward model, etc.
+2. **multiple stages**: generating, preparing experiences, training
+3. **multiple workloads**: generation, inference, training
 
-In practice, we should implement the dataflow graph with device placement,
+## Implementing Dataflow Graph as Execution Pattern
 
-1. optimizing the throughput
+In practice, we should implement the dataflow graph as execution pattern on GPU cluster.
+
+![](./assets/implement-ppo-w-device-placement.png){fig-align="center" height=400 .lightbox}
+
+::: {.notes}
+
+Specifically, we:
+
+1. design the parallelism strategy and model placement to optimize the throughput
 2. while restricted by the temporal dependencies and device resources
 
-## Example: Implementing PPO with Splitted Placement
+:::
 
-Taking the Proximal Policy Optimization (PPO) algorithm using a reward model and KL regularization as an example:
 
-![](./assets/implement-ppo-w-device-placement.png){.lightbox}
-
-# Implementing Execution Pattern with verl Code
+# verl Code Walkthrough
 
 We take the verl [@sheng2024hybridflow] default implementation as an example.
 
@@ -269,23 +276,6 @@ def func_generator(self, method_name,
     return output
   return func
 ```
-
-# Programming Guide for verl
-
-TODO
-
-1. Customizing Dataset
-2. Customizing Reward Manager
-3. Customizing Loss
-4. Customizing "Advantages"
-5. ...
-
-# Latest Features in verl
-
-TODO
-
-1. Multi-Turn Based on Async Engine
-2. ...
 
 ---
 
