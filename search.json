@@ -277,7 +277,7 @@
     "href": "posts/verl-intro/index.html#paradigm-hybrid-controller",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "2.1 Paradigm: Hybrid-Controller",
-    "text": "2.1 Paradigm: Hybrid-Controller\nverl introduces a hybrid-controller paradigm, consisting of\n\na single-controller (e.g. RayPPOTrainer) that concentrates the training control logic in a single process\nmultiple multi-controllers (e.g. ActorRolloutWorker) that conduct the distributed computation in an complex but efficient way\n\n\n“multi-controller”, i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.\n\nIt can be understood as multiple processes run with torchrun, each of which runs the same program but processes different data, reducing the communication overhead."
+    "text": "2.1 Paradigm: Hybrid-Controller\nverl introduces a hybrid-controller paradigm, consisting of\n\na single-controller (e.g. RayPPOTrainer) that concentrates the training control logic in a single process\nmultiple multi-controllers (e.g. ActorRolloutWorker) that conduct the distributed computation in a complex but efficient way\n\n\n“multi-controller”, i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.\n\nIt can be understood as multiple processes run with torchrun, each of which runs the same program but processes different data, reducing the communication overhead."
   },
   {
     "objectID": "posts/verl-intro/index.html#flexibility-single-controller",
