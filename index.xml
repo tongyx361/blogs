@@ -9,21 +9,22 @@
 <link>https://tongyx361.github.io/blogs/</link>
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
-<generator>quarto-1.6.43</generator>
-<lastBuildDate>Sat, 26 Apr 2025 00:00:00 GMT</lastBuildDate>
+<generator>quarto-1.7.31</generator>
+<lastBuildDate>Sat, 24 May 2025 00:00:00 GMT</lastBuildDate>
 <item>
   <title></title>
-  <dc:creator>Yuxuan Tong</dc:creator>
+  <dc:creator>Yuxuan Tong (童雨轩)</dc:creator>
   <link>https://tongyx361.github.io/blogs/posts/verl-intro/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-intro/</guid>
-  <pubDate>Sat, 26 Apr 2025 00:00:00 GMT</pubDate>
+  <pubDate>Sat, 24 May 2025 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>重新思考 RL 中的 KL 梯度优化</title>
   <dc:creator>童雨轩 </dc:creator>
   <link>https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh/</link>
   <description><![CDATA[ 
+
 
 
 
@@ -71,28 +72,28 @@
 Listing&nbsp;1: TRL 计算 KL 样本值 <img src="https://latex.codecogs.com/png.latex?%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bref%7D%7D%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D"> 并从 reward 中减去<sup>5</sup>
 </figcaption>
 <div aria-describedby="lst-trl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-trl-kl-reward" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-trl-kl-reward-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># 4. compute rewards</span></span>
-<span id="lst-trl-kl-reward-2">kl <span class="op" style="color: #5E5E5E;
+<span id="cb1-2">kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> logprobs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> ref_logprobs</span>
-<span id="lst-trl-kl-reward-3">non_score_reward <span class="op" style="color: #5E5E5E;
+<span id="cb1-3">non_score_reward <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span>args.kl_coef <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> kl</span>
-<span id="lst-trl-kl-reward-4">rewards <span class="op" style="color: #5E5E5E;
+<span id="cb1-4">rewards <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> non_score_reward.clone()</span>
-<span id="lst-trl-kl-reward-5"><span class="co" style="color: #5E5E5E;
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-trl-kl-reward-6">rewards[[actual_start, actual_end]] <span class="op" style="color: #5E5E5E;
+<span id="cb1-6">rewards[[actual_start, actual_end]] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+=</span> scores</span></code></pre></div>
 </div>
@@ -120,54 +121,54 @@ font-style: inherit;">+=</span> scores</span></code></pre></div>
 Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 <sup>6</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-openrlhf-calc-kl-estimator" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-openrlhf-calc-kl-estimator-1"><span class="kw" style="color: #003B4F;
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> compute_approx_kl(</span>
-<span id="lst-openrlhf-calc-kl-estimator-2">    log_probs: torch.Tensor,</span>
-<span id="lst-openrlhf-calc-kl-estimator-3">    log_probs_base: torch.Tensor,</span>
-<span id="lst-openrlhf-calc-kl-estimator-4">    action_mask: Optional[torch.Tensor] <span class="op" style="color: #5E5E5E;
+<span id="cb2-2">    log_probs: torch.Tensor,</span>
+<span id="cb2-3">    log_probs_base: torch.Tensor,</span>
+<span id="cb2-4">    action_mask: Optional[torch.Tensor] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>,</span>
-<span id="lst-openrlhf-calc-kl-estimator-5">    kl_estimator: <span class="bu" style="color: null;
+<span id="cb2-5">    kl_estimator: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">str</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"k1"</span>,</span>
-<span id="lst-openrlhf-calc-kl-estimator-6">) <span class="op" style="color: #5E5E5E;
+<span id="cb2-6">) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-&gt;</span> torch.Tensor:</span>
-<span id="lst-openrlhf-calc-kl-estimator-7">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-7">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-8"><span class="co" style="color: #5E5E5E;
+<span id="cb2-8"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Compute the approximate KL divergence between two distributions.</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-9"><span class="co" style="color: #5E5E5E;
+<span id="cb2-9"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Schulman blog: http://joschu.net/blog/kl-approx.html</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-10"></span>
-<span id="lst-openrlhf-calc-kl-estimator-11"><span class="co" style="color: #5E5E5E;
+<span id="cb2-10"></span>
+<span id="cb2-11"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Args:</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-12"><span class="co" style="color: #5E5E5E;
+<span id="cb2-12"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">        log_probs: Log probabilities of the new distribution.</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-13"><span class="co" style="color: #5E5E5E;
+<span id="cb2-13"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">        log_probs_base: Log probabilities of the base distribution.</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-14"><span class="co" style="color: #5E5E5E;
+<span id="cb2-14"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">        action_mask: Mask for actions.</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-15"><span class="co" style="color: #5E5E5E;
+<span id="cb2-15"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    """</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-16"></span>
-<span id="lst-openrlhf-calc-kl-estimator-17">    <span class="cf" style="color: #003B4F;
+<span id="cb2-16"></span>
+<span id="cb2-17">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_estimator <span class="op" style="color: #5E5E5E;
@@ -175,7 +176,7 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"k1"</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-18">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-18">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_probs.<span class="bu" style="color: null;
 background-color: null;
@@ -184,7 +185,7 @@ background-color: null;
 font-style: inherit;">-</span> log_probs_base.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>()</span>
-<span id="lst-openrlhf-calc-kl-estimator-19">        <span class="cf" style="color: #003B4F;
+<span id="cb2-19">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> action_mask <span class="kw" style="color: #003B4F;
@@ -196,28 +197,28 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-20">            log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-20">            log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> action_mask</span>
-<span id="lst-openrlhf-calc-kl-estimator-21"></span>
-<span id="lst-openrlhf-calc-kl-estimator-22">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-21"></span>
+<span id="cb2-22">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># The $k_2$ estimator is the non negative kl approximation in</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-23">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-23">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># http://joschu.net/blog/kl-approx.html</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-24">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-24">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># The k2_loss is approximately equivalent to the</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-25">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-25">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># one-step KL divergence penalty with the $k_1$ estimator</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-26">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-26">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># used in https://arxiv.org/abs/2310.10505.</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-27">    <span class="cf" style="color: #003B4F;
+<span id="cb2-27">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_estimator <span class="op" style="color: #5E5E5E;
@@ -225,7 +226,7 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"k2"</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-28">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-28">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_probs.<span class="bu" style="color: null;
 background-color: null;
@@ -234,7 +235,7 @@ background-color: null;
 font-style: inherit;">-</span> log_probs_base.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>()</span>
-<span id="lst-openrlhf-calc-kl-estimator-29">        <span class="cf" style="color: #003B4F;
+<span id="cb2-29">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> action_mask <span class="kw" style="color: #003B4F;
@@ -246,12 +247,12 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-30">            log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-30">            log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> action_mask</span>
-<span id="lst-openrlhf-calc-kl-estimator-31">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-31">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_ratio<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -262,14 +263,14 @@ background-color: null;
 font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2.0</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-32"></span>
-<span id="lst-openrlhf-calc-kl-estimator-33">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-32"></span>
+<span id="cb2-33">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># The $k_3$ estimator is the non negative kl approximation in</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-34">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-34">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># http://joschu.net/blog/kl-approx.html</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-35">    <span class="cf" style="color: #003B4F;
+<span id="cb2-35">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_estimator <span class="op" style="color: #5E5E5E;
@@ -277,7 +278,7 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"k3"</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-36">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-36">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_probs.<span class="bu" style="color: null;
 background-color: null;
@@ -286,7 +287,7 @@ background-color: null;
 font-style: inherit;">-</span> log_probs_base.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>()</span>
-<span id="lst-openrlhf-calc-kl-estimator-37">        <span class="cf" style="color: #003B4F;
+<span id="cb2-37">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> action_mask <span class="kw" style="color: #003B4F;
@@ -298,17 +299,17 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-38">            log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-38">            log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> action_mask</span>
-<span id="lst-openrlhf-calc-kl-estimator-39">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-39">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span>log_ratio</span>
-<span id="lst-openrlhf-calc-kl-estimator-40">        log_ratio <span class="op" style="color: #5E5E5E;
+<span id="cb2-40">        log_ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> log_ratio.exp() <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -317,30 +318,30 @@ background-color: null;
 font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> log_ratio</span>
-<span id="lst-openrlhf-calc-kl-estimator-41"></span>
-<span id="lst-openrlhf-calc-kl-estimator-42">    <span class="cf" style="color: #003B4F;
+<span id="cb2-41"></span>
+<span id="cb2-42">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> log_ratio</span>
-<span id="lst-openrlhf-calc-kl-estimator-43"></span>
-<span id="lst-openrlhf-calc-kl-estimator-44"></span>
-<span id="lst-openrlhf-calc-kl-estimator-45"><span class="kw" style="color: #003B4F;
+<span id="cb2-43"></span>
+<span id="cb2-44"></span>
+<span id="cb2-45"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> compute_reward(</span>
-<span id="lst-openrlhf-calc-kl-estimator-46">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-46">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-47">    kl_coef: <span class="bu" style="color: null;
+<span id="cb2-47">    kl_coef: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>,</span>
-<span id="lst-openrlhf-calc-kl-estimator-48">    kl: Union[torch.Tensor, <span class="bu" style="color: null;
+<span id="cb2-48">    kl: Union[torch.Tensor, <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">list</span>[torch.Tensor]],</span>
-<span id="lst-openrlhf-calc-kl-estimator-49">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-49">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-50">    num_actions: Optional[Union[<span class="bu" style="color: null;
+<span id="cb2-50">    num_actions: Optional[Union[<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">int</span>, <span class="bu" style="color: null;
 background-color: null;
@@ -351,18 +352,18 @@ background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>,</span>
-<span id="lst-openrlhf-calc-kl-estimator-51">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-51">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-52">) <span class="op" style="color: #5E5E5E;
+<span id="cb2-52">) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-&gt;</span> Union[torch.Tensor, <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">list</span>[torch.Tensor]]:</span>
-<span id="lst-openrlhf-calc-kl-estimator-53">    <span class="co" style="color: #5E5E5E;
+<span id="cb2-53">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-54">    <span class="cf" style="color: #003B4F;
+<span id="cb2-54">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> action_mask <span class="kw" style="color: #003B4F;
@@ -374,20 +375,20 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-55">        <span class="co" style="color: #5E5E5E;
+<span id="cb2-55">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-56">    <span class="cf" style="color: #003B4F;
+<span id="cb2-56">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-openrlhf-calc-kl-estimator-57">        <span class="co" style="color: #5E5E5E;
+<span id="cb2-57">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-estimator-58">        reward <span class="op" style="color: #5E5E5E;
+<span id="cb2-58">        reward <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> []</span>
-<span id="lst-openrlhf-calc-kl-estimator-59">        <span class="cf" style="color: #003B4F;
+<span id="cb2-59">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> i, (kl_seg, action_len) <span class="kw" style="color: #003B4F;
@@ -398,23 +399,23 @@ background-color: null;
 font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">zip</span>(kl, num_actions)):</span>
-<span id="lst-openrlhf-calc-kl-estimator-60">            kl_reward <span class="op" style="color: #5E5E5E;
+<span id="cb2-60">            kl_reward <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span>kl_coef <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> kl_seg</span>
-<span id="lst-openrlhf-calc-kl-estimator-61">            kl_reward[action_len <span class="op" style="color: #5E5E5E;
+<span id="cb2-61">            kl_reward[action_len <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+=</span> r[i]</span>
-<span id="lst-openrlhf-calc-kl-estimator-62">            reward.append(kl_reward)</span>
-<span id="lst-openrlhf-calc-kl-estimator-63"></span>
-<span id="lst-openrlhf-calc-kl-estimator-64">    <span class="cf" style="color: #003B4F;
+<span id="cb2-62">            reward.append(kl_reward)</span>
+<span id="cb2-63"></span>
+<span id="cb2-64">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> reward</span></code></pre></div>
@@ -437,7 +438,7 @@ font-style: inherit;">return</span> reward</span></code></pre></div>
 Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 <sup>7</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-openrlhf-calc-kl-loss" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-openrlhf-calc-kl-loss-1"><span class="kw" style="color: #003B4F;
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> training_step_actor(<span class="va" style="color: #111111;
@@ -449,13 +450,13 @@ background-color: null;
 font-style: inherit;">str</span>, <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>]:</span>
-<span id="lst-openrlhf-calc-kl-loss-2">    <span class="va" style="color: #111111;
+<span id="cb3-2">    <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor.train()</span>
-<span id="lst-openrlhf-calc-kl-loss-3">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-3">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-4">    <span class="cf" style="color: #003B4F;
+<span id="cb3-4">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="bu" style="color: null;
@@ -463,36 +464,36 @@ background-color: null;
 font-style: inherit;">isinstance</span>(experience.sequences, <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">list</span>):</span>
-<span id="lst-openrlhf-calc-kl-loss-5">        <span class="co" style="color: #5E5E5E;
+<span id="cb3-5">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-6">    <span class="cf" style="color: #003B4F;
+<span id="cb3-6">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-7">        sequences <span class="op" style="color: #5E5E5E;
+<span id="cb3-7">        sequences <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.sequences</span>
-<span id="lst-openrlhf-calc-kl-loss-8">        old_action_log_probs <span class="op" style="color: #5E5E5E;
+<span id="cb3-8">        old_action_log_probs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.action_log_probs</span>
-<span id="lst-openrlhf-calc-kl-loss-9">        advantages <span class="op" style="color: #5E5E5E;
+<span id="cb3-9">        advantages <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.advantages</span>
-<span id="lst-openrlhf-calc-kl-loss-10">        num_actions <span class="op" style="color: #5E5E5E;
+<span id="cb3-10">        num_actions <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.action_mask.size(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="lst-openrlhf-calc-kl-loss-11">        packed_seq_lens <span class="op" style="color: #5E5E5E;
+<span id="cb3-11">        packed_seq_lens <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span></span>
-<span id="lst-openrlhf-calc-kl-loss-12">        attention_mask <span class="op" style="color: #5E5E5E;
+<span id="cb3-12">        attention_mask <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.attention_mask</span>
-<span id="lst-openrlhf-calc-kl-loss-13">        <span class="cf" style="color: #003B4F;
+<span id="cb3-13">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="va" style="color: #111111;
@@ -509,50 +510,50 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-14">            base_action_log_probs <span class="op" style="color: #5E5E5E;
+<span id="cb3-14">            base_action_log_probs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> experience.base_action_log_probs</span>
-<span id="lst-openrlhf-calc-kl-loss-15"></span>
-<span id="lst-openrlhf-calc-kl-loss-16">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-15"></span>
+<span id="cb3-16">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># actor loss</span></span>
-<span id="lst-openrlhf-calc-kl-loss-17">    action_log_probs, output <span class="op" style="color: #5E5E5E;
+<span id="cb3-17">    action_log_probs, output <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor(</span>
-<span id="lst-openrlhf-calc-kl-loss-18">        sequences,</span>
-<span id="lst-openrlhf-calc-kl-loss-19">        num_actions,</span>
-<span id="lst-openrlhf-calc-kl-loss-20">        <span class="co" style="color: #5E5E5E;
+<span id="cb3-18">        sequences,</span>
+<span id="cb3-19">        num_actions,</span>
+<span id="cb3-20">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-21">    )</span>
-<span id="lst-openrlhf-calc-kl-loss-22">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-21">    )</span>
+<span id="cb3-22">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-23">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-23">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># loss function</span></span>
-<span id="lst-openrlhf-calc-kl-loss-24">    actor_loss <span class="op" style="color: #5E5E5E;
+<span id="cb3-24">    actor_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor_loss_fn(</span>
-<span id="lst-openrlhf-calc-kl-loss-25">        action_log_probs,</span>
-<span id="lst-openrlhf-calc-kl-loss-26">        old_action_log_probs,</span>
-<span id="lst-openrlhf-calc-kl-loss-27">        advantages,</span>
-<span id="lst-openrlhf-calc-kl-loss-28">        <span class="co" style="color: #5E5E5E;
+<span id="cb3-25">        action_log_probs,</span>
+<span id="cb3-26">        old_action_log_probs,</span>
+<span id="cb3-27">        advantages,</span>
+<span id="cb3-28">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-29">    )</span>
-<span id="lst-openrlhf-calc-kl-loss-30"></span>
-<span id="lst-openrlhf-calc-kl-loss-31">    <span class="cf" style="color: #003B4F;
+<span id="cb3-29">    )</span>
+<span id="cb3-30"></span>
+<span id="cb3-31">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.args.use_kl_loss:</span>
-<span id="lst-openrlhf-calc-kl-loss-32">        <span class="cf" style="color: #003B4F;
+<span id="cb3-32">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="va" style="color: #111111;
@@ -566,33 +567,33 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-33">            kl <span class="op" style="color: #5E5E5E;
+<span id="cb3-33">            kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> compute_approx_kl(</span>
-<span id="lst-openrlhf-calc-kl-loss-34">                action_log_probs,</span>
-<span id="lst-openrlhf-calc-kl-loss-35">                base_action_log_probs,</span>
-<span id="lst-openrlhf-calc-kl-loss-36">                <span class="co" style="color: #5E5E5E;
+<span id="cb3-34">                action_log_probs,</span>
+<span id="cb3-35">                base_action_log_probs,</span>
+<span id="cb3-36">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-37">                kl_estimator<span class="op" style="color: #5E5E5E;
+<span id="cb3-37">                kl_estimator<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.args.kl_estimator,</span>
-<span id="lst-openrlhf-calc-kl-loss-38">            )</span>
-<span id="lst-openrlhf-calc-kl-loss-39">        <span class="cf" style="color: #003B4F;
+<span id="cb3-38">            )</span>
+<span id="cb3-39">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-40">            kl <span class="op" style="color: #5E5E5E;
+<span id="cb3-40">            kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.zeros_like(action_log_probs, dtype<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>action_log_probs.dtype, device<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>action_log_probs.device)</span>
-<span id="lst-openrlhf-calc-kl-loss-41"></span>
-<span id="lst-openrlhf-calc-kl-loss-42">        <span class="cf" style="color: #003B4F;
+<span id="cb3-41"></span>
+<span id="cb3-42">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
@@ -601,42 +602,42 @@ font-weight: bold;
 font-style: inherit;">not</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.args.packing_samples:</span>
-<span id="lst-openrlhf-calc-kl-loss-43">            kl_mean <span class="op" style="color: #5E5E5E;
+<span id="cb3-43">            kl_mean <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> masked_mean(kl, experience.action_mask, dim<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="lst-openrlhf-calc-kl-loss-44">        <span class="cf" style="color: #003B4F;
+<span id="cb3-44">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-45">            <span class="co" style="color: #5E5E5E;
+<span id="cb3-45">            <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-46"></span>
-<span id="lst-openrlhf-calc-kl-loss-47">        kl_loss <span class="op" style="color: #5E5E5E;
+<span id="cb3-46"></span>
+<span id="cb3-47">        kl_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> kl_mean.mean()</span>
-<span id="lst-openrlhf-calc-kl-loss-48">        experience.info[<span class="st" style="color: #20794D;
+<span id="cb3-48">        experience.info[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"kl"</span>] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> kl_loss.item()</span>
-<span id="lst-openrlhf-calc-kl-loss-49">    <span class="cf" style="color: #003B4F;
+<span id="cb3-49">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-openrlhf-calc-kl-loss-50">        kl_loss <span class="op" style="color: #5E5E5E;
+<span id="cb3-50">        kl_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="lst-openrlhf-calc-kl-loss-51">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-51">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-calc-kl-loss-52">    <span class="va" style="color: #111111;
+<span id="cb3-52">    <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.strategy.optimizer_step(<span class="va" style="color: #111111;
 background-color: null;
@@ -649,7 +650,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"actor"</span>)</span>
-<span id="lst-openrlhf-calc-kl-loss-53">    <span class="co" style="color: #5E5E5E;
+<span id="cb3-53">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
@@ -674,7 +675,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <sup>8</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-verl-kl-reward" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-verl-kl-reward-1"><span class="kw" style="color: #003B4F;
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, kl_penalty<span class="op" style="color: #5E5E5E;
@@ -682,13 +683,13 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'kl'</span>):</span>
-<span id="lst-verl-kl-reward-2">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-2">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-reward-3">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-3">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># compute kl between ref_policy and current policy</span></span>
-<span id="lst-verl-kl-reward-4">    <span class="cf" style="color: #003B4F;
+<span id="cb4-4">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="st" style="color: #20794D;
@@ -697,49 +698,49 @@ font-style: inherit;">'ref_log_prob'</span> <span class="kw" style="color: #003B
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> data.batch.keys():</span>
-<span id="lst-verl-kl-reward-5">        kld <span class="op" style="color: #5E5E5E;
+<span id="cb4-5">        kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> core_algos.kl_penalty(data.batch[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'old_log_probs'</span>], data.batch[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'ref_log_prob'</span>],</span>
-<span id="lst-verl-kl-reward-6">                                    kl_penalty<span class="op" style="color: #5E5E5E;
+<span id="cb4-6">                                    kl_penalty<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>kl_penalty)  <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># (batch_size, response_length)</span></span>
-<span id="lst-verl-kl-reward-7">        kld <span class="op" style="color: #5E5E5E;
+<span id="cb4-7">        kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> response_mask</span>
-<span id="lst-verl-kl-reward-8">        beta <span class="op" style="color: #5E5E5E;
+<span id="cb4-8">        beta <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> kl_ctrl.value</span>
-<span id="lst-verl-kl-reward-9">    <span class="cf" style="color: #003B4F;
+<span id="cb4-9">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="lst-verl-kl-reward-10">        beta <span class="op" style="color: #5E5E5E;
+<span id="cb4-10">        beta <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="lst-verl-kl-reward-11">        kld <span class="op" style="color: #5E5E5E;
+<span id="cb4-11">        kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.zeros_like(response_mask, dtype<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>torch.float32)</span>
-<span id="lst-verl-kl-reward-12"></span>
-<span id="lst-verl-kl-reward-13">    token_level_rewards <span class="op" style="color: #5E5E5E;
+<span id="cb4-12"></span>
+<span id="cb4-13">    token_level_rewards <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> token_level_scores <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> beta <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> kld</span>
-<span id="lst-verl-kl-reward-14">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-14">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
@@ -761,22 +762,22 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 <sup>9</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-verl-kl-loss" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-verl-kl-loss-1"><span class="kw" style="color: #003B4F;
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> update_policy(<span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>, data: DataProto):</span>
-<span id="lst-verl-kl-loss-2">    <span class="co" style="color: #5E5E5E;
+<span id="cb5-2">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># make sure we are in training mode</span></span>
-<span id="lst-verl-kl-loss-3">    <span class="va" style="color: #111111;
+<span id="cb5-3">    <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor_module.train()</span>
-<span id="lst-verl-kl-loss-4">    <span class="co" style="color: #5E5E5E;
+<span id="cb5-4">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-5">    <span class="cf" style="color: #003B4F;
+<span id="cb5-5">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> epoch <span class="kw" style="color: #003B4F;
@@ -787,7 +788,7 @@ background-color: null;
 font-style: inherit;">range</span>(<span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.config.ppo_epochs):</span>
-<span id="lst-verl-kl-loss-6">        <span class="cf" style="color: #003B4F;
+<span id="cb5-6">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> batch_idx, data <span class="kw" style="color: #003B4F;
@@ -796,44 +797,44 @@ font-weight: bold;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">enumerate</span>(dataloader):</span>
-<span id="lst-verl-kl-loss-7">            <span class="co" style="color: #5E5E5E;
+<span id="cb5-7">            <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-8">            <span class="va" style="color: #111111;
+<span id="cb5-8">            <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor_optimizer.zero_grad()</span>
-<span id="lst-verl-kl-loss-9"></span>
-<span id="lst-verl-kl-loss-10">            <span class="cf" style="color: #003B4F;
+<span id="cb5-9"></span>
+<span id="cb5-10">            <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> data <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> micro_batches:</span>
-<span id="lst-verl-kl-loss-11">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-11">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-12">                responses <span class="op" style="color: #5E5E5E;
+<span id="cb5-12">                responses <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> data[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'responses'</span>]</span>
-<span id="lst-verl-kl-loss-13">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-13">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-14">                old_log_prob <span class="op" style="color: #5E5E5E;
+<span id="cb5-14">                old_log_prob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> data[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'old_log_probs'</span>]</span>
-<span id="lst-verl-kl-loss-15">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-15">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-16"></span>
-<span id="lst-verl-kl-loss-17">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-16"></span>
+<span id="cb5-17">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># all return: (bsz, response_length)</span></span>
-<span id="lst-verl-kl-loss-18">                entropy, log_prob <span class="op" style="color: #5E5E5E;
+<span id="cb5-18">                entropy, log_prob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
@@ -842,66 +843,66 @@ background-color: null;
 font-style: inherit;">=</span>data, temperature<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>temperature)</span>
-<span id="lst-verl-kl-loss-19"></span>
-<span id="lst-verl-kl-loss-20">                pg_loss, pg_clipfrac, ppo_kl <span class="op" style="color: #5E5E5E;
+<span id="cb5-19"></span>
+<span id="cb5-20">                pg_loss, pg_clipfrac, ppo_kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> core_algos.compute_policy_loss(old_log_prob<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>old_log_prob,</span>
-<span id="lst-verl-kl-loss-21">                                                                                log_prob<span class="op" style="color: #5E5E5E;
+<span id="cb5-21">                                                                                log_prob<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>log_prob,</span>
-<span id="lst-verl-kl-loss-22">                                                                                <span class="co" style="color: #5E5E5E;
+<span id="cb5-22">                                                                                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-23">                                                                                )</span>
-<span id="lst-verl-kl-loss-24">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-23">                                                                                )</span>
+<span id="cb5-24">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-25"></span>
-<span id="lst-verl-kl-loss-26">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-25"></span>
+<span id="cb5-26">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># compute policy loss</span></span>
-<span id="lst-verl-kl-loss-27">                policy_loss <span class="op" style="color: #5E5E5E;
+<span id="cb5-27">                policy_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pg_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> entropy_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> entropy_coeff</span>
-<span id="lst-verl-kl-loss-28"></span>
-<span id="lst-verl-kl-loss-29">                <span class="cf" style="color: #003B4F;
+<span id="cb5-28"></span>
+<span id="cb5-29">                <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.config.use_kl_loss:</span>
-<span id="lst-verl-kl-loss-30">                    ref_log_prob <span class="op" style="color: #5E5E5E;
+<span id="cb5-30">                    ref_log_prob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> data[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'ref_log_prob'</span>]</span>
-<span id="lst-verl-kl-loss-31">                    <span class="co" style="color: #5E5E5E;
+<span id="cb5-31">                    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># compute kl loss</span></span>
-<span id="lst-verl-kl-loss-32">                    kld <span class="op" style="color: #5E5E5E;
+<span id="cb5-32">                    kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> core_algos.kl_penalty(logprob<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>log_prob,</span>
-<span id="lst-verl-kl-loss-33">                                                ref_logprob<span class="op" style="color: #5E5E5E;
+<span id="cb5-33">                                                ref_logprob<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>ref_log_prob,</span>
-<span id="lst-verl-kl-loss-34">                                                kl_penalty<span class="op" style="color: #5E5E5E;
+<span id="cb5-34">                                                kl_penalty<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.config.kl_loss_type)</span>
-<span id="lst-verl-kl-loss-35">                    kl_loss <span class="op" style="color: #5E5E5E;
+<span id="cb5-35">                    kl_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> masked_mean(kld, response_mask)</span>
-<span id="lst-verl-kl-loss-36"></span>
-<span id="lst-verl-kl-loss-37">                    policy_loss <span class="op" style="color: #5E5E5E;
+<span id="cb5-36"></span>
+<span id="cb5-37">                    policy_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> policy_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -910,25 +911,25 @@ background-color: null;
 font-style: inherit;">*</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.config.kl_loss_coef</span>
-<span id="lst-verl-kl-loss-38">                <span class="co" style="color: #5E5E5E;
+<span id="cb5-38">                <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-39">                loss.backward()</span>
-<span id="lst-verl-kl-loss-40">            <span class="co" style="color: #5E5E5E;
+<span id="cb5-39">                loss.backward()</span>
+<span id="cb5-40">            <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-41">            grad_norm <span class="op" style="color: #5E5E5E;
+<span id="cb5-41">            grad_norm <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>._optimizer_step()</span>
-<span id="lst-verl-kl-loss-42">    <span class="co" style="color: #5E5E5E;
+<span id="cb5-42">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-loss-43">    <span class="va" style="color: #111111;
+<span id="cb5-43">    <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor_optimizer.zero_grad()</span>
-<span id="lst-verl-kl-loss-44">    <span class="co" style="color: #5E5E5E;
+<span id="cb5-44">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span></code></pre></div>
 </div>
@@ -1063,16 +1064,16 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;6: verl 的 KL 散度 Monte Carlo 估计样本值<sup>14</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-verl-kl-estimator" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-verl-kl-estimator-1"><span class="kw" style="color: #003B4F;
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_penalty) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-&gt;</span> torch.FloatTensor:</span>
-<span id="lst-verl-kl-estimator-2">    <span class="co" style="color: #5E5E5E;
+<span id="cb6-2">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-verl-kl-estimator-3">    <span class="cf" style="color: #003B4F;
+<span id="cb6-3">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_penalty <span class="op" style="color: #5E5E5E;
@@ -1080,14 +1081,14 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"kl"</span>:</span>
-<span id="lst-verl-kl-estimator-4">        <span class="cf" style="color: #003B4F;
+<span id="cb6-4">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> logprob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> ref_logprob</span>
-<span id="lst-verl-kl-estimator-5"></span>
-<span id="lst-verl-kl-estimator-6">    <span class="cf" style="color: #003B4F;
+<span id="cb6-5"></span>
+<span id="cb6-6">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_penalty <span class="op" style="color: #5E5E5E;
@@ -1095,7 +1096,7 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"abs"</span>:</span>
-<span id="lst-verl-kl-estimator-7">        <span class="cf" style="color: #003B4F;
+<span id="cb6-7">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> (logprob <span class="op" style="color: #5E5E5E;
@@ -1103,8 +1104,8 @@ background-color: null;
 font-style: inherit;">-</span> ref_logprob).<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">abs</span>()</span>
-<span id="lst-verl-kl-estimator-8"></span>
-<span id="lst-verl-kl-estimator-9">    <span class="cf" style="color: #003B4F;
+<span id="cb6-8"></span>
+<span id="cb6-9">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_penalty <span class="op" style="color: #5E5E5E;
@@ -1112,7 +1113,7 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"mse"</span>:</span>
-<span id="lst-verl-kl-estimator-10">        <span class="cf" style="color: #003B4F;
+<span id="cb6-10">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> <span class="fl" style="color: #AD0000;
@@ -1122,14 +1123,14 @@ background-color: null;
 font-style: inherit;">*</span> (logprob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> ref_logprob).square()</span>
-<span id="lst-verl-kl-estimator-11"></span>
-<span id="lst-verl-kl-estimator-12">    <span class="co" style="color: #5E5E5E;
+<span id="cb6-11"></span>
+<span id="cb6-12">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># J. Schulman. Approximating kl divergence, 2020.</span></span>
-<span id="lst-verl-kl-estimator-13">    <span class="co" style="color: #5E5E5E;
+<span id="cb6-13">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># # URL http://joschu.net/blog/kl-approx.html.</span></span>
-<span id="lst-verl-kl-estimator-14">    <span class="cf" style="color: #003B4F;
+<span id="cb6-14">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_penalty <span class="op" style="color: #5E5E5E;
@@ -1137,15 +1138,15 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">'low_var_kl'</span>:</span>
-<span id="lst-verl-kl-estimator-15">        kl <span class="op" style="color: #5E5E5E;
+<span id="cb6-15">        kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> ref_logprob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> logprob</span>
-<span id="lst-verl-kl-estimator-16">        ratio <span class="op" style="color: #5E5E5E;
+<span id="cb6-16">        ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.exp(kl)</span>
-<span id="lst-verl-kl-estimator-17">        kld <span class="op" style="color: #5E5E5E;
+<span id="cb6-17">        kld <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> (ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1154,7 +1155,7 @@ background-color: null;
 font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>).contiguous()</span>
-<span id="lst-verl-kl-estimator-18">        <span class="cf" style="color: #003B4F;
+<span id="cb6-18">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> torch.clamp(kld, <span class="bu" style="color: null;
@@ -1170,8 +1171,8 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">10</span>)</span>
-<span id="lst-verl-kl-estimator-19"></span>
-<span id="lst-verl-kl-estimator-20">    <span class="cf" style="color: #003B4F;
+<span id="cb6-19"></span>
+<span id="cb6-20">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> kl_penalty <span class="op" style="color: #5E5E5E;
@@ -1179,17 +1180,17 @@ background-color: null;
 font-style: inherit;">==</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"full"</span>:</span>
-<span id="lst-verl-kl-estimator-21">        <span class="co" style="color: #5E5E5E;
+<span id="cb6-21">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># so, here logprob and ref_logprob should contain the logits for every token in vocabulary</span></span>
-<span id="lst-verl-kl-estimator-22">        <span class="cf" style="color: #003B4F;
+<span id="cb6-22">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">NotImplementedError</span></span>
-<span id="lst-verl-kl-estimator-23"></span>
-<span id="lst-verl-kl-estimator-24">    <span class="cf" style="color: #003B4F;
+<span id="cb6-23"></span>
+<span id="cb6-24">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
@@ -1222,40 +1223,40 @@ font-style: inherit;">NotImplementedError</span></span></code></pre></div>
 <section id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式" class="level3" data-number="4.1.1">
 <h3 data-number="4.1.1" class="anchored" data-anchor-id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式"><span class="header-section-number">4.1.1</span> 不同 KL 估计量对应的 loss 项导出的梯度估计的一般形式</h3>
 <p>观察 Listing&nbsp;3 计算 “KL loss” 项的部分。</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="cb1-2">kl <span class="op" style="color: #5E5E5E;
+<span id="cb7-2">kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> compute_approx_kl(</span>
-<span id="cb1-3">    action_log_probs,</span>
-<span id="cb1-4">    base_action_log_probs,</span>
-<span id="cb1-5">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-3">    action_log_probs,</span>
+<span id="cb7-4">    base_action_log_probs,</span>
+<span id="cb7-5">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="cb1-6">    kl_estimator<span class="op" style="color: #5E5E5E;
+<span id="cb7-6">    kl_estimator<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.args.kl_estimator,</span>
-<span id="cb1-7">)</span>
-<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+<span id="cb7-7">)</span>
+<span id="cb7-8"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="cb1-9">kl_mean <span class="op" style="color: #5E5E5E;
+<span id="cb7-9">kl_mean <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> masked_mean(kl, experience.action_mask, dim<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+<span id="cb7-10"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="cb1-11">kl_loss <span class="op" style="color: #5E5E5E;
+<span id="cb7-11">kl_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> kl_mean.mean()</span>
-<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+<span id="cb7-12"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span></code></pre></div>
 <p>这些代码：</p>
@@ -1469,39 +1470,39 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;7: TRL 使用采样样本并使用 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bold%7D%7D%7D"> 计算对数似然<sup>19</sup>
 </figcaption>
 <div aria-describedby="lst-trl-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-trl-sample-and-calc-old-logprob" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-trl-sample-and-calc-old-logprob-1">queries <span class="op" style="color: #5E5E5E;
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1">queries <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> data[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"input_ids"</span>].to(device)</span>
-<span id="lst-trl-sample-and-calc-old-logprob-2"><span class="co" style="color: #5E5E5E;
+<span id="cb8-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-trl-sample-and-calc-old-logprob-3"></span>
-<span id="lst-trl-sample-and-calc-old-logprob-4"><span class="cf" style="color: #003B4F;
+<span id="cb8-3"></span>
+<span id="cb8-4"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">with</span> unwrap_model_for_generation(</span>
-<span id="lst-trl-sample-and-calc-old-logprob-5">    <span class="va" style="color: #111111;
+<span id="cb8-5">    <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.model, <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">#...</span></span>
-<span id="lst-trl-sample-and-calc-old-logprob-6">) <span class="im" style="color: #00769E;
+<span id="cb8-6">) <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> unwrapped_model:</span>
-<span id="lst-trl-sample-and-calc-old-logprob-7">    query_responses, logitss <span class="op" style="color: #5E5E5E;
+<span id="cb8-7">    query_responses, logitss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> batch_generation(</span>
-<span id="lst-trl-sample-and-calc-old-logprob-8">        unwrapped_model.policy,</span>
-<span id="lst-trl-sample-and-calc-old-logprob-9">        queries,</span>
-<span id="lst-trl-sample-and-calc-old-logprob-10">        <span class="co" style="color: #5E5E5E;
+<span id="cb8-8">        unwrapped_model.policy,</span>
+<span id="cb8-9">        queries,</span>
+<span id="cb8-10">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-trl-sample-and-calc-old-logprob-11">    )</span>
-<span id="lst-trl-sample-and-calc-old-logprob-12"></span>
-<span id="lst-trl-sample-and-calc-old-logprob-13"></span>
-<span id="lst-trl-sample-and-calc-old-logprob-14"><span class="cf" style="color: #003B4F;
+<span id="cb8-11">    )</span>
+<span id="cb8-12"></span>
+<span id="cb8-13"></span>
+<span id="cb8-14"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
@@ -1514,15 +1515,15 @@ background-color: null;
 font-style: inherit;">0</span>, queries.shape[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>], args.local_rollout_forward_batch_size):</span>
-<span id="lst-trl-sample-and-calc-old-logprob-15">    <span class="co" style="color: #5E5E5E;
+<span id="cb8-15">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-trl-sample-and-calc-old-logprob-16">    logits <span class="op" style="color: #5E5E5E;
+<span id="cb8-16">    logits <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> logitss[i : i <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.local_rollout_forward_batch_size]</span>
-<span id="lst-trl-sample-and-calc-old-logprob-17">    logprob <span class="op" style="color: #5E5E5E;
+<span id="cb8-17">    logprob <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> selective_log_softmax(logits, response)</span></code></pre></div>
 </div>
@@ -1536,10 +1537,10 @@ font-style: inherit;">=</span> selective_log_softmax(logits, response)</span></c
 Listing&nbsp;8: TRL PPO 多轮更新
 </figcaption>
 <div aria-describedby="lst-trl-ppo-update-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-trl-ppo-update" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-trl-ppo-update-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Do multiple epochs of PPO training, with a fresh random shuffle in each epoch</span></span>
-<span id="lst-trl-ppo-update-2"><span class="cf" style="color: #003B4F;
+<span id="cb9-2"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> ppo_epoch_idx <span class="kw" style="color: #003B4F;
@@ -1548,15 +1549,15 @@ font-weight: bold;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">range</span>(args.num_ppo_epochs):</span>
-<span id="lst-trl-ppo-update-3">    b_inds <span class="op" style="color: #5E5E5E;
+<span id="cb9-3">    b_inds <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> np.random.permutation(args.local_batch_size)</span>
-<span id="lst-trl-ppo-update-4">    minibatch_idx <span class="op" style="color: #5E5E5E;
+<span id="cb9-4">    minibatch_idx <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="lst-trl-ppo-update-5">    <span class="cf" style="color: #003B4F;
+<span id="cb9-5">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> mini_batch_start <span class="kw" style="color: #003B4F;
@@ -1567,20 +1568,20 @@ background-color: null;
 font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>, args.local_batch_size, args.local_mini_batch_size):</span>
-<span id="lst-trl-ppo-update-6">        mini_batch_end <span class="op" style="color: #5E5E5E;
+<span id="cb9-6">        mini_batch_end <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> mini_batch_start <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.local_mini_batch_size</span>
-<span id="lst-trl-ppo-update-7">        mini_batch_inds <span class="op" style="color: #5E5E5E;
+<span id="cb9-7">        mini_batch_inds <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> b_inds[mini_batch_start:mini_batch_end]</span>
-<span id="lst-trl-ppo-update-8">        gradient_accumulation_idx <span class="op" style="color: #5E5E5E;
+<span id="cb9-8">        gradient_accumulation_idx <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="lst-trl-ppo-update-9">        <span class="cf" style="color: #003B4F;
+<span id="cb9-9">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> micro_batch_start <span class="kw" style="color: #003B4F;
@@ -1591,42 +1592,42 @@ background-color: null;
 font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>, args.local_mini_batch_size, args.per_device_train_batch_size):</span>
-<span id="lst-trl-ppo-update-10">            <span class="cf" style="color: #003B4F;
+<span id="cb9-10">            <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">with</span> accelerator.accumulate(model):</span>
-<span id="lst-trl-ppo-update-11">                micro_batch_end <span class="op" style="color: #5E5E5E;
+<span id="cb9-11">                micro_batch_end <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> micro_batch_start <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.per_device_train_batch_size</span>
-<span id="lst-trl-ppo-update-12">                micro_batch_inds <span class="op" style="color: #5E5E5E;
+<span id="cb9-12">                micro_batch_inds <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> mini_batch_inds[micro_batch_start:micro_batch_end]</span>
-<span id="lst-trl-ppo-update-13">                mb_advantage <span class="op" style="color: #5E5E5E;
+<span id="cb9-13">                mb_advantage <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> advantages[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-14">                mb_responses <span class="op" style="color: #5E5E5E;
+<span id="cb9-14">                mb_responses <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> responses[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-15">                mb_query_responses <span class="op" style="color: #5E5E5E;
+<span id="cb9-15">                mb_query_responses <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> query_responses[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-16">                mb_logprobs <span class="op" style="color: #5E5E5E;
+<span id="cb9-16">                mb_logprobs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> logprobs[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-17">                mb_return <span class="op" style="color: #5E5E5E;
+<span id="cb9-17">                mb_return <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> returns[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-18">                mb_values <span class="op" style="color: #5E5E5E;
+<span id="cb9-18">                mb_values <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> values[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-19"></span>
-<span id="lst-trl-ppo-update-20"></span>
-<span id="lst-trl-ppo-update-21">                output, vpred_temp <span class="op" style="color: #5E5E5E;
+<span id="cb9-19"></span>
+<span id="cb9-20"></span>
+<span id="cb9-21">                output, vpred_temp <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> forward(model, mb_query_responses, processing_class.pad_token_id)</span>
-<span id="lst-trl-ppo-update-22">                logits <span class="op" style="color: #5E5E5E;
+<span id="cb9-22">                logits <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> output.logits[:, context_length <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1637,22 +1638,22 @@ background-color: null;
 font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>]</span>
-<span id="lst-trl-ppo-update-23">                logits <span class="op" style="color: #5E5E5E;
+<span id="cb9-23">                logits <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/=</span> args.temperature <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1e-7</span></span>
-<span id="lst-trl-ppo-update-24">                new_logprobs <span class="op" style="color: #5E5E5E;
+<span id="cb9-24">                new_logprobs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> selective_log_softmax(logits, mb_responses)</span>
-<span id="lst-trl-ppo-update-25">                new_logprobs <span class="op" style="color: #5E5E5E;
+<span id="cb9-25">                new_logprobs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.masked_fill(</span>
-<span id="lst-trl-ppo-update-26">                    new_logprobs, padding_mask[micro_batch_inds], INVALID_LOGPROB</span>
-<span id="lst-trl-ppo-update-27">                )</span>
-<span id="lst-trl-ppo-update-28">                vpred <span class="op" style="color: #5E5E5E;
+<span id="cb9-26">                    new_logprobs, padding_mask[micro_batch_inds], INVALID_LOGPROB</span>
+<span id="cb9-27">                )</span>
+<span id="cb9-28">                vpred <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> vpred_temp[:, context_length <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1667,38 +1668,38 @@ background-color: null;
 font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="lst-trl-ppo-update-29">                vpred <span class="op" style="color: #5E5E5E;
+<span id="cb9-29">                vpred <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.masked_fill(vpred, padding_mask_p1[micro_batch_inds], <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>)</span>
-<span id="lst-trl-ppo-update-30">                vpredclipped <span class="op" style="color: #5E5E5E;
+<span id="cb9-30">                vpredclipped <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.clamp(</span>
-<span id="lst-trl-ppo-update-31">                    vpred,</span>
-<span id="lst-trl-ppo-update-32">                    mb_values <span class="op" style="color: #5E5E5E;
+<span id="cb9-31">                    vpred,</span>
+<span id="cb9-32">                    mb_values <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> args.cliprange_value,</span>
-<span id="lst-trl-ppo-update-33">                    mb_values <span class="op" style="color: #5E5E5E;
+<span id="cb9-33">                    mb_values <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.cliprange_value,</span>
-<span id="lst-trl-ppo-update-34">                )</span>
-<span id="lst-trl-ppo-update-35">                vf_losses1 <span class="op" style="color: #5E5E5E;
+<span id="cb9-34">                )</span>
+<span id="cb9-35">                vf_losses1 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.square(vpred <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> mb_return)</span>
-<span id="lst-trl-ppo-update-36">                vf_losses2 <span class="op" style="color: #5E5E5E;
+<span id="cb9-36">                vf_losses2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.square(vpredclipped <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> mb_return)</span>
-<span id="lst-trl-ppo-update-37">                vf_loss_max <span class="op" style="color: #5E5E5E;
+<span id="cb9-37">                vf_loss_max <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">max</span>(vf_losses1, vf_losses2)</span>
-<span id="lst-trl-ppo-update-38">                vf_loss <span class="op" style="color: #5E5E5E;
+<span id="cb9-38">                vf_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1707,33 +1708,33 @@ background-color: null;
 font-style: inherit;">*</span> masked_mean(vf_loss_max, <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">~</span>padding_mask_p1[micro_batch_inds])</span>
-<span id="lst-trl-ppo-update-39">                vf_clipfrac <span class="op" style="color: #5E5E5E;
+<span id="cb9-39">                vf_clipfrac <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> masked_mean(</span>
-<span id="lst-trl-ppo-update-40">                    (vf_losses2 <span class="op" style="color: #5E5E5E;
+<span id="cb9-40">                    (vf_losses2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">&gt;</span> vf_losses1).<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span>(), <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">~</span>padding_mask_p1[micro_batch_inds]</span>
-<span id="lst-trl-ppo-update-41">                )</span>
-<span id="lst-trl-ppo-update-42">                logprobs_diff <span class="op" style="color: #5E5E5E;
+<span id="cb9-41">                )</span>
+<span id="cb9-42">                logprobs_diff <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> new_logprobs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span> mb_logprobs</span>
-<span id="lst-trl-ppo-update-43">                ratio <span class="op" style="color: #5E5E5E;
+<span id="cb9-43">                ratio <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.exp(logprobs_diff)</span>
-<span id="lst-trl-ppo-update-44">                pg_losses <span class="op" style="color: #5E5E5E;
+<span id="cb9-44">                pg_losses <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-</span>mb_advantage <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> ratio</span>
-<span id="lst-trl-ppo-update-45">                pg_losses2 <span class="op" style="color: #5E5E5E;
+<span id="cb9-45">                pg_losses2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1748,26 +1749,26 @@ background-color: null;
 font-style: inherit;">1.0</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.cliprange)</span>
-<span id="lst-trl-ppo-update-46">                pg_loss_max <span class="op" style="color: #5E5E5E;
+<span id="cb9-46">                pg_loss_max <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> torch.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">max</span>(pg_losses, pg_losses2)</span>
-<span id="lst-trl-ppo-update-47">                pg_loss <span class="op" style="color: #5E5E5E;
+<span id="cb9-47">                pg_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> masked_mean(pg_loss_max, <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">~</span>padding_mask[micro_batch_inds])</span>
-<span id="lst-trl-ppo-update-48">                loss <span class="op" style="color: #5E5E5E;
+<span id="cb9-48">                loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pg_loss <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> args.vf_coef <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">*</span> vf_loss</span>
-<span id="lst-trl-ppo-update-49">                accelerator.backward(loss)</span>
-<span id="lst-trl-ppo-update-50">                optimizer.step()</span>
-<span id="lst-trl-ppo-update-51">                optimizer.zero_grad()</span></code></pre></div>
+<span id="cb9-49">                accelerator.backward(loss)</span>
+<span id="cb9-50">                optimizer.step()</span>
+<span id="cb9-51">                optimizer.zero_grad()</span></code></pre></div>
 </div>
 </figure>
 </div>
@@ -1787,10 +1788,10 @@ font-style: inherit;">*</span> vf_loss</span>
 Listing&nbsp;9: OpenRLHF 采样样本并使用 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bold%7D%7D%7D"> 计算对数似然
 </figcaption>
 <div aria-describedby="lst-openrlhf-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="lst-openrlhf-sample-and-calc-old-logprob" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="lst-openrlhf-sample-and-calc-old-logprob-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-2"><span class="kw" style="color: #003B4F;
+<span id="cb10-2"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> make_experience(<span class="va" style="color: #111111;
@@ -1798,47 +1799,47 @@ background-color: null;
 font-style: inherit;">self</span>, samples: Samples) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">-&gt;</span> Experience:</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-3">    <span class="co" style="color: #5E5E5E;
+<span id="cb10-3">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-4"><span class="co" style="color: #5E5E5E;
+<span id="cb10-4"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Turn samples into experience by calculating logprobs, values, rewards, and kl divergence.</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-5"><span class="co" style="color: #5E5E5E;
+<span id="cb10-5"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    """</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-6">    <span class="co" style="color: #5E5E5E;
+<span id="cb10-6">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-7">    <span class="co" style="color: #5E5E5E;
+<span id="cb10-7">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L673-L680</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-8">    action_log_probs <span class="op" style="color: #5E5E5E;
+<span id="cb10-8">    action_log_probs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">self</span>.actor(</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-9">        sequences,</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-10">        num_actions,</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-11">        <span class="co" style="color: #5E5E5E;
+<span id="cb10-9">        sequences,</span>
+<span id="cb10-10">        num_actions,</span>
+<span id="cb10-11">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-12">    )</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-13">    <span class="co" style="color: #5E5E5E;
+<span id="cb10-12">    )</span>
+<span id="cb10-13">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-14">    <span class="co" style="color: #5E5E5E;
+<span id="cb10-14">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L704-L709</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-15">    kl <span class="op" style="color: #5E5E5E;
+<span id="cb10-15">    kl <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> compute_approx_kl(</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-16">        action_log_probs,</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-17">        base_action_log_probs,</span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-18">        <span class="co" style="color: #5E5E5E;
+<span id="cb10-16">        action_log_probs,</span>
+<span id="cb10-17">        base_action_log_probs,</span>
+<span id="cb10-18">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="lst-openrlhf-sample-and-calc-old-logprob-19">    )</span></code></pre></div>
+<span id="cb10-19">    )</span></code></pre></div>
 </div>
 </figure>
 </div>
@@ -2009,32 +2010,32 @@ Tip
 </div></section><section id="引用" class="level2 appendix" data-number="9.4"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.4</span> 引用</h2><div class="quarto-appendix-contents">
 
 <p>BibTeX:</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><span class="va" style="color: #111111;
+<div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">tong2025kl</span>,</span>
-<span id="cb2-2">  <span class="dt" style="color: #AD0000;
+<span id="cb11-2">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">author</span> = {童雨轩},</span>
-<span id="cb2-3">  <span class="dt" style="color: #AD0000;
+<span id="cb11-3">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">title</span> = {重新思考 {RL} 中的 {KL} 梯度优化},</span>
-<span id="cb2-4">  <span class="dt" style="color: #AD0000;
+<span id="cb11-4">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">year</span> = {2025},</span>
-<span id="cb2-5">  <span class="dt" style="color: #AD0000;
+<span id="cb11-5">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},</span>
-<span id="cb2-6">  <span class="dt" style="color: #AD0000;
+<span id="cb11-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">urldate</span> = {2025-03-09},</span>
-<span id="cb2-7">  <span class="dt" style="color: #AD0000;
+<span id="cb11-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {Chinese},</span>
-<span id="cb2-8">}</span></code></pre></div>
+<span id="cb11-8">}</span></code></pre></div>
 <p>文本：</p>
-<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div>
+<div class="sourceCode" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div>
 
 
 <!-- -->
@@ -2083,7 +2084,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Sun, 27 Apr 2025 14:29:17 GMT</pubDate>
+  <pubDate>Tue, 20 May 2025 17:28:07 GMT</pubDate>
 </item>
 </channel>
 </rss>
