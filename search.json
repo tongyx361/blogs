@@ -354,7 +354,7 @@
     "href": "posts/verl-intro/index.html#agentic-rl-with-diverse-environments-tools-planned",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "4.3 Agentic RL with Diverse Environments & Tools (Planned)",
-    "text": "4.3 Agentic RL with Diverse Environments & Tools (Planned)\n\nOur ongoing RFC\nIntegrating protocols like MDP\nIntegrating existing environments & tools, e.g. \n\n\nKORGym @ ByteDanceSeed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
+    "text": "4.3 Agentic RL with Diverse Environments & Tools (Planned)\n\nOur ongoing RFC\nIntegrating protocols like MDP\nIntegrating existing environments & tools, e.g. \n\n\nKORGym @ ByteDance Seed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
   },
   {
     "objectID": "posts/verl-intro/index.html#other-plans",
