@@ -336,25 +336,32 @@
     "text": "3.5 Efficiency: Mutli-Controller\nIn this section, we discuss how verl optimizes the multi-controllers, i.e., compositions of traditional LLM training workloads."
   },
   {
+    "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn-generation-upstreamed",
+    "href": "posts/verl-intro/index.html#async-engine-for-multi-turn-generation-upstreamed",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "4.1 Async Engine for Multi-Turn Generation (Upstreamed)",
+    "text": "4.1 Async Engine for Multi-Turn Generation (Upstreamed)\nMulti-turn generation might have different implementations:\n\n\n\n\n\n\nFigure 7: Synchronous vs. Asynchronous rollout.1\n\n\n\n\n\n\n\nImage Source: https://novasky-ai.notion.site/skyrl-v0↩︎"
+  },
+  {
     "objectID": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
     "href": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "4.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)",
-    "text": "4.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)\nverl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nMoE models with GPTModel class for actor and critic\nMulti-node inference\nParameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our tracker #708."
+    "section": "4.2 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)",
+    "text": "4.2 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)\nverl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nMoE models with GPTModel class for actor and critic\nMulti-node inference\nParameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our tracker #708."
   },
   {
     "objectID": "posts/verl-intro/index.html#agentic-rl-with-diverse-environments-tools-planned",
     "href": "posts/verl-intro/index.html#agentic-rl-with-diverse-environments-tools-planned",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "4.2 Agentic RL with Diverse Environments & Tools (Planned)",
-    "text": "4.2 Agentic RL with Diverse Environments & Tools (Planned)\n\nOur ongoing RFC\nIntegrating protocols like MDP\nIntegrating existing environments & tools, e.g. \n\n\nKORGym @ ByteDanceSeed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
+    "section": "4.3 Agentic RL with Diverse Environments & Tools (Planned)",
+    "text": "4.3 Agentic RL with Diverse Environments & Tools (Planned)\n\nOur ongoing RFC\nIntegrating protocols like MDP\nIntegrating existing environments & tools, e.g. \n\n\nKORGym @ ByteDanceSeed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
   },
   {
     "objectID": "posts/verl-intro/index.html#other-plans",
     "href": "posts/verl-intro/index.html#other-plans",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "4.3 Other Plans",
-    "text": "4.3 Other Plans\n\nPartial Rollout (Kimi Team 2025)\nMulti-Token-Prediction (MTP) (Gloeckle et al. 2024)\n…"
+    "section": "4.4 Other Plans",
+    "text": "4.4 Other Plans\n\nPartial Rollout (Kimi Team 2025)\nMulti-Token-Prediction (MTP) (Gloeckle et al. 2024)\n…"
   },
   {
     "objectID": "posts/verl-intro/index.html#sequence-packing",
@@ -371,18 +378,11 @@
     "text": "5.2 DP Balancing"
   },
   {
-    "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn-generation",
-    "href": "posts/verl-intro/index.html#async-engine-for-multi-turn-generation",
-    "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.3 Async Engine for Multi-Turn Generation",
-    "text": "5.3 Async Engine for Multi-Turn Generation\nMulti-turn generation might have different implementations:\n\nNaive: wrap the batch generation in a for-loop, synchronizing for each turn, thus causing many bubbles.\nEfficient: utilize the async engine, managing generation at the request level instead of the batch level."
-  },
-  {
     "objectID": "posts/verl-intro/index.html#other-features",
     "href": "posts/verl-intro/index.html#other-features",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.4 Other Features",
-    "text": "5.4 Other Features\n\nMulti-Model LLMs’ RL\nFull support for RL with AMD (ROCm Kernel) hardwares\nGradient Checkpointing (enable_gradient_checkpointing)\nTorch Compile (use_torch_compile)\nLiger Kernel (use_liger)\n…"
+    "section": "5.3 Other Features",
+    "text": "5.3 Other Features\n\nMulti-Model LLMs’ RL\nFull support for RL with AMD (ROCm Kernel) hardwares\nGradient Checkpointing (enable_gradient_checkpointing)\nTorch Compile (use_torch_compile)\nLiger Kernel (use_liger)\n…"
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-dataset",
