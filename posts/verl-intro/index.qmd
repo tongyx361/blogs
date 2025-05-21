@@ -293,7 +293,7 @@ For more details, please check [our tracker #708](https://github.com/volcengine/
 1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
 2. Integrating protocols like [MDP](https://modelcontextprotocol.io/introduction)
 3. Integrating existing environments & tools, e.g. 
-  - [KORGym @ ByteDanceSeed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
+  - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
   - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
 
 ## Other Plans
