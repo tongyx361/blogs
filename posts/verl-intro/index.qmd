@@ -253,9 +253,28 @@ Generation Backend:
 
 ::::
 
-# Roadmap
+# Latest Updates &Roadmap
 
 For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
+
+## Async Engine for Multi-Turn Generation (Upstreamed) {.smaller}
+
+Multi-turn generation might have different implementations:
+
+![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=300px .lightbox}
+
+---
+
+- ❌ Naive: wrap the batch generation in a for-loop, **synchronizing for each turn**, thus causing many bubbles.
+- ✅ Efficient: utilize the async engine, **managing generation at the request level** instead of the batch level.
+
+. . .
+
+Specifically, verl integrates:
+
+- SGLang's `Engine.async_generate` (contributed by the SGLang RL team)
+- vLLM-V1's `AsyncLLM` (contributed by Xibin Wu from ByteDance)
+
 
 ## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
 
@@ -350,20 +369,6 @@ To resolve this, verl supports to
 :::
 
 To enable this, use `use_dynamic_bsz`.
-
-## Async Engine for Multi-Turn Generation
-
-Multi-turn generation might have different implementations:
-
-- Naive: wrap the batch generation in a for-loop, **synchronizing for each turn**, thus causing many bubbles.
-- Efficient: utilize the async engine, **managing generation at the request level** instead of the batch level.
-
----
-
-Specifically, verl integrates:
-
-- SGLang's `Engine.async_generate` (contributed by the SGLang RL team)
-- vLLM-V1's `AsyncLLM` (contributed by Xibin Wu from ByteDance)
 
 ## Other Features
 
