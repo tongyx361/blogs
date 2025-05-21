@@ -15,23 +15,55 @@ format:
 toc: false
 ---
 
-# Background
+# Background: Why is Large-Scale RL Important?
 
-## Modelling RL as Dataflow Graph {.smaller}
+## Learning to Reason with Large-Scale RL {.smaller}
 
-![](./assets/rl-dataflow-examples.png){fig-align="center" height=300 .lightbox}
+|Model| Large-Scale RL?  | AIME 2024 | MATH 500 | GPQA Diamond | Code Forces | 
+|---|---|---|---|---|---|---|
+| GPT-4o [@openai2024o1]| ❌ |44.6 | 60.3 | 50.6 | >11.0% | 
+| o1 [@openai2024o1] | ✅  | 74.4 | 94.8 | 77.3 | >89.0% | 
+| R1 [@deepseekai2025r1]| ✅  | 79.8 | 97.3 | 71.5 | >96.3% | 
 
-Reinforcement Learning (RL) for Large Language Models (LLMs) can typically be modeled as a **dataflow graph**, consisting of:
+: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs. {tbl-colwidths="[40,20,10,10,10,10]"}
+
+## Learning as Agent with Large-Scale RL
+
+@openai2025deepresearch:
+
+> Deep research independently discovers, reasons about, and consolidates insights from across the web. 
+> 
+> To accomplish this, it was trained on **real-world tasks requiring browser and Python tool use**,
+> 
+> using **the same reinforcement learning methods behind OpenAI o1**, our first reasoning model.
+
+Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-deep-research/?video=1052827364) for more details.
+
+## Future: Agent + Tool Protocol = Versatile
+
+![MCP as an example of tool protocol.](./assets/mcp.png){fig-align="center" .lightbox}
+
+# Background: Why is RL Challenging?
+
+## Complex: RL as Dataflow Graph {.smaller}
+
+![Examples of modelling RL algorithms as dataflow graphs. [@sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-graph-examples fig-align="center" height=300 .lightbox}
+
+We can model Reinforcement Learning (RL) as a complex **dataflow graph**, consisting of:
 
 1. **multiple models**: actor, critic, reference, reward model, etc.
 2. **multiple stages**: generating, preparing experiences, training
 3. **multiple workloads**: generation, inference, training
 
-## Implementing Dataflow Graph as Execution Pattern
+## More Complex: RL with LLMs
 
-In practice, we should implement the dataflow graph as **execution pattern on a GPU cluster** with restrictions.
+RL with Large Language Models (LLMs) is even more challenging.
 
-![](./assets/implement-ppo-w-device-placement.png){fig-align="center" height=400 .lightbox}
+![For RL with LLMs, **each node** in the dataflow graph is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-graph-scaled.png){#fig-rl-w-llms-dataflow-graph-scaled fig-align="center" height=400px .lightbox}
+
+## Even More Complex: Flexible & Efficient Implementation
+
+![Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400 .lightbox}
 
 ::: {.notes}
 
@@ -42,14 +74,9 @@ Specifically, we:
 
 :::
 
-# Paradigm: HybridFlow
+# Paradigm: HybridFlow [@sheng2024hybridflow]
 
 ## Background: Single-Controller vs. Multi-Controller {.smaller}
-
-- Single-Controller (MPMD): A centralized controller manages all the workers.
-- Multi-Controller (SPMD): Each worker computes on its own and communicates with each other.
-
-. . .
 
 ::: {#fig-controller-paradigm layout-ncol=2}
 
@@ -57,25 +84,32 @@ Specifically, we:
 
 ![Multi-Controller (SPMD)](./assets/multi-controller-spmd-pathways.png){height=200px .lightbox #fig-multi-controller-spmd}
 
-Single-Controller (Multi-Program-Multi-Data, MPMD) vs. Multi-Controller (Single-Program-Multi-Data, SPMD)
+Single-Controller (Multi-Program-Multi-Data, MPMD) vs. Multi-Controller (Single-Program-Multi-Data, SPMD) [@barham2022pathways]
 
 :::
 
----
+- **Single-Controller (MPMD)**: A centralized controller manages all the workers, running different programs.
+- **Multi-Controller (SPMD)**: Each worker has its own controller, running the same program with different data.
 
-- Single-Controller (MPMD) is flexible but suffers from communication overhead.
-- Multi-Controller (SPMD) is efficient but is complex for programming
+## Trade-off: Single-Controller or Multi-Controller?
+
 
 | Paradigm                 | Pro       | Con                   |
 |--------------------------|-----------|-----------------------|
 | Single-Controller | Flexible  | Commnucation Overhead |
 | Multi-Controller  | Efficient | Complex Programming   |
 
-## Paradigm: Hybrid-Controller
+Which paradigm should we choose?
 
-verl introduces hybrid-controller, where a single-controller manages multiple multi-controllers.
+. . .
 
-![](./assets/hybrid-controller.png){fig-align="center" height=450px .lightbox}
+We can have both!
+
+## New Paradigm: Hybrid-Controller!
+
+Hybrid-Controller = Single-Controller + N x Multi-Controller
+
+![In the hybrid-controller, a single-controller manages multiple multi-controllers.](./assets/hybrid-controller.png){#fig-hybrid-controller fig-align="center" height=450px .lightbox}
 
 ::: {.notes}
 
@@ -96,12 +130,14 @@ verl introduces hybrid-controller, where a single-controller manages multiple mu
 
 Single-controller enables verl to implement various RL algorithms by only modifying **a few lines**, usually only in **the `fit` function**.
 
+See the example changing PPO to GRPO:
+
 . . .
 
 :::: {.columns}
 
 ::: {.column width="49%"}
-```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO example code." code-line-numbers="7-8"}
+```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code." code-line-numbers="7-8"}
 for prompts in dataloader:
     # Stage 1: Sampling Trajectories
     batch = actor.generate_sequences(prompts)
@@ -117,13 +153,14 @@ for prompts in dataloader:
 :::
 
 ::: {.column width="49%"}
-```{#lst-verl-fit-example-code-grpo .python lst-cap="GRPO example code." code-line-numbers="7"}
+```{#lst-verl-fit-example-code-grpo .python lst-cap="GRPO core code." code-line-numbers="7-8"}
 for prompts in dataloader:
     # Stage 1: Sampling Trajectories
     batch = actor.generate_sequences(prompts)
     # Stage 2: Preparing Experiences
     batch = reward.compute_reward(batch)
     batch = reference.compute_log_prob(batch)
+    # DELETED: batch = critic.compute_values(batch)
     batch = compute_advantage(batch, "grpo")
     # Stage 3: Training
     critic.update_critic(batch)
@@ -139,21 +176,38 @@ With such flexibility, verl has supported diverse RL algorithms including [PPO](
 
 ## Efficiency: Mutli-Controller {.center}
 
+In this section, we discuss **how verl optimizes the multi-controllers**, i.e., compositions of traditional LLM training workloads.
+
+---
+
+### Background: Different Workloads Have Different Optimal Parallelism Strategies
+
+The optimal parallelism strategies for different workloads are usually different, e.g., 
+
+- training needs to save gradients & optimizer states other than parameters, requiring more sharding,
+- generation has fewer states, allowing less sharding.
+
 ---
 
 ### Inter-Stage: Hybrid Engine
 
-The optimal execution pattern for different workloads, e.g., training, generation, are usually different.
+|Implementation|Pro|Con|
+|---|---|---|
+|Fixed GPUs for each workload|Simple|Many bubbles|
+|Hybrid Engine|Efficient|Need resharding|
+
+![Resharding with hybrid engine between stages in RL. Here, it changes TP to DP.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=300px .lightbox}
+
+::: {.notes}
 
 - Instead of **splitting the devices** to deploy different engines separately for different workloads, causing many bubbles,
-
 - verl implements a **hybrid engine** that can switch between the different workloads **on the same cluster**, fully utilizing all the GPUs.
+
+:::
 
 ---
 
 ### Intra-Stage: Diverse Parallelisms
-
-Hybrid engine allows verl to flexibly switch between parallelism strategies to optimize the performance.
 
 :::: {.columns}
 
@@ -167,6 +221,7 @@ Parallelism Algorithms:
 - Tensor Parallelism
 - Pipeline Parallelism
 - Context / Sequence Parallelism
+- ...
 
 :::
 
@@ -178,8 +233,9 @@ Training Backend:
 
 ::: {.nonincremental}
 
-- FSDP
+- FSDP & FSDP2
 - Megatron
+- ...
 
 :::
 
@@ -189,6 +245,7 @@ Generation Backend:
 
 - vLLM
 - SGLang
+- ...
 
 :::
 
@@ -196,7 +253,47 @@ Generation Backend:
 
 ::::
 
-# Features / Optimizations in verl
+# Roadmap
+
+For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
+
+## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
+
+verl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:
+
+1. MoE models with `GPTModel` class for actor and critic
+2. Multi-node inference
+3. Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines
+
+. . .
+
+For more details, please check [our tracker #708](https://github.com/volcengine/verl/pull/708).
+
+## Agentic RL with Diverse Environments & Tools (Planned)
+
+1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
+2. Integrating protocols like [MDP](https://modelcontextprotocol.io/introduction)
+3. Integrating existing environments & tools, e.g. 
+  - [KORGym @ ByteDanceSeed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
+  - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
+
+## Other Plans
+
+1. Partial Rollout [@kimi2025k1p5]
+2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
+3. ...
+
+# Thanks for Listening! {.unnumbered}
+
+Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) and [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)
+
+@ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
+
+![](./assets/qrcode-github-repo-verl.png){fig-align="center" width=250px height=250px .lightbox}
+
+# Appendix {.unnumbered}
+
+# Introduction to Features in verl
 
 ## Sequence Packing {.smaller}
 
@@ -276,57 +373,6 @@ Specifically, verl integrates:
 4. Torch Compile (`use_torch_compile`)
 5. Liger Kernel (`use_liger`)
 6. ...
-
-# Roadmap
-
-For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
-
-## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
-
-verl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:
-
-1. MoE models with `GPTModel` class for actor and critic
-2. Multi-node inference
-3. Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines
-
-. . .
-
-For more details, please check [our tracker #708](https://github.com/volcengine/verl/pull/708).
-
-## Agentic RL with Diverse Environments & Tools (Planned)
-
-1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
-2. Integrating MDP
-3. Integrating existing implementations, e.g. the Atropos library from Nous Research
-
-## Other Plans
-
-1. Partial Rollout
-2. Multi-Token-Prediction (MTP)
-3. ...
-
-. . .
-
-Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) and [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)!
-
-# Thanks for Listening! {.unnumbered}
-
-Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
-
-Contact:
-
-::: {.nonincremental}
-- Email: [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
-- WeChat / [X](https://x.com/tongyx361): tongyx361
-:::
-
-::: {layout-ncol=2}
-
-![](./assets/qrcode-github-repo-verl.png){fig-align="center" width=250px height=250px .lightbox}
-
-![](./assets/qrcode-wechat-tongyx361.png){fig-align="center" width=250px height=250px .lightbox}
-
-:::
 
 # Programming Guide
 
@@ -497,3 +543,14 @@ class RayDAPOTrainer(RayPPOTrainer):
             batch = batch[:traj_bsz]
         # ...
 ```
+
+# About
+
+## Presenter Contact
+
+::: {.nonincremental}
+- Email: [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
+- WeChat / [X](https://x.com/tongyx361): tongyx361
+:::
+
+![](./assets/qrcode-wechat-tongyx361.png){fig-align="center" width=250px height=250px .lightbox}
