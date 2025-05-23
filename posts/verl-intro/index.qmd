@@ -173,11 +173,16 @@ Generation Backend:
 Up to 2025/05/24, verl has:
 
 - 8.4k stars
-- 1k forks & 894 PRs & 176 contributors
+- 1k forks
+- 894 PRs
+- 176 contributors
+- ...
 
 ---
 
 ### Easy for Extension
+
+Many projects are built on top of verl, including:
 
 :::: {.columns}
 
@@ -337,7 +342,7 @@ The optimal parallelism strategies for different workloads are usually different
 
 |Implementation|Sched. Unit|Sync. Time|
 |---|---|---|
-|Synchronous|Batch|Each Turn|
+|Synchronous|ynBatch|Each Turn|
 |Asynchronous|Request|Whole Batch|
 
 ![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=200px .lightbox}
