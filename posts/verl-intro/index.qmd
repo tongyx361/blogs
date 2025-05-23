@@ -335,22 +335,21 @@ The optimal parallelism strategies for different workloads are usually different
 
 ## Async Engine for Multi-Turn Generation (Upstreamed) {.smaller}
 
-Multi-turn generation might have different implementations:
+|Implementation|Sched. Unit|Sync. Time|
+|---|---|---|
+|Synchronous|Batch|Each Turn|
+|Asynchronous|Request|Whole Batch|
 
-![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=300px .lightbox}
+![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=200px .lightbox}
 
----
-
-- ❌ Naive: wrap the batch generation in a for-loop, **synchronizing for each turn**, thus causing many bubbles.
-- ✅ Efficient: utilize the async engine, **managing generation at the request level** instead of the batch level.
-
-. . .
+::: {.notes}
 
 Specifically, verl integrates:
 
 - SGLang's `Engine.async_generate` (contributed by the SGLang RL team)
 - vLLM-V1's `AsyncLLM` (contributed by Xibin Wu from ByteDance)
 
+:::
 
 ## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
 
