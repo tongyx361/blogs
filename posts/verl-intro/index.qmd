@@ -13,6 +13,7 @@ format:
     embed-resources: true
     code-line-numbers: true
 toc: false
+link-external-icon: false
 ---
 
 # Background: Why is Large-Scale RL Important?
@@ -43,7 +44,7 @@ Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-d
 
 ![MCP as an example of tool protocol.](./assets/mcp.png){fig-align="center" .lightbox}
 
-# Background: Why is RL Challenging?
+# Background: Why is Large-Scale RL Challenging?
 
 ## Complex: RL as Dataflow Graph {.smaller}
 
@@ -71,6 +72,153 @@ Specifically, we:
 
 1. design the parallelism strategy and model placement to optimize the throughput
 2. while restricted by the temporal dependencies and device resources
+
+:::
+
+# Why verl?
+
+## Flexibility: RL Algorithms in Lines {.smaller}
+
+:::: {.columns}
+
+::: {.column width="55%"}
+![Dataflow graph of PPO with KL regularization.](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=300px .lightbox}
+:::
+
+::: {.column width="45%"}
+```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code."}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = critic.compute_values(batch)
+    batch = compute_advantage(batch, "gae")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+:::
+
+::::
+
+- Programmming interface based on **"single-controller"**
+- RL algorithms in **a few lines of code**!
+- Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [Dr. GRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
+
+## Efficiency: Minimized Overhead & Maximized GPU Utilization {.center}
+
+---
+
+### Within Workload: Efficient Implementation Based on **"Multi-Controller"**
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+::: {.nonincremental}
+
+Parallelism Algorithms:
+
+- Data Parallelism
+- Tensor Parallelism
+- Pipeline Parallelism
+- Context / Sequence Parallelism
+- ...
+
+:::
+
+:::
+
+::: {.column width="40%"}
+
+Training Backend:
+
+::: {.nonincremental}
+
+- FSDP & FSDP2
+- Megatron
+
+:::
+
+Generation Backend:
+
+::: {.nonincremental}
+
+- vLLM
+- SGLang
+
+:::
+
+:::
+
+::::
+
+---
+
+### Between Workloads: High GPU Utilization Based on **Hybrid Engine** {.smaller}
+
+![Example of hybrid engine switching between workloads.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=250px .lightbox}
+
+- **offloading & reloading**, fully utilizing the GPU memory
+- switching for **the optimal parallelism strategy**
+
+## Open-Source Community {.center}
+
+---
+
+### Extensive Impact
+
+Up to 2025/05/24, verl has:
+
+- 8.4k stars
+- 1k forks & 894 PRs & 176 contributors
+
+---
+
+### Easy for Extension
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [TinyZero](https://github.com/Jiayi-Pan/TinyZero) ![GitHub Repo stars](https://img.shields.io/github/stars/Jiayi-Pan/TinyZero)
+- [SimpleRL-Zoo](https://github.com/hkust-nlp/simpleRL-reason) ![GitHub Repo stars](https://img.shields.io/github/stars/hkust-nlp/simpleRL-reason)
+- [rllm](https://github.com/agentica-project/rllm) ![GitHub Repo stars](https://img.shields.io/github/stars/agentica-project/rllm)
+- [SkyThought](https://github.com/NovaSky-AI/SkyThought) ![GitHub Repo stars](https://img.shields.io/github/stars/NovaSky-AI/SkyThought)
+- [OpenManus-RL](https://github.com/OpenManus/OpenManus-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/OpenManus/OpenManus-RL)
+- [Easy-R1](https://github.com/hiyouga/EasyR1) ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/EasyR1)
+
+:::
+
+:::
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [Logic-RL](https://github.com/Unakar/Logic-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/Unakar/Logic-RL)
+- [RAGEN](https://github.com/ZihanWang314/ragen) ![GitHub Repo stars](https://img.shields.io/github/stars/ZihanWang314/ragen)
+- [PRIME](https://github.com/PRIME-RL/PRIME) ![GitHub Repo stars](https://img.shields.io/github/stars/PRIME-RL/PRIME)
+- [Search-R1](https://github.com/PeterGriffinJin/Search-R1) ![GitHub Repo stars](https://img.shields.io/github/stars/PeterGriffinJin/Search-R1)
+- [Absolute Zero Reasoner](https://github.com/LeapLabTHU/Absolute-Zero-Reasoner) ![GitHub Repo stars](https://img.shields.io/github/stars/LeapLabTHU/Absolute-Zero-Reasoner)
+- ...
+:::
+
+:::
+
+::::
+
+::: {.notes}
+
+[![GitHub Repo stars](https://img.shields.io/github/stars/volcengine/verl)](https://github.com/volcengine/verl/stargazers)
+![GitHub forks](https://img.shields.io/github/forks/volcengine/verl)
+![GitHub contributors](https://img.shields.io/github/contributors/volcengine/verl)
+
+[![Twitter](https://img.shields.io/twitter/follow/verl_project)](https://twitter.com/verl_project)
+<a href="https://join.slack.com/t/verlgroup/shared_invite/zt-2w5p9o4c3-yy0x2Q56s_VlGLsJ93A6vA"><img src="https://img.shields.io/badge/Slack-verl-blueviolet?logo=slack&amp"></a>
+<a href="https://raw.githubusercontent.com/eric-haibin-lin/verl-community/refs/heads/main/WeChat.JPG"><img src="https://img.shields.io/badge/微信-green?logo=wechat&amp"></a>
 
 :::
 
@@ -111,6 +259,47 @@ Hybrid-Controller = Single-Controller + N x Multi-Controller
 
 ![In the hybrid-controller, a single-controller manages multiple multi-controllers.](./assets/hybrid-controller.png){#fig-hybrid-controller fig-align="center" height=450px .lightbox}
 
+## Implementation in verl {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{#lst-verl-implementation-single-controller-ppo .python lst-cap="PPO algorithm in single-controller." code-line-numbers="7,11"}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = critic.compute_values(batch)
+    batch = compute_advantage(batch, "gae")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{#lst-verl-implementation-multi-controller-actor-critic .python lst-cap="Example distributed computation in multi-controller." code-line-numbers="3,9"}
+class CriticWorker(3DParallelWorker):
+  @register(dispatch_mode=3D_PROTO)
+  def compute_values(self, batch: DataProto):
+      values = self.critic.forward(batch)
+      batch.update(values=values)
+# ...
+class ActorWorker(3DParallelWorker):
+  @register(dispatch_mode=3D_PROTO)
+  def update_actor(self, batch: DataProto):
+      loss = self.actor(batch)
+      loss.backward()
+```
+:::
+
+::::
+
 ::: {.notes}
 
 | Paradigm                 | Pro       | Con                   | Task             | Example Class |
@@ -124,138 +313,25 @@ Hybrid-Controller = Single-Controller + N x Multi-Controller
 
 - It can be understood as multiple processes run with `torchrun`, each of which runs the same program but processes different data, reducing the communication overhead.
 
-:::
-
-## Flexibility: Single-Controller {.smaller}
-
-Single-controller enables verl to implement various RL algorithms by only modifying **a few lines**, usually only in **the `fit` function**.
-
-See the example changing PPO to GRPO:
-
-. . .
-
-:::: {.columns}
-
-::: {.column width="49%"}
-```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code." code-line-numbers="7-8"}
-for prompts in dataloader:
-    # Stage 1: Sampling Trajectories
-    batch = actor.generate_sequences(prompts)
-    # Stage 2: Preparing Experiences
-    batch = reward.compute_reward(batch)
-    batch = reference.compute_log_prob(batch)
-    batch = critic.compute_values(batch)
-    batch = compute_advantage(batch, "gae")
-    # Stage 3: Training
-    critic.update_critic(batch)
-    actor.update_actor(batch)
-```
-:::
-
-::: {.column width="49%"}
-```{#lst-verl-fit-example-code-grpo .python lst-cap="GRPO core code." code-line-numbers="7-8"}
-for prompts in dataloader:
-    # Stage 1: Sampling Trajectories
-    batch = actor.generate_sequences(prompts)
-    # Stage 2: Preparing Experiences
-    batch = reward.compute_reward(batch)
-    batch = reference.compute_log_prob(batch)
-    # DELETED: batch = critic.compute_values(batch)
-    batch = compute_advantage(batch, "grpo")
-    # Stage 3: Training
-    critic.update_critic(batch)
-    actor.update_actor(batch)
-```
-:::
-
-::::
-
-. . .
-
-With such flexibility, verl has supported diverse RL algorithms including [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [Dr. GRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
-
-## Efficiency: Mutli-Controller {.center}
-
 In this section, we discuss **how verl optimizes the multi-controllers**, i.e., compositions of traditional LLM training workloads.
-
----
-
-### Background: Different Workloads Have Different Optimal Parallelism Strategies
 
 The optimal parallelism strategies for different workloads are usually different, e.g., 
 
 - training needs to save gradients & optimizer states other than parameters, requiring more sharding,
 - generation has fewer states, allowing less sharding.
 
----
-
-### Inter-Stage: Hybrid Engine
 
 |Implementation|Pro|Con|
 |---|---|---|
 |Fixed GPUs for each workload|Simple|Many bubbles|
 |Hybrid Engine|Efficient|Need resharding|
 
-![Resharding with hybrid engine between stages in RL. Here, it changes TP to DP.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=300px .lightbox}
-
-::: {.notes}
-
 - Instead of **splitting the devices** to deploy different engines separately for different workloads, causing many bubbles,
 - verl implements a **hybrid engine** that can switch between the different workloads **on the same cluster**, fully utilizing all the GPUs.
 
 :::
 
----
-
-### Intra-Stage: Diverse Parallelisms
-
-:::: {.columns}
-
-::: {.column width="60%"}
-
-::: {.nonincremental}
-
-Parallelism Algorithms:
-
-- Data Parallelism
-- Tensor Parallelism
-- Pipeline Parallelism
-- Context / Sequence Parallelism
-- ...
-
-:::
-
-:::
-
-::: {.column width="40%"}
-
-Training Backend:
-
-::: {.nonincremental}
-
-- FSDP & FSDP2
-- Megatron
-- ...
-
-:::
-
-Generation Backend:
-
-::: {.nonincremental}
-
-- vLLM
-- SGLang
-- ...
-
-:::
-
-:::
-
-::::
-
-# Latest Updates &Roadmap
-
-For the most timely updates of important features, please keep an eye on [verl's README](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
+# Latest Updates & Roadmap
 
 ## Async Engine for Multi-Turn Generation (Upstreamed) {.smaller}
 
@@ -302,13 +378,17 @@ For more details, please check [our tracker #708](https://github.com/volcengine/
 2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
 3. ...
 
+. . .
+
+For the most timely updates of important features, please keep an eye on [verl's Roadmap](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
+
 # Thanks for Listening! {.unnumbered}
 
 Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) and [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)
 
 @ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-![](./assets/qrcode-github-repo-verl.png){fig-align="center" width=250px height=250px .lightbox}
+![](./assets/qrcode-wechat-group-antoss.png){fig-align="center" width=350px .lightbox}
 
 # Appendix {.unnumbered}
 
