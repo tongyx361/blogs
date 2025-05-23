@@ -354,7 +354,7 @@
     "href": "posts/verl-intro/index.html#async-engine-for-multi-turn-generation-upstreamed",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "5.1 Async Engine for Multi-Turn Generation (Upstreamed)",
-    "text": "5.1 Async Engine for Multi-Turn Generation (Upstreamed)\nMulti-turn generation might have different implementations:\n\n\n\n\n\n\nFigure 8: Synchronous vs. Asynchronous rollout.1\n\n\n\n\n\n\n\nImage Source: https://novasky-ai.notion.site/skyrl-v0↩︎"
+    "text": "5.1 Async Engine for Multi-Turn Generation (Upstreamed)\n\n\n\nImplementation\nSched. Unit\nSync. Time\n\n\n\n\nSynchronous\nBatch\nEach Turn\n\n\nAsynchronous\nRequest\nWhole Batch\n\n\n\n\n\n\n\n\n\nFigure 8: Synchronous vs. Asynchronous rollout.1\n\n\n\n\nSpecifically, verl integrates:\n\nSGLang’s Engine.async_generate (contributed by the SGLang RL team)\nvLLM-V1’s AsyncLLM (contributed by Xibin Wu from ByteDance)\n\n\n\n\n\n\nImage Source: https://novasky-ai.notion.site/skyrl-v0↩︎"
   },
   {
     "objectID": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
