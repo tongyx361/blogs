@@ -342,7 +342,7 @@ The optimal parallelism strategies for different workloads are usually different
 
 |Implementation|Sched. Unit|Sync. Time|
 |---|---|---|
-|Synchronous|ynBatch|Each Turn|
+|Synchronous|Batch|Each Turn|
 |Asynchronous|Request|Whole Batch|
 
 ![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=200px .lightbox}
@@ -392,7 +392,7 @@ Welcome to join the verl community to [discuss](https://github.com/volcengine/ve
 
 @ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-![](./assets/qrcode-wechat-group-antoss.png){fig-align="center" width=350px .lightbox}
+![](./assets/qrcode-wechat-group-antoss.png){fig-align="center" width=300px .lightbox}
 
 # Appendix {.unnumbered}
 
