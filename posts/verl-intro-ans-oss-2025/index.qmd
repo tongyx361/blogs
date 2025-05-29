@@ -1,0 +1,645 @@
+---
+title: "verl: Flexible and Efficient RL for LLMs"
+author:
+  name: "Yuxuan Tong (童雨轩)"
+  affiliation: "ByteDance Seed & Tsinghua University"
+  email: tongyuxuan.361@bytedance.com
+date: "2025-05-24"
+format:
+  revealjs:
+    logo: ./assets/logo-bytedance-seed.png
+    footer: "verl: Flexible and Efficient RL for LLMs"
+    incremental: true
+    embed-resources: true
+    code-line-numbers: true
+toc: false
+link-external-icon: false
+---
+
+# Background: Why is Large-Scale RL Important?
+
+## Learning to Reason with Large-Scale RL {.smaller}
+
+|Model| Large-Scale RL?  | AIME 2024 | MATH 500 | GPQA Diamond | Code Forces | 
+|---|---|---|---|---|---|---|
+| GPT-4o [@openai2024o1]| ❌ |44.6 | 60.3 | 50.6 | >11.0% | 
+| o1 [@openai2024o1] | ✅  | 74.4 | 94.8 | 77.3 | >89.0% | 
+| R1 [@deepseekai2025r1]| ✅  | 79.8 | 97.3 | 71.5 | >96.3% | 
+
+: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs. {tbl-colwidths="[40,20,10,10,10,10]"}
+
+## Learning as Agent with Large-Scale RL
+
+@openai2025deepresearch:
+
+> Deep research independently discovers, reasons about, and consolidates insights from across the web. 
+> 
+> To accomplish this, it was trained on **real-world tasks requiring browser and Python tool use**,
+> 
+> using **the same reinforcement learning methods behind OpenAI o1**, our first reasoning model.
+
+Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-deep-research/?video=1052827364) for more details.
+
+## Future: Agent + Tool Protocol = Versatile
+
+![MCP as an example of tool protocol.](./assets/mcp.png){fig-align="center" .lightbox}
+
+# Background: Why is Large-Scale RL Challenging?
+
+## Complex: RL as Dataflow Graph {.smaller}
+
+![Examples of modelling RL algorithms as dataflow graphs. [@sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-graph-examples fig-align="center" height=300 .lightbox}
+
+We can model Reinforcement Learning (RL) as a complex **dataflow graph**, consisting of:
+
+1. **multiple models**: actor, critic, reference, reward model, etc.
+2. **multiple stages**: generating, preparing experiences, training
+3. **multiple workloads**: generation, inference, training
+
+## More Complex: RL with LLMs
+
+RL with Large Language Models (LLMs) is even more challenging.
+
+![For RL with LLMs, **each node** in the dataflow graph is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-graph-scaled.png){#fig-rl-w-llms-dataflow-graph-scaled fig-align="center" height=400px .lightbox}
+
+## Even More Complex: Flexible & Efficient Implementation
+
+![Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400 .lightbox}
+
+::: {.notes}
+
+Specifically, we:
+
+1. design the parallelism strategy and model placement to optimize the throughput
+2. while restricted by the temporal dependencies and device resources
+
+:::
+
+# Why verl?
+
+## Flexibility: RL Algorithms in Lines {.smaller}
+
+:::: {.columns}
+
+::: {.column width="55%"}
+![Dataflow graph of PPO with KL regularization.](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=300px .lightbox}
+:::
+
+::: {.column width="45%"}
+```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code."}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = critic.compute_values(batch)
+    batch = compute_advantage(batch, "gae")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+:::
+
+::::
+
+- Programmming interface based on **"single-controller"**
+- RL algorithms in **a few lines of code**!
+- Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [Dr. GRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
+
+## Efficiency: Minimized Overhead & Maximized GPU Utilization {.center}
+
+---
+
+### Within Workload: Efficient Implementation Based on **"Multi-Controller"**
+
+:::: {.columns}
+
+::: {.column width="60%"}
+
+::: {.nonincremental}
+
+Parallelism Algorithms:
+
+- Data Parallelism
+- Tensor Parallelism
+- Pipeline Parallelism
+- Context / Sequence Parallelism
+- ...
+
+:::
+
+:::
+
+::: {.column width="40%"}
+
+Training Backend:
+
+::: {.nonincremental}
+
+- FSDP & FSDP2
+- Megatron
+
+:::
+
+Generation Backend:
+
+::: {.nonincremental}
+
+- vLLM
+- SGLang
+
+:::
+
+:::
+
+::::
+
+---
+
+### Between Workloads: High GPU Utilization Based on **Hybrid Engine** {.smaller}
+
+![Example of hybrid engine switching between workloads.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=250px .lightbox}
+
+- **offloading & reloading**, fully utilizing the GPU memory
+- switching for **the optimal parallelism strategy**
+
+## Open-Source Community {.center}
+
+---
+
+### Extensive Impact
+
+Up to 2025/05/24, verl has:
+
+- 8.4k stars
+- 1k forks
+- 894 PRs
+- 176 contributors
+- ...
+
+---
+
+### Easy for Extension
+
+Many projects are built on top of verl, including:
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [TinyZero](https://github.com/Jiayi-Pan/TinyZero) ![GitHub Repo stars](https://img.shields.io/github/stars/Jiayi-Pan/TinyZero)
+- [SimpleRL-Zoo](https://github.com/hkust-nlp/simpleRL-reason) ![GitHub Repo stars](https://img.shields.io/github/stars/hkust-nlp/simpleRL-reason)
+- [rllm](https://github.com/agentica-project/rllm) ![GitHub Repo stars](https://img.shields.io/github/stars/agentica-project/rllm)
+- [SkyThought](https://github.com/NovaSky-AI/SkyThought) ![GitHub Repo stars](https://img.shields.io/github/stars/NovaSky-AI/SkyThought)
+- [OpenManus-RL](https://github.com/OpenManus/OpenManus-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/OpenManus/OpenManus-RL)
+- [Easy-R1](https://github.com/hiyouga/EasyR1) ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/EasyR1)
+
+:::
+
+:::
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [Logic-RL](https://github.com/Unakar/Logic-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/Unakar/Logic-RL)
+- [RAGEN](https://github.com/ZihanWang314/ragen) ![GitHub Repo stars](https://img.shields.io/github/stars/ZihanWang314/ragen)
+- [PRIME](https://github.com/PRIME-RL/PRIME) ![GitHub Repo stars](https://img.shields.io/github/stars/PRIME-RL/PRIME)
+- [Search-R1](https://github.com/PeterGriffinJin/Search-R1) ![GitHub Repo stars](https://img.shields.io/github/stars/PeterGriffinJin/Search-R1)
+- [Absolute Zero Reasoner](https://github.com/LeapLabTHU/Absolute-Zero-Reasoner) ![GitHub Repo stars](https://img.shields.io/github/stars/LeapLabTHU/Absolute-Zero-Reasoner)
+- ...
+:::
+
+:::
+
+::::
+
+::: {.notes}
+
+[![GitHub Repo stars](https://img.shields.io/github/stars/volcengine/verl)](https://github.com/volcengine/verl/stargazers)
+![GitHub forks](https://img.shields.io/github/forks/volcengine/verl)
+![GitHub contributors](https://img.shields.io/github/contributors/volcengine/verl)
+
+[![Twitter](https://img.shields.io/twitter/follow/verl_project)](https://twitter.com/verl_project)
+<a href="https://join.slack.com/t/verlgroup/shared_invite/zt-2w5p9o4c3-yy0x2Q56s_VlGLsJ93A6vA"><img src="https://img.shields.io/badge/Slack-verl-blueviolet?logo=slack&amp"></a>
+<a href="https://raw.githubusercontent.com/eric-haibin-lin/verl-community/refs/heads/main/WeChat.JPG"><img src="https://img.shields.io/badge/微信-green?logo=wechat&amp"></a>
+
+:::
+
+# Paradigm: HybridFlow [@sheng2024hybridflow]
+
+## Background: Single-Controller vs. Multi-Controller {.smaller}
+
+::: {#fig-controller-paradigm layout-ncol=2}
+
+![Single-Controller (MPMD)](./assets/single-controller-mpmd-pathways.png){height=200px .lightbox #fig-single-controller-mpmd}
+
+![Multi-Controller (SPMD)](./assets/multi-controller-spmd-pathways.png){height=200px .lightbox #fig-multi-controller-spmd}
+
+Single-Controller (Multi-Program-Multi-Data, MPMD) vs. Multi-Controller (Single-Program-Multi-Data, SPMD) [@barham2022pathways]
+
+:::
+
+- **Single-Controller (MPMD)**: A centralized controller manages all the workers, running different programs.
+- **Multi-Controller (SPMD)**: Each worker has its own controller, running the same program with different data.
+
+## Trade-off: Single-Controller or Multi-Controller?
+
+
+| Paradigm                 | Pro       | Con                   |
+|--------------------------|-----------|-----------------------|
+| Single-Controller | Flexible  | Commnucation Overhead |
+| Multi-Controller  | Efficient | Complex Programming   |
+
+Which paradigm should we choose?
+
+. . .
+
+We can have both!
+
+## New Paradigm: Hybrid-Controller!
+
+Hybrid-Controller = Single-Controller + N x Multi-Controller
+
+![In the hybrid-controller, a single-controller manages multiple multi-controllers.](./assets/hybrid-controller.png){#fig-hybrid-controller fig-align="center" height=450px .lightbox}
+
+## Implementation in verl {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{#lst-verl-implementation-single-controller-ppo .python lst-cap="PPO algorithm in single-controller." code-line-numbers="7,11"}
+for prompts in dataloader:
+    # Stage 1: Sampling Trajectories
+    batch = actor.generate_sequences(prompts)
+    # Stage 2: Preparing Experiences
+    batch = reward.compute_reward(batch)
+    batch = reference.compute_log_prob(batch)
+    batch = critic.compute_values(batch)
+    batch = compute_advantage(batch, "gae")
+    # Stage 3: Training
+    critic.update_critic(batch)
+    actor.update_actor(batch)
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{#lst-verl-implementation-multi-controller-actor-critic .python lst-cap="Example distributed computation in multi-controller." code-line-numbers="3,9"}
+class CriticWorker(3DParallelWorker):
+  @register(dispatch_mode=3D_PROTO)
+  def compute_values(self, batch: DataProto):
+      values = self.critic.forward(batch)
+      batch.update(values=values)
+# ...
+class ActorWorker(3DParallelWorker):
+  @register(dispatch_mode=3D_PROTO)
+  def update_actor(self, batch: DataProto):
+      loss = self.actor(batch)
+      loss.backward()
+```
+:::
+
+::::
+
+::: {.notes}
+
+| Paradigm                 | Pro       | Con                   | Task             | Example Class |
+|--------------------------|-----------|-----------------------|-----------------|----------------|
+| Single-Controller (MPMD) | Flexible  | Commnucation Overhead | RL control flow | `RayPPOTrainer` |
+| Multi-Controller (SPMD)  | Efficient | Complex Programming   | Distributed computation | `ActorRolloutWorker`, `CriticWorker` |
+
+: Hybrid-controller utilizes different paradigms for different tasks.
+
+"multi-controller", i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.
+
+- It can be understood as multiple processes run with `torchrun`, each of which runs the same program but processes different data, reducing the communication overhead.
+
+In this section, we discuss **how verl optimizes the multi-controllers**, i.e., compositions of traditional LLM training workloads.
+
+The optimal parallelism strategies for different workloads are usually different, e.g., 
+
+- training needs to save gradients & optimizer states other than parameters, requiring more sharding,
+- generation has fewer states, allowing less sharding.
+
+
+|Implementation|Pro|Con|
+|---|---|---|
+|Fixed GPUs for each workload|Simple|Many bubbles|
+|Hybrid Engine|Efficient|Need resharding|
+
+- Instead of **splitting the devices** to deploy different engines separately for different workloads, causing many bubbles,
+- verl implements a **hybrid engine** that can switch between the different workloads **on the same cluster**, fully utilizing all the GPUs.
+
+:::
+
+# Latest Updates & Roadmap
+
+## Async Engine for Multi-Turn Generation (Upstreamed) {.smaller}
+
+|Implementation|Sched. Unit|Sync. Time|
+|---|---|---|
+|Synchronous|Batch|Each Turn|
+|Asynchronous|Request|Whole Batch|
+
+![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=200px .lightbox}
+
+::: {.notes}
+
+Specifically, verl integrates:
+
+- SGLang's `Engine.async_generate` (contributed by the SGLang RL team)
+- vLLM-V1's `AsyncLLM` (contributed by Xibin Wu from ByteDance)
+
+:::
+
+## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
+
+verl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:
+
+1. MoE models with `GPTModel` class for actor and critic
+2. Multi-node inference
+3. Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines
+
+. . .
+
+For more details, please check [our tracker #708](https://github.com/volcengine/verl/pull/708).
+
+## Agentic RL with Diverse Environments & Tools (Planned)
+
+1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
+2. Integrating protocols like [MDP](https://modelcontextprotocol.io/introduction)
+3. Integrating existing environments & tools, e.g. 
+  - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
+  - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
+
+## Other Plans
+
+1. Partial Rollout [@kimi2025k1p5]
+2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
+3. ...
+
+. . .
+
+For the most timely updates of important features, please keep an eye on [verl's Roadmap](https://github.com/volcengine/verl?tab=readme-ov-file#upcoming-features).
+
+# Thanks for Listening! {.unnumbered}
+
+Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) and [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)
+
+@ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
+
+![](./assets/qrcode-wechat-group-antoss.png){fig-align="center" width=300px .lightbox}
+
+# Appendix {.unnumbered}
+
+# Introduction to Features in verl
+
+## Sequence Packing {.smaller}
+
+1. Remove padding tokens and packs multiple data sequences into a row
+2. Tweak the attention mask & position IDs to avoid cross-contamination
+
+. . .
+
+![](https://cdn-uploads.huggingface.co/production/uploads/6041ff7ff84ebe399f1c85ea/wfZM7YcPyvS0qYnwhdqic.png){fig-align="center" height=300px .lightbox}
+
+. . .
+
+To enable this, use `use_remove_padding`.
+
+## DP Balancing
+
+---
+
+### Load Imbalance in DP
+
+- Parallelism usually needs **synchronization** between different ranks.
+- **Data Parallelism (DP)** like ZeRO is the most commonly used parallelism strategy.
+- However, DP performance might be damaged by **load imbalance**, which is especially severe in long-context training.
+
+---
+
+### Balancing across DP Ranks
+
+![](./assets/dp-balancing-across-ranks.png){fig-align="center" height=250px .lightbox}
+
+::: {.nonincremental}
+- balance the valid tokens dispatched to each rank
+- by reordering the samples in each batch
+:::
+
+To enable this, use `balance_batch`.
+
+---
+
+### Balancing across Micro Batches
+
+However, in gradient accumulation,
+
+::: {.nonincremental}
+- it's not enough to only balance valid tokens in a batch, 
+- since DP syncs in the unit of micro batch.
+:::
+
+To resolve this, verl supports to
+
+::: {.nonincremental}
+- balance the valid tokens across micro batches
+- by evenly deviding the data sequences in the batch before packing into micro batches
+:::
+
+To enable this, use `use_dynamic_bsz`.
+
+## Other Features
+
+1. Multi-Model LLMs' RL
+2. Full support for [RL with AMD (ROCm Kernel) hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
+3. Gradient Checkpointing (`enable_gradient_checkpointing`)
+4. Torch Compile (`use_torch_compile`)
+5. Liger Kernel (`use_liger`)
+6. ...
+
+# Programming Guide
+
+## Customizing the Dataset {.smaller}
+
+A canonical RL dataset in verl has the following fields:
+
+- `prompt`: a list of messages `{"role": "...", "content": "..."}`
+- `data_source`: used to choose the reward function
+- `reward_model`: a dict containing
+  -  `"ground_truth"`
+  -  `"style"` like `"model"` or `"rule"`
+- (Optional) `extra_info`: a dict containing extra information
+
+. . .
+
+For VLM RL, verl expects fields `"images"` and/or `"videos"`
+
+. . .
+
+For examples, please check the `examples/data_preprocess`.
+
+---
+
+You could also customize the field names via config. Please check the `data` section in config files like `ppo_trainer.yaml` for more details.
+
+. . .
+
+For further customization, verl provides the `data.custom_cls` config,
+
+```{#lst-verl-custom-cls .yaml lst-cap="Config for custom dataset class."}
+data:
+  custom_cls:
+    path: null # path to the `.py` file containing the `class` definition
+    name: null # the `class` name
+```
+
+. . .
+
+An example CLI config could be:
+
+```{#lst-verl-custom-cls-cli .bash lst-cap="Example config for custom dataset class."}
+--data.custom_cls.path=./examples/dataset/custom_dataset.py \
+--data.custom_cls.name=CustomDataset
+```
+
+---
+
+The custom dataset class defined in the `.py` file is required to accept the following initialization parameters:
+
+```{#lst-verl-custom-cls-init .python lst-cap="Custom dataset class initialization."}
+class CustomDataset: # You could also inherit from `RLHFDataset`
+  def __init__(
+      self,
+      data_files: Union[str, List[str]],
+      tokenizer: PreTrainedTokenizer,
+      config: DictConfig,
+      processor: Optional[ProcessorMixin] = None,
+  ):
+      ...
+```
+
+## Customizing the Reward
+
+verl allows to define custom reward function via the `custom_reward_function` config:
+
+```{#lst-verl-custom-reward-function .yaml lst-cap="Config for custom reward function."}
+custom_reward_function:
+  path: null # path to the `.py` file containing the function definition
+  name: compute_score # the function name after `def`
+reward_model:
+  reward_manager: naive
+```
+
+. . .
+
+An example CLI config could be:
+
+```{#lst-verl-custom-reward-function-cli .bash lst-cap="Example config for custom reward function."}
+--custom_reward_function.path=./examples/reward_fn/custom_reward_fn.py \
+--custom_reward_function.name=compute_score \
+--reward_model.reward_manager=naive
+```
+
+---
+
+The function defined in `.py` should accept the parameters passed from **the reward manager `__call__` method**. Taking `NaiveRewardManager` as an example:
+
+```{#lst-verl-custom-reward-function-call .python lst-cap="How a reward function is called in NaiveRewardManager."}
+class NaiveRewardManager:
+    def __call__(self, data: DataProto, return_dict: bool=False):
+        # Preprocessing for the input data
+        score = self.compute_score(
+            data_source=data_source,
+            solution_str=solution_str,
+            ground_truth=ground_truth,
+            extra_info=extra_info,
+        )
+        # Other processing for the final `reward`
+```
+
+. . .
+
+For more complex features, you can also add a new reward manager like `PRIMERewardManager` or `DAPORewardManager`.
+
+## Customizing the Loss Function
+
+To modify the loss function, the most convenient way is to
+
+1. search for the `.backward()` call
+2. modify functions like `compute_policy_loss`
+3. or add loss terms like `entropy_loss`
+
+---
+
+For example, the `DataParallelPPOActor.update_policy` method defines the loss function as follows:
+
+```{#lst-verl-actor-loss .python lst-cap="Simplified loss function definition in DataParallelPPOActor." code-line-numbers="3-6,8,13-14"}
+class DataParallelPPOActor(BasePPOActor):
+    def update_policy(self, data: DataProto):
+        pg_loss = compute_policy_loss(
+            old_log_prob=old_log_prob, log_prob=log_prob,
+            advantages=advantages, # ...
+        )
+        entropy_loss = agg_loss(loss_mat=entropy)
+        policy_loss = pg_loss - entropy_loss * entropy_coeff
+        kld = kl_penalty(
+            logprob=log_prob, ref_logprob=ref_log_prob, # ...
+        )
+        kl_loss = agg_loss(loss_mat=kld)
+        policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
+        loss.backward()
+```
+
+## Customizing the Training Logic
+
+As mentioned above, the main training logic is concentrated in the `fit` function of the trainer classes like `RayPPOTrainer`.
+
+For example, the `DAPORayTrainer` class overrides the `fit` function to implement the "dynamic sampling" feature:
+
+(See the next slide for the code ➡️)
+
+---
+
+```{#lst-verl-dapo-trainer-fit .python lst-cap="Simplified fit function in DAPORayTrainer, with dynamic sampling highlighted." code-line-numbers="4,6,8,10,12-23"}
+class RayDAPOTrainer(RayPPOTrainer):
+  def fit(self):
+    for epoch in range(self.config.trainer.total_epochs):
+      batch = None
+      for batch_dict in self.train_dataloader:
+        new_batch = DataProto.from_single_dict(batch_dict)
+        num_gen_batches += 1
+        gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+        new_batch = new_batch.union(gen_batch_output)
+        if not self.config.algorithm.filter_groups.enable:
+          batch = new_batch
+        else:
+          # Getting `kept_traj_idxs` ...
+          new_batch = new_batch[kept_traj_idxs]
+          batch = new_batch if batch is None else DataProto.concat([batch, new_batch])
+          prompt_bsz = self.config.data.train_batch_size
+          if num_prompt_in_batch < prompt_bsz:
+            max_num_gen_batches = self.config.algorithm.filter_groups.max_num_gen_batches
+            if max_num_gen_batches <= 0 or num_gen_batches < max_num_gen_batches:
+                continue
+          else:
+            traj_bsz = self.config.data.train_batch_size * self.config.actor_rollout_ref.rollout.n
+            batch = batch[:traj_bsz]
+        # ...
+```
+
+# About
+
+## Presenter Contact
+
+::: {.nonincremental}
+- Email: [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
+- WeChat / [X](https://x.com/tongyx361): tongyx361
+:::
+
+![](./assets/qrcode-wechat-tongyx361.png){fig-align="center" width=250px height=250px .lightbox}
