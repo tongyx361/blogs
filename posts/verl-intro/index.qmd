@@ -16,7 +16,9 @@ toc: false
 link-external-icon: false
 ---
 
-# Background: Why is Large-Scale RL Important?
+# Motivation: Why is Large-Scale RL Important?
+
+A good framework solves an important problem.
 
 ## Learning to Reason with Large-Scale RL {.smaller}
 
@@ -26,7 +28,7 @@ link-external-icon: false
 | o1 [@openai2024o1] | ✅  | 74.4 | 94.8 | 77.3 | >89.0% | 
 | R1 [@deepseekai2025r1]| ✅  | 79.8 | 97.3 | 71.5 | >96.3% | 
 
-: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs. {tbl-colwidths="[40,20,10,10,10,10]"}
+: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs. {#tbl-learning-to-reason-with-large-scale-rl tbl-colwidths="[40,20,10,10,10,10]"}
 
 ## Learning as Agent with Large-Scale RL
 
@@ -40,57 +42,53 @@ link-external-icon: false
 
 Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-deep-research/?video=1052827364) for more details.
 
-## Future: Agent + Tool Protocol = Versatile
+# Challenge: Why is Large-Scale RL Challenging?
 
-![MCP as an example of tool protocol.](./assets/mcp.png){fig-align="center" .lightbox}
+A good framework solve a challenging problem.
 
-# Background: Why is Large-Scale RL Challenging?
+## RL as Complex Dataflow Graph {.smaller}
 
-## Complex: RL as Dataflow Graph {.smaller}
+![Examples of modelling RL algorithms as dataflow graphs. [@sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-graph-examples fig-align="center" height=300px .lightbox}
 
-![Examples of modelling RL algorithms as dataflow graphs. [@sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-graph-examples fig-align="center" height=300 .lightbox}
-
-We can model Reinforcement Learning (RL) as a complex **dataflow graph**, consisting of:
+We can model Reinforcement Learning (RL) as a **complex dataflow graph**, consisting of:
 
 1. **multiple models**: actor, critic, reference, reward model, etc.
 2. **multiple stages**: generating, preparing experiences, training
 3. **multiple workloads**: generation, inference, training
 
-## More Complex: RL with LLMs
+## LLM Workloads Are Distributed {.smaller}
 
-RL with Large Language Models (LLMs) is even more challenging.
+![LLM workloads are often distributed, involving many GPUs and complex parallelism strategies.](https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/parallelism-deepspeed-3d.png){#fig-llm-workloads-distributed fig-align="center" height=300px .lightbox}
+
+LLM workloads often involves:
+
+- many GPUs
+- complex parallelism strategies
+
+## RL with LLMs as Dataflow of Large-Scale Distributed Workloads {.smaller}
 
 ![For RL with LLMs, **each node** in the dataflow graph is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-graph-scaled.png){#fig-rl-w-llms-dataflow-graph-scaled fig-align="center" height=400px .lightbox}
 
-## Even More Complex: Flexible & Efficient Implementation
+## Contraints: Data Dependencies & Resource Limitations
 
 ![Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400 .lightbox}
 
-::: {.notes}
-
-Specifically, we:
-
-1. design the parallelism strategy and model placement to optimize the throughput
-2. while restricted by the temporal dependencies and device resources
-
-:::
-
 # Why verl?
 
-## Flexibility: RL Algorithms in Lines {.smaller}
+## Flexibility in Programming: "Single-Controller" {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="55%"}
-![Dataflow graph of PPO with KL regularization.](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=300px .lightbox}
+![Dataflow graph of PPO with KL regularization, with data shown explicitly. [@sheng2024hybridflow]](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=250px .lightbox}
 :::
 
 ::: {.column width="45%"}
-```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code."}
+```{#lst-verl-fit-example-code-ppo .python lst-cap="PPO core code in a few lines in verl."}
 for prompts in dataloader:
-    # Stage 1: Sampling Trajectories
+    # Stage 1: Generation
     batch = actor.generate_sequences(prompts)
-    # Stage 2: Preparing Experiences
+    # Stage 2: Experience Preparation
     batch = reward.compute_reward(batch)
     batch = reference.compute_log_prob(batch)
     batch = critic.compute_values(batch)
@@ -103,15 +101,11 @@ for prompts in dataloader:
 
 ::::
 
-- Programmming interface based on **"single-controller"**
-- RL algorithms in **a few lines of code**!
-- Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [REINFORCE++](https://verl.readthedocs.io/en/latest/examples/config.html#algorithm), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), [Dr. GRPO](https://github.com/volcengine/verl/blob/main/recipe/drgrpo), etc.
+- Programmming interface based on the **"single-controller"** paradigm
+- RL algorithm core logic in **a few lines of code**!
+- Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), etc.
 
-## Efficiency: Minimized Overhead & Maximized GPU Utilization {.center}
-
----
-
-### Within Workload: Efficient Implementation Based on **"Multi-Controller"**
+## Efficiency Within Workload: "Multi-Controller" & Kernels {.smaller}
 
 :::: {.columns}
 
@@ -127,6 +121,12 @@ Parallelism Algorithms:
 - Context / Sequence Parallelism
 - ...
 
+Efficient Kernels:
+
+- Flash Attention 2
+- Liger Kernel
+- ...
+
 :::
 
 :::
@@ -137,7 +137,8 @@ Training Backend:
 
 ::: {.nonincremental}
 
-- FSDP & FSDP2
+- FSDP
+- FSDP2
 - Megatron
 
 :::
@@ -148,6 +149,7 @@ Generation Backend:
 
 - vLLM
 - SGLang
+- ...
 
 :::
 
@@ -157,32 +159,34 @@ Generation Backend:
 
 ---
 
-### Between Workloads: High GPU Utilization Based on **Hybrid Engine** {.smaller}
+## Efficiency Between Workloads: "Hybrid Engine" {.smaller}
 
-![Example of hybrid engine switching between workloads.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=250px .lightbox}
+- **offloading & reloading** enables fully utilizing the GPU memory
+- **resharding** enables switching for the optimal parallelism strategy
 
-- **offloading & reloading**, fully utilizing the GPU memory
-- switching for **the optimal parallelism strategy**
+. . .
+
+![Example of hybrid engine switching between workloads.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=300px .lightbox}
 
 ## Open-Source Community {.center}
 
 ---
 
-### Extensive Impact
+### Extensive Participation
 
-Up to 2025/05/24, verl has:
+So far, verl has:
 
-- 8.4k stars
-- 1k forks
-- 894 PRs
-- 176 contributors
-- ...
+- 8.4k+ stars
+- 1k+ forks
+- ~900 PRs
+- ~200 contributors
+- waiting for your participation!
 
 ---
 
 ### Easy for Extension
 
-Many projects are built on top of verl, including:
+Many popular projects are built on top of verl, including:
 
 :::: {.columns}
 
@@ -215,19 +219,7 @@ Many projects are built on top of verl, including:
 
 ::::
 
-::: {.notes}
-
-[![GitHub Repo stars](https://img.shields.io/github/stars/volcengine/verl)](https://github.com/volcengine/verl/stargazers)
-![GitHub forks](https://img.shields.io/github/forks/volcengine/verl)
-![GitHub contributors](https://img.shields.io/github/contributors/volcengine/verl)
-
-[![Twitter](https://img.shields.io/twitter/follow/verl_project)](https://twitter.com/verl_project)
-<a href="https://join.slack.com/t/verlgroup/shared_invite/zt-2w5p9o4c3-yy0x2Q56s_VlGLsJ93A6vA"><img src="https://img.shields.io/badge/Slack-verl-blueviolet?logo=slack&amp"></a>
-<a href="https://raw.githubusercontent.com/eric-haibin-lin/verl-community/refs/heads/main/WeChat.JPG"><img src="https://img.shields.io/badge/微信-green?logo=wechat&amp"></a>
-
-:::
-
-# Paradigm: HybridFlow [@sheng2024hybridflow]
+# Paradigm behind verl: HybridFlow [@sheng2024hybridflow]
 
 ## Background: Single-Controller vs. Multi-Controller {.smaller}
 
@@ -237,7 +229,7 @@ Many projects are built on top of verl, including:
 
 ![Multi-Controller (SPMD)](./assets/multi-controller-spmd-pathways.png){height=200px .lightbox #fig-multi-controller-spmd}
 
-Single-Controller (Multi-Program-Multi-Data, MPMD) vs. Multi-Controller (Single-Program-Multi-Data, SPMD) [@barham2022pathways]
+Single-Controller (Multi-Program-Multi-Data) vs. Multi-Controller (Single-Program-Multi-Data) [@barham2022pathways]
 
 :::
 
@@ -250,31 +242,37 @@ Single-Controller (Multi-Program-Multi-Data, MPMD) vs. Multi-Controller (Single-
 | Paradigm                 | Pro       | Con                   |
 |--------------------------|-----------|-----------------------|
 | Single-Controller | Flexible  | Commnucation Overhead |
-| Multi-Controller  | Efficient | Complex Programming   |
+| Multi-Controller  | Efficient | Complex Programming  |
 
-Which paradigm should we choose?
+: Trade-off between single-controller and multi-controller. {#tbl-trade-off-single-controller-multi-controller}
+
+🤔 Which paradigm should we choose?
 
 . . .
 
-We can have both!
+🤩 Actually, we can have "both"!
 
 ## New Paradigm: Hybrid-Controller!
 
-Hybrid-Controller = Single-Controller + N x Multi-Controller
+💡 Hybrid-Controller = Single-Controller + N x Multi-Controller
 
-![In the hybrid-controller, a single-controller manages multiple multi-controllers.](./assets/hybrid-controller.png){#fig-hybrid-controller fig-align="center" height=450px .lightbox}
+![In the hybrid-controller, a single-controller manages multiple multi-controllers to process the dataflow.](./assets/hybrid-controller.png){#fig-hybrid-controller fig-align="center" height=400px .lightbox}
 
 ## Implementation in verl {.smaller}
+
+Each call in the single-controller (e.g. `critic.compute_values`, `actor.update_actor`) is an RPC to a multi-controller worker group.
+
+. . .
 
 :::: {.columns}
 
 ::: {.column width="50%"}
 
-```{#lst-verl-implementation-single-controller-ppo .python lst-cap="PPO algorithm in single-controller." code-line-numbers="7,11"}
+```{#lst-verl-implementation-single-controller-ppo .python lst-cap="PPO core code in single-controller." code-line-numbers="7,11"}
 for prompts in dataloader:
-    # Stage 1: Sampling Trajectories
+    # Stage 1: Generation
     batch = actor.generate_sequences(prompts)
-    # Stage 2: Preparing Experiences
+    # Stage 2: Experience Preparation
     batch = reward.compute_reward(batch)
     batch = reference.compute_log_prob(batch)
     batch = critic.compute_values(batch)
@@ -288,7 +286,7 @@ for prompts in dataloader:
 
 ::: {.column width="50%"}
 
-```{#lst-verl-implementation-multi-controller-actor-critic .python lst-cap="Example distributed computation in multi-controller." code-line-numbers="3,9"}
+```{#lst-verl-implementation-multi-controller-actor-critic .python lst-cap="Example distributed code in multi-controller." code-line-numbers="2-3,8-9"}
 class CriticWorker(3DParallelWorker):
   @register(dispatch_mode=3D_PROTO)
   def compute_values(self, batch: DataProto):
@@ -305,64 +303,26 @@ class ActorWorker(3DParallelWorker):
 
 ::::
 
-::: {.notes}
+. . .
 
-| Paradigm                 | Pro       | Con                   | Task             | Example Class |
-|--------------------------|-----------|-----------------------|-----------------|----------------|
-| Single-Controller (MPMD) | Flexible  | Commnucation Overhead | RL control flow | `RayPPOTrainer` |
-| Multi-Controller (SPMD)  | Efficient | Complex Programming   | Distributed computation | `ActorRolloutWorker`, `CriticWorker` |
-
-: Hybrid-controller utilizes different paradigms for different tasks.
-
-"multi-controller", i.e., SPMD (Single Program Multiple Data), is the most popular programming paradigm in distributed computing, e.g., PyTorch DDP, FSDP, DeepSpeed, Megatron, etc.
-
-- It can be understood as multiple processes run with `torchrun`, each of which runs the same program but processes different data, reducing the communication overhead.
-
-In this section, we discuss **how verl optimizes the multi-controllers**, i.e., compositions of traditional LLM training workloads.
-
-The optimal parallelism strategies for different workloads are usually different, e.g., 
-
-- training needs to save gradients & optimizer states other than parameters, requiring more sharding,
-- generation has fewer states, allowing less sharding.
-
-
-|Implementation|Pro|Con|
-|---|---|---|
-|Fixed GPUs for each workload|Simple|Many bubbles|
-|Hybrid Engine|Efficient|Need resharding|
-
-- Instead of **splitting the devices** to deploy different engines separately for different workloads, causing many bubbles,
-- verl implements a **hybrid engine** that can switch between the different workloads **on the same cluster**, fully utilizing all the GPUs.
-
-:::
+The `register` decorator utility manages the distributed data transfer, which also makes multi-controller programming easier.
 
 # Latest Updates & Roadmap
 
-## Async Engine for Multi-Turn Generation (Upstreamed) {.smaller}
+## Async Engine for Multi-Turn Rollout (Upstreamed) {.smaller}
 
-|Implementation|Sched. Unit|Sync. Time|
-|---|---|---|
-|Synchronous|Batch|Each Turn|
-|Asynchronous|Request|Whole Batch|
+![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=230px .lightbox}
 
-![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=200px .lightbox}
-
-::: {.notes}
-
-Specifically, verl integrates:
-
-- SGLang's `Engine.async_generate` (contributed by the SGLang RL team)
-- vLLM-V1's `AsyncLLM` (contributed by Xibin Wu from ByteDance)
-
-:::
+- Synchronous Engine: returns all the outputs at the same time
+- Asynchronous Engine: returns each output as soon as it is ready
 
 ## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
 
-verl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:
+verl is working on supporting efficient RL training for **huge MoE like DeepSeek-V3-671B**, based on the following features:
 
-1. MoE models with `GPTModel` class for actor and critic
-2. Multi-node inference
-3. Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines
+1. Training: **MoE models classes** based on Megatron `GPTModel`
+2. Inference: **Multi-node** inference
+3. Hybrid: **Parameter sharding manager** for Megatron-Core V0.12 + latest version of inference engines
 
 . . .
 
@@ -370,13 +330,17 @@ For more details, please check [our tracker #708](https://github.com/volcengine/
 
 ## Agentic RL with Diverse Environments & Tools (Planned)
 
+Welcome to discuss about / contribute to:
+
 1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
-2. Integrating protocols like [MDP](https://modelcontextprotocol.io/introduction)
+2. Integrating protocols like [MCP](https://modelcontextprotocol.io/introduction)
 3. Integrating existing environments & tools, e.g. 
   - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
   - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
 
 ## Other Plans
+
+We have also received many meaningful feature requests from the community, e.g.
 
 1. Partial Rollout [@kimi2025k1p5]
 2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
@@ -392,20 +356,36 @@ Welcome to join the verl community to [discuss](https://github.com/volcengine/ve
 
 @ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-![](./assets/qrcode-wechat-group-antoss.png){fig-align="center" width=300px .lightbox}
+Further Questions @ [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
+
+We Are Recruiting @ [haibin.lin@bytedance.com](mailto:haibin.lin@bytedance.com)
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+![](./assets/qrcode-github-repo-verl.png){fig-align="center" width=250px .lightbox}
+:::
+
+::: {.column width="50%"}
+
+![](./assets/qrcode-wechat-group-verl.png){fig-align="center" width=240px .lightbox}
+:::
+
+::::
+
+
 
 # Appendix {.unnumbered}
 
-# Introduction to Features in verl
+# Important Features of verl
 
 ## Sequence Packing {.smaller}
 
+![Tweaking the attention mask of an example packed sequence containing two data sequences.](https://cdn-uploads.huggingface.co/production/uploads/6041ff7ff84ebe399f1c85ea/wfZM7YcPyvS0qYnwhdqic.png){#fig-seq-pack fig-align="center" height=300px .lightbox}
+
 1. Remove padding tokens and packs multiple data sequences into a row
 2. Tweak the attention mask & position IDs to avoid cross-contamination
-
-. . .
-
-![](https://cdn-uploads.huggingface.co/production/uploads/6041ff7ff84ebe399f1c85ea/wfZM7YcPyvS0qYnwhdqic.png){fig-align="center" height=300px .lightbox}
 
 . . .
 
@@ -425,7 +405,7 @@ To enable this, use `use_remove_padding`.
 
 ### Balancing across DP Ranks
 
-![](./assets/dp-balancing-across-ranks.png){fig-align="center" height=250px .lightbox}
+![Comparison between w/ vs. w/o balancing across DP ranks.](./assets/dp-balancing-across-ranks.png){#fig-cmp-balance-dp-ranks fig-align="center" height=250px .lightbox}
 
 ::: {.nonincremental}
 - balance the valid tokens dispatched to each rank
@@ -442,13 +422,13 @@ However, in gradient accumulation,
 
 ::: {.nonincremental}
 - it's not enough to only balance valid tokens in a batch, 
-- since DP syncs in the unit of micro batch.
+- since **DP syncs in the unit of micro batch**.
 :::
 
-To resolve this, verl supports to
+To resolve this, verl further supports to
 
 ::: {.nonincremental}
-- balance the valid tokens across micro batches
+- **balance the valid tokens across micro batches**
 - by evenly deviding the data sequences in the batch before packing into micro batches
 :::
 
@@ -456,12 +436,12 @@ To enable this, use `use_dynamic_bsz`.
 
 ## Other Features
 
-1. Multi-Model LLMs' RL
-2. Full support for [RL with AMD (ROCm Kernel) hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
-3. Gradient Checkpointing (`enable_gradient_checkpointing`)
-4. Torch Compile (`use_torch_compile`)
-5. Liger Kernel (`use_liger`)
-6. ...
+1. Extensible **tool** interfaces (`BaseTool`)
+2. **Multi-Model** LLMs' RL
+3. Full support for [RL with **AMD (ROCm Kernel)** hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
+4. Optimizations: Gradient Checkpointing, Torch Compile, Liger Kernel, etc.
+5. ...
+
 
 # Programming Guide
 
