@@ -22,18 +22,18 @@ A good framework solves an important problem.
 ## Learning to Reason with Large-Scale RL {.smaller}
 
 |Model| Large-Scale RL?  | AIME 2024 | MATH 500 | GPQA Diamond | Code Forces | 
-|---|---|---|---|---|---|---|
+|---|:---:|:---:|:---:|:---:|:---:|
 | GPT-4o [@openai2024o1]| ❌ |44.6 | 60.3 | 50.6 | >11.0% | 
 | o1 [@openai2024o1] | ✅  | 74.4 | 94.8 | 77.3 | >89.0% | 
 | R1 [@deepseekai2025r1]| ✅  | 79.8 | 97.3 | 71.5 | >96.3% | 
 
-: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs. {#tbl-learning-to-reason-with-large-scale-rl tbl-colwidths="[40,20,10,10,10,10]"}
+: Learning to reason with large-scale RL significantly boosts the performance of LLMs. {#tbl-learning-to-reason-with-large-scale-rl tbl-colwidths="[40,20,10,10,10,10]"}
 
 ## Learning as Agent with Large-Scale RL
 
 @openai2025deepresearch:
 
-> Deep research independently discovers, reasons about, and consolidates insights from across the web. 
+> **Deep research** independently discovers, reasons about, and consolidates insights from across the web. 
 > 
 > To accomplish this, it was trained on **real-world tasks requiring browser and Python tool use**,
 > 
@@ -68,7 +68,7 @@ LLM workloads often involves:
 
 ![For RL with LLMs, **each node** in the dataflow graph is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-graph-scaled.png){#fig-rl-w-llms-dataflow-graph-scaled fig-align="center" height=400px .lightbox}
 
-## Contraints: Data Dependencies & Resource Limitations
+## Constraints: Data Dependencies & Resource Limitations
 
 ![Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400 .lightbox}
 
@@ -100,7 +100,7 @@ for prompts in dataloader:
 
 ::::
 
-- Programmming interface based on the **"single-controller"** paradigm
+- Programming interface based on the **"single-controller"** paradigm
 - RL algorithm core logic in **a few lines of code**!
 - Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), etc.
 
@@ -240,7 +240,7 @@ Single-Controller (Multi-Program-Multi-Data) vs. Multi-Controller (Single-Progra
 
 | Paradigm                 | Pro       | Con                   |
 |--------------------------|-----------|-----------------------|
-| Single-Controller | Flexible  | Commnucation Overhead |
+| Single-Controller | Flexible  | Communication Overhead |
 | Multi-Controller  | Efficient | Complex Programming  |
 
 : Trade-off between single-controller and multi-controller. {#tbl-trade-off-single-controller-multi-controller}
@@ -312,7 +312,7 @@ The `register` decorator utility manages the distributed data transfer, which al
 
 ![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=230px .lightbox}
 
-- Synchronous Engine: returns all the outputs at the same time
+- Synchronous Engine: returns all the outputs in the batch at the same time
 - Asynchronous Engine: returns each output as soon as it is ready
 
 ## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
@@ -331,15 +331,15 @@ For more details, please check [our tracker #708](https://github.com/volcengine/
 
 Welcome to discuss about / contribute to:
 
-1. [Our ongoing RFC](https://github.com/volcengine/verl/issues/1172)
+1. [Our ongoing RFC #1172](https://github.com/volcengine/verl/issues/1172)
 2. Integrating protocols like [MCP](https://modelcontextprotocol.io/introduction)
-3. Integrating existing environments & tools, e.g. 
+3. Integrating existing environments & tools, e.g.,
   - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
   - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
 
 ## Other Plans
 
-We have also received many meaningful feature requests from the community, e.g.
+We have also received many meaningful feature requests from the community, e.g.,
 
 1. Partial Rollout [@kimi2025k1p5]
 2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
