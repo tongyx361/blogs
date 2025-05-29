@@ -456,7 +456,7 @@ To enable this, use `use_dynamic_bsz`.
 
 ## Other Features
 
-1. Multi-Model LLMs' RL
+1. Multi-Modal LLMs' RL
 2. Full support for [RL with AMD (ROCm Kernel) hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
 3. Gradient Checkpointing (`enable_gradient_checkpointing`)
 4. Torch Compile (`use_torch_compile`)

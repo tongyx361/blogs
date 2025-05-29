@@ -306,14 +306,32 @@ class ActorWorker(3DParallelWorker):
 
 The `register` decorator utility manages the distributed data transfer, which also makes multi-controller programming easier.
 
-# Latest Updates & Roadmap
+# Approaching More Scalable Agentic RL
 
-## Async Engine for Multi-Turn Rollout (Upstreamed) {.smaller}
+## Async Engine for Multi-Turn Rollout {.smaller}
 
 ![Synchronous vs. Asynchronous rollout.^[Image Source: https://novasky-ai.notion.site/skyrl-v0]](./assets/sync-vs-async-rollout.png){#fig-sync-vs-async-rollout fig-align="center" height=230px .lightbox}
 
 - Synchronous Engine: returns all the outputs in the batch at the same time
 - Asynchronous Engine: returns each output as soon as it is ready
+
+## Basic Capability Support
+
+1. **Multi-Modal**: `"images"` & `"videos"` fields in dataset
+2. **Tool**: Extensible interface `BaseTool`
+3. ...
+
+## Diverse Environments & Tools (Ongoing)
+
+Welcome to discuss about / contribute to:
+
+1. [Our ongoing RFC #1172](https://github.com/volcengine/verl/issues/1172)
+2. Integrating protocols like [MCP](https://modelcontextprotocol.io/introduction)
+3. Integrating existing environments & tools, e.g.,
+  - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
+  - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
+
+# Recent Updates & Roadmap
 
 ## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
 
@@ -326,16 +344,6 @@ verl is working on supporting efficient RL training for **huge MoE like DeepSeek
 . . .
 
 For more details, please check [our tracker #708](https://github.com/volcengine/verl/pull/708).
-
-## Agentic RL with Diverse Environments & Tools (Planned)
-
-Welcome to discuss about / contribute to:
-
-1. [Our ongoing RFC #1172](https://github.com/volcengine/verl/issues/1172)
-2. Integrating protocols like [MCP](https://modelcontextprotocol.io/introduction)
-3. Integrating existing environments & tools, e.g.,
-  - [KORGym @ ByteDance Seed](https://github.com/multimodal-art-projection/KORGym) [@shi2025korgym]
-  - [Atropos @ Nous Research](https://github.com/NousResearch/atropos) [@mahan2025atropos]
 
 ## Other Plans
 
@@ -435,11 +443,9 @@ To enable this, use `use_dynamic_bsz`.
 
 ## Other Features
 
-1. Extensible **tool** interfaces (`BaseTool`)
-2. **Multi-Model** LLMs' RL
-3. Full support for [RL with **AMD (ROCm Kernel)** hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
-4. Optimizations: Gradient Checkpointing, Torch Compile, Liger Kernel, etc.
-5. ...
+1. Full support for [RL with **AMD (ROCm Kernel)** hardwares](https://github.com/volcengine/verl?tab=readme-ov-file#hardware-support-amd-rocm-kernel)
+2. Optimizations: Gradient Checkpointing, Torch Compile, Liger Kernel, etc.
+3. ...
 
 
 # Programming Guide
