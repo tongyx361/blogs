@@ -4,7 +4,6 @@ author:
   name: "Yuxuan Tong (童雨轩)"
   affiliation: "ByteDance Seed & Tsinghua University"
   email: tongyuxuan.361@bytedance.com
-date: "2025-05-24"
 format:
   revealjs:
     logo: ./assets/logo-bytedance-seed.png
