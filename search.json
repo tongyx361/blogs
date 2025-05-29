@@ -396,7 +396,7 @@
     "href": "posts/verl-intro-ant-oss-2025/index.html#other-features",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "6.3 Other Features",
-    "text": "6.3 Other Features\n\nMulti-Model LLMs’ RL\nFull support for RL with AMD (ROCm Kernel) hardwares\nGradient Checkpointing (enable_gradient_checkpointing)\nTorch Compile (use_torch_compile)\nLiger Kernel (use_liger)\n…"
+    "text": "6.3 Other Features\n\nMulti-Modal LLMs’ RL\nFull support for RL with AMD (ROCm Kernel) hardwares\nGradient Checkpointing (enable_gradient_checkpointing)\nTorch Compile (use_torch_compile)\nLiger Kernel (use_liger)\n…"
   },
   {
     "objectID": "posts/verl-intro-ant-oss-2025/index.html#customizing-the-dataset",
@@ -438,7 +438,7 @@
     "href": "posts/verl-intro/index.html#learning-to-reason-with-large-scale-rl",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "1.1 Learning to Reason with Large-Scale RL",
-    "text": "1.1 Learning to Reason with Large-Scale RL\n\n\n\nTable 1: Learning to Reason with Large-Scale RL significantly boosts the performance of LLMs.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nModel\nLarge-Scale RL?\nAIME 2024\nMATH 500\nGPQA Diamond\nCode Forces\n\n\n\n\n\nGPT-4o (OpenAI 2024)\n❌\n44.6\n60.3\n50.6\n&gt;11.0%\n\n\n\no1 (OpenAI 2024)\n✅\n74.4\n94.8\n77.3\n&gt;89.0%\n\n\n\nR1 (DeepSeek-AI 2025)\n✅\n79.8\n97.3\n71.5\n&gt;96.3%"
+    "text": "1.1 Learning to Reason with Large-Scale RL\n\n\n\nTable 1: Learning to reason with large-scale RL significantly boosts the performance of LLMs.\n\n\n\n\n\n\n\n\n\n\n\n\n\nModel\nLarge-Scale RL?\nAIME 2024\nMATH 500\nGPQA Diamond\nCode Forces\n\n\n\n\nGPT-4o (OpenAI 2024)\n❌\n44.6\n60.3\n50.6\n&gt;11.0%\n\n\no1 (OpenAI 2024)\n✅\n74.4\n94.8\n77.3\n&gt;89.0%\n\n\nR1 (DeepSeek-AI 2025)\n✅\n79.8\n97.3\n71.5\n&gt;96.3%"
   },
   {
     "objectID": "posts/verl-intro/index.html#learning-as-agent-with-large-scale-rl",
@@ -469,18 +469,18 @@
     "text": "2.3 RL with LLMs as Dataflow of Large-Scale Distributed Workloads\n\n\n\n\n\n\nFigure 3: For RL with LLMs, each node in the dataflow graph is a large-scale distributed computing workload itself."
   },
   {
-    "objectID": "posts/verl-intro/index.html#contraints-data-dependencies-resource-limitations",
-    "href": "posts/verl-intro/index.html#contraints-data-dependencies-resource-limitations",
+    "objectID": "posts/verl-intro/index.html#constraints-data-dependencies-resource-limitations",
+    "href": "posts/verl-intro/index.html#constraints-data-dependencies-resource-limitations",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "2.4 Contraints: Data Dependencies & Resource Limitations",
-    "text": "2.4 Contraints: Data Dependencies & Resource Limitations\n\n\n\n\n\n\nFigure 4: Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. (Sheng et al. 2024)"
+    "section": "2.4 Constraints: Data Dependencies & Resource Limitations",
+    "text": "2.4 Constraints: Data Dependencies & Resource Limitations\n\n\n\n\n\n\nFigure 4: Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. (Sheng et al. 2024)"
   },
   {
     "objectID": "posts/verl-intro/index.html#flexibility-in-programming-single-controller",
     "href": "posts/verl-intro/index.html#flexibility-in-programming-single-controller",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "3.1 Flexibility in Programming: “Single-Controller”",
-    "text": "3.1 Flexibility in Programming: “Single-Controller”\n\n\n\n\n\n\n\n\nFigure 5: Dataflow graph of PPO with KL regularization, with data shown explicitly. (Sheng et al. 2024)\n\n\n\n\n\n\n\nListing 1: PPO core code in a few lines in verl.\n\n\nfor prompts in dataloader:\n    # Stage 1: Generation\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Experience Preparation\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nProgrammming interface based on the “single-controller” paradigm\nRL algorithm core logic in a few lines of code!\nDiverse RL algorithms supported: PPO, GRPO, RLOO, ReMax, PRIME, DAPO, etc."
+    "text": "3.1 Flexibility in Programming: “Single-Controller”\n\n\n\n\n\n\n\n\nFigure 5: Dataflow graph of PPO with KL regularization, with data shown explicitly. (Sheng et al. 2024)\n\n\n\n\n\n\n\nListing 1: PPO core code in a few lines in verl.\n\n\nfor prompts in dataloader:\n    # Stage 1: Generation\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Experience Preparation\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\nProgramming interface based on the “single-controller” paradigm\nRL algorithm core logic in a few lines of code!\nDiverse RL algorithms supported: PPO, GRPO, RLOO, ReMax, PRIME, DAPO, etc."
   },
   {
     "objectID": "posts/verl-intro/index.html#efficiency-within-workload-multi-controller-kernels",
@@ -515,7 +515,7 @@
     "href": "posts/verl-intro/index.html#trade-off-single-controller-or-multi-controller",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "4.2 Trade-off: Single-Controller or Multi-Controller?",
-    "text": "4.2 Trade-off: Single-Controller or Multi-Controller?\n\n\n\nTable 2: Trade-off between single-controller and multi-controller.\n\n\n\n\n\nParadigm\nPro\nCon\n\n\n\n\nSingle-Controller\nFlexible\nCommnucation Overhead\n\n\nMulti-Controller\nEfficient\nComplex Programming\n\n\n\n\n\n\n🤔 Which paradigm should we choose?\n\n🤩 Actually, we can have “both”!"
+    "text": "4.2 Trade-off: Single-Controller or Multi-Controller?\n\n\n\nTable 2: Trade-off between single-controller and multi-controller.\n\n\n\n\n\nParadigm\nPro\nCon\n\n\n\n\nSingle-Controller\nFlexible\nCommunication Overhead\n\n\nMulti-Controller\nEfficient\nComplex Programming\n\n\n\n\n\n\n🤔 Which paradigm should we choose?\n\n🤩 Actually, we can have “both”!"
   },
   {
     "objectID": "posts/verl-intro/index.html#new-paradigm-hybrid-controller",
@@ -532,87 +532,94 @@
     "text": "4.4 Implementation in verl\nEach call in the single-controller (e.g. critic.compute_values, actor.update_actor) is an RPC to a multi-controller worker group.\n\n\n\n\n\n\nListing 2: PPO core code in single-controller.\n\n\nfor prompts in dataloader:\n    # Stage 1: Generation\n    batch = actor.generate_sequences(prompts)\n    # Stage 2: Experience Preparation\n    batch = reward.compute_reward(batch)\n    batch = reference.compute_log_prob(batch)\n    batch = critic.compute_values(batch)\n    batch = compute_advantage(batch, \"gae\")\n    # Stage 3: Training\n    critic.update_critic(batch)\n    actor.update_actor(batch)\n\n\n\n\n\n\n\nListing 3: Example distributed code in multi-controller.\n\n\nclass CriticWorker(3DParallelWorker):\n  @register(dispatch_mode=3D_PROTO)\n  def compute_values(self, batch: DataProto):\n      values = self.critic.forward(batch)\n      batch.update(values=values)\n# ...\nclass ActorWorker(3DParallelWorker):\n  @register(dispatch_mode=3D_PROTO)\n  def update_actor(self, batch: DataProto):\n      loss = self.actor(batch)\n      loss.backward()\n\n\n\n\n\n\nThe register decorator utility manages the distributed data transfer, which also makes multi-controller programming easier."
   },
   {
-    "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn-rollout-upstreamed",
-    "href": "posts/verl-intro/index.html#async-engine-for-multi-turn-rollout-upstreamed",
+    "objectID": "posts/verl-intro/index.html#async-engine-for-multi-turn-rollout",
+    "href": "posts/verl-intro/index.html#async-engine-for-multi-turn-rollout",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.1 Async Engine for Multi-Turn Rollout (Upstreamed)",
-    "text": "5.1 Async Engine for Multi-Turn Rollout (Upstreamed)\n\n\n\n\n\n\nFigure 9: Synchronous vs. Asynchronous rollout.1\n\n\n\n\nSynchronous Engine: returns all the outputs at the same time\nAsynchronous Engine: returns each output as soon as it is ready\n\n\n\n\n\nImage Source: https://novasky-ai.notion.site/skyrl-v0↩︎"
+    "section": "5.1 Async Engine for Multi-Turn Rollout",
+    "text": "5.1 Async Engine for Multi-Turn Rollout\n\n\n\n\n\n\nFigure 9: Synchronous vs. Asynchronous rollout.1\n\n\n\n\nSynchronous Engine: returns all the outputs in the batch at the same time\nAsynchronous Engine: returns each output as soon as it is ready\n\n\n\n\n\nImage Source: https://novasky-ai.notion.site/skyrl-v0↩︎"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#basic-capability-support",
+    "href": "posts/verl-intro/index.html#basic-capability-support",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "5.2 Basic Capability Support",
+    "text": "5.2 Basic Capability Support\n\nMulti-Modal: \"images\" & \"videos\" fields in dataset\nTool: Extensible interface BaseTool\n…"
+  },
+  {
+    "objectID": "posts/verl-intro/index.html#diverse-environments-tools-ongoing",
+    "href": "posts/verl-intro/index.html#diverse-environments-tools-ongoing",
+    "title": "verl: Flexible and Efficient RL for LLMs",
+    "section": "5.3 Diverse Environments & Tools (Ongoing)",
+    "text": "5.3 Diverse Environments & Tools (Ongoing)\nWelcome to discuss about / contribute to:\n\nOur ongoing RFC #1172\nIntegrating protocols like MCP\nIntegrating existing environments & tools, e.g.,\n\n\nKORGym @ ByteDance Seed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
   },
   {
     "objectID": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
     "href": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.2 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)",
-    "text": "5.2 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)\nverl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nTraining: MoE models classes based on Megatron GPTModel\nInference: Multi-node inference\nHybrid: Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our tracker #708."
-  },
-  {
-    "objectID": "posts/verl-intro/index.html#agentic-rl-with-diverse-environments-tools-planned",
-    "href": "posts/verl-intro/index.html#agentic-rl-with-diverse-environments-tools-planned",
-    "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.3 Agentic RL with Diverse Environments & Tools (Planned)",
-    "text": "5.3 Agentic RL with Diverse Environments & Tools (Planned)\nWelcome to discuss about / contribute to:\n\nOur ongoing RFC\nIntegrating protocols like MCP\nIntegrating existing environments & tools, e.g. \n\n\nKORGym @ ByteDance Seed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
+    "section": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)",
+    "text": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)\nverl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nTraining: MoE models classes based on Megatron GPTModel\nInference: Multi-node inference\nHybrid: Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our tracker #708."
   },
   {
     "objectID": "posts/verl-intro/index.html#other-plans",
     "href": "posts/verl-intro/index.html#other-plans",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "5.4 Other Plans",
-    "text": "5.4 Other Plans\nWe have also received many meaningful feature requests from the community, e.g.\n\nPartial Rollout (Kimi Team 2025)\nMulti-Token-Prediction (MTP) (Gloeckle et al. 2024)\n…\n\n\nFor the most timely updates of important features, please keep an eye on verl’s Roadmap."
+    "section": "6.2 Other Plans",
+    "text": "6.2 Other Plans\nWe have also received many meaningful feature requests from the community, e.g.,\n\nPartial Rollout (Kimi Team 2025)\nMulti-Token-Prediction (MTP) (Gloeckle et al. 2024)\n…\n\n\nFor the most timely updates of important features, please keep an eye on verl’s Roadmap."
   },
   {
     "objectID": "posts/verl-intro/index.html#sequence-packing",
     "href": "posts/verl-intro/index.html#sequence-packing",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "6.1 Sequence Packing",
-    "text": "6.1 Sequence Packing\n\n\n\n\n\n\nFigure 10: Tweaking the attention mask of an example packed sequence containing two data sequences.\n\n\n\n\nRemove padding tokens and packs multiple data sequences into a row\nTweak the attention mask & position IDs to avoid cross-contamination\n\n\nTo enable this, use use_remove_padding."
+    "section": "7.1 Sequence Packing",
+    "text": "7.1 Sequence Packing\n\n\n\n\n\n\nFigure 10: Tweaking the attention mask of an example packed sequence containing two data sequences.\n\n\n\n\nRemove padding tokens and packs multiple data sequences into a row\nTweak the attention mask & position IDs to avoid cross-contamination\n\n\nTo enable this, use use_remove_padding."
   },
   {
     "objectID": "posts/verl-intro/index.html#dp-balancing",
     "href": "posts/verl-intro/index.html#dp-balancing",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "6.2 DP Balancing",
-    "text": "6.2 DP Balancing"
+    "section": "7.2 DP Balancing",
+    "text": "7.2 DP Balancing"
   },
   {
     "objectID": "posts/verl-intro/index.html#other-features",
     "href": "posts/verl-intro/index.html#other-features",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "6.3 Other Features",
-    "text": "6.3 Other Features\n\nExtensible tool interfaces (BaseTool)\nMulti-Model LLMs’ RL\nFull support for RL with AMD (ROCm Kernel) hardwares\nOptimizations: Gradient Checkpointing, Torch Compile, Liger Kernel, etc.\n…"
+    "section": "7.3 Other Features",
+    "text": "7.3 Other Features\n\nFull support for RL with AMD (ROCm Kernel) hardwares\nOptimizations: Gradient Checkpointing, Torch Compile, Liger Kernel, etc.\n…"
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-dataset",
     "href": "posts/verl-intro/index.html#customizing-the-dataset",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "7.1 Customizing the Dataset",
-    "text": "7.1 Customizing the Dataset\nA canonical RL dataset in verl has the following fields:\n\nprompt: a list of messages {\"role\": \"...\", \"content\": \"...\"}\ndata_source: used to choose the reward function\nreward_model: a dict containing\n\n\"ground_truth\"\n\"style\" like \"model\" or \"rule\"\n\n(Optional) extra_info: a dict containing extra information\n\n\nFor VLM RL, verl expects fields \"images\" and/or \"videos\"\n\n\nFor examples, please check the examples/data_preprocess."
+    "section": "8.1 Customizing the Dataset",
+    "text": "8.1 Customizing the Dataset\nA canonical RL dataset in verl has the following fields:\n\nprompt: a list of messages {\"role\": \"...\", \"content\": \"...\"}\ndata_source: used to choose the reward function\nreward_model: a dict containing\n\n\"ground_truth\"\n\"style\" like \"model\" or \"rule\"\n\n(Optional) extra_info: a dict containing extra information\n\n\nFor VLM RL, verl expects fields \"images\" and/or \"videos\"\n\n\nFor examples, please check the examples/data_preprocess."
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-reward",
     "href": "posts/verl-intro/index.html#customizing-the-reward",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "7.2 Customizing the Reward",
-    "text": "7.2 Customizing the Reward\nverl allows to define custom reward function via the custom_reward_function config:\n\n\n\nListing 7: Config for custom reward function.\n\n\ncustom_reward_function:\n  path: null # path to the `.py` file containing the function definition\n  name: compute_score # the function name after `def`\nreward_model:\n  reward_manager: naive\n\n\n\n\nAn example CLI config could be:\n\n\n\nListing 8: Example config for custom reward function.\n\n\n--custom_reward_function.path=./examples/reward_fn/custom_reward_fn.py \\\n--custom_reward_function.name=compute_score \\\n--reward_model.reward_manager=naive"
+    "section": "8.2 Customizing the Reward",
+    "text": "8.2 Customizing the Reward\nverl allows to define custom reward function via the custom_reward_function config:\n\n\n\nListing 7: Config for custom reward function.\n\n\ncustom_reward_function:\n  path: null # path to the `.py` file containing the function definition\n  name: compute_score # the function name after `def`\nreward_model:\n  reward_manager: naive\n\n\n\n\nAn example CLI config could be:\n\n\n\nListing 8: Example config for custom reward function.\n\n\n--custom_reward_function.path=./examples/reward_fn/custom_reward_fn.py \\\n--custom_reward_function.name=compute_score \\\n--reward_model.reward_manager=naive"
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-loss-function",
     "href": "posts/verl-intro/index.html#customizing-the-loss-function",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "7.3 Customizing the Loss Function",
-    "text": "7.3 Customizing the Loss Function\nTo modify the loss function, the most convenient way is to\n\nsearch for the .backward() call\nmodify functions like compute_policy_loss\nor add loss terms like entropy_loss"
+    "section": "8.3 Customizing the Loss Function",
+    "text": "8.3 Customizing the Loss Function\nTo modify the loss function, the most convenient way is to\n\nsearch for the .backward() call\nmodify functions like compute_policy_loss\nor add loss terms like entropy_loss"
   },
   {
     "objectID": "posts/verl-intro/index.html#customizing-the-training-logic",
     "href": "posts/verl-intro/index.html#customizing-the-training-logic",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "7.4 Customizing the Training Logic",
-    "text": "7.4 Customizing the Training Logic\nAs mentioned above, the main training logic is concentrated in the fit function of the trainer classes like RayPPOTrainer.\nFor example, the DAPORayTrainer class overrides the fit function to implement the “dynamic sampling” feature:\n(See the next slide for the code ➡️)"
+    "section": "8.4 Customizing the Training Logic",
+    "text": "8.4 Customizing the Training Logic\nAs mentioned above, the main training logic is concentrated in the fit function of the trainer classes like RayPPOTrainer.\nFor example, the DAPORayTrainer class overrides the fit function to implement the “dynamic sampling” feature:\n(See the next slide for the code ➡️)"
   },
   {
     "objectID": "posts/verl-intro/index.html#presenter-contact",
     "href": "posts/verl-intro/index.html#presenter-contact",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "8.1 Presenter Contact",
-    "text": "8.1 Presenter Contact\n\nEmail: tongyuxuan361@gmail.com\nWeChat / X: tongyx361\n\n\n\n\n\n\n\n\n\n\nBarham, Paul, Aakanksha Chowdhery, Jeff Dean, Sanjay Ghemawat, Steven Hand, Daniel Hurt, Michael Isard, et al. 2022. “Pathways: Asynchronous Distributed Dataflow for ML.” Proceedings of Machine Learning and Systems 4 (April): 430–49. https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html.\n\n\nDakota Mahan, Teknium, Roger Jin. 2025. “Atropos - An Async First Environment Rollout Controller.” https://www.github.com/NousResearch/Atropos.\n\n\nDeepSeek-AI. 2025. “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.” https://arxiv.org/abs/2501.12948.\n\n\nGloeckle, Fabian, Badr Youbi Idrissi, Baptiste Roziere, David Lopez-Paz, and Gabriel Synnaeve. 2024. “Better & Faster Large Language Models via Multi-Token Prediction.” In Forty-First International Conference on Machine Learning. https://openreview.net/forum?id=pEWAcejiU2.\n\n\nKimi Team. 2025. “Kimi K1.5: Scaling Reinforcement Learning with LLMs.” https://arxiv.org/abs/2501.12599.\n\n\nOpenAI. 2024. “Learning to Reason with LLMs.” OpenAI Blog. https://openai.com/index/learning-to-reason-with-llms/.\n\n\n———. 2025. “Introducing Deep Research.” OpenAI Blog. https://openai.com/index/introducing-deep-research/.\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024. “HybridFlow: A Flexible and Efficient RLHF Framework.” arXiv Preprint arXiv: 2409.19256.\n\n\nShi, Jiajun, Jian Yang, Jiaheng Liu, Xingyuan Bu, Jiangjie Chen, Junting Zhou, Kaijing Ma, et al. 2025. “KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation.” https://arxiv.org/abs/2505.14552."
+    "section": "9.1 Presenter Contact",
+    "text": "9.1 Presenter Contact\n\nEmail: tongyuxuan361@gmail.com\nWeChat / X: tongyx361\n\n\n\n\n\n\n\n\n\n\nBarham, Paul, Aakanksha Chowdhery, Jeff Dean, Sanjay Ghemawat, Steven Hand, Daniel Hurt, Michael Isard, et al. 2022. “Pathways: Asynchronous Distributed Dataflow for ML.” Proceedings of Machine Learning and Systems 4 (April): 430–49. https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html.\n\n\nDakota Mahan, Teknium, Roger Jin. 2025. “Atropos - An Async First Environment Rollout Controller.” https://www.github.com/NousResearch/Atropos.\n\n\nDeepSeek-AI. 2025. “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.” https://arxiv.org/abs/2501.12948.\n\n\nGloeckle, Fabian, Badr Youbi Idrissi, Baptiste Roziere, David Lopez-Paz, and Gabriel Synnaeve. 2024. “Better & Faster Large Language Models via Multi-Token Prediction.” In Forty-First International Conference on Machine Learning. https://openreview.net/forum?id=pEWAcejiU2.\n\n\nKimi Team. 2025. “Kimi K1.5: Scaling Reinforcement Learning with LLMs.” https://arxiv.org/abs/2501.12599.\n\n\nOpenAI. 2024. “Learning to Reason with LLMs.” OpenAI Blog. https://openai.com/index/learning-to-reason-with-llms/.\n\n\n———. 2025. “Introducing Deep Research.” OpenAI Blog. https://openai.com/index/introducing-deep-research/.\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024. “HybridFlow: A Flexible and Efficient RLHF Framework.” arXiv Preprint arXiv: 2409.19256.\n\n\nShi, Jiajun, Jian Yang, Jiaheng Liu, Xingyuan Bu, Jiangjie Chen, Junting Zhou, Kaijing Ma, et al. 2025. “KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation.” https://arxiv.org/abs/2505.14552."
   }
 ]
