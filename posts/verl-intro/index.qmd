@@ -45,11 +45,11 @@ Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-d
 
 A good framework solve a challenging problem.
 
-## RL as Complex Dataflow Graph {.smaller}
+## RL is Complex Dataflow {.smaller}
 
-![Examples of modelling RL algorithms as dataflow graphs. [@sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-graph-examples fig-align="center" height=300px .lightbox}
+![Modelling three example RL algorithms [@schulman2017ppo; @dai2023saferlhf; @li2024remax] as dataflow graphs. [Source: @sheng2024hybridflow]](./assets/rl-dataflow-examples.png){#fig-rl-as-dataflow-examples fig-align="center" height=250px .lightbox}
 
-We can model Reinforcement Learning (RL) as a **complex dataflow graph**, consisting of:
+Reinforcement Learning (RL) can be modelled as **complex dataflow graph** [@schaarschmidt2019rlgraph; @liang2021rllib; @sheng2024hybridflow], consisting of:
 
 1. **multiple models**: actor, critic, reference, reward model, etc.
 2. **multiple stages**: generating, preparing experiences, training
@@ -64,22 +64,22 @@ LLM workloads often involves:
 - many GPUs
 - complex parallelism strategies
 
-## RL with LLMs as Dataflow of Large-Scale Distributed Workloads {.smaller}
+## RL with LLMs is Large-Scale Distributed Dataflow {.smaller}
 
-![For RL with LLMs, **each node** in the dataflow graph is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-graph-scaled.png){#fig-rl-w-llms-dataflow-graph-scaled fig-align="center" height=400px .lightbox}
+![In RL with LLMs, **each operator** in the RL dataflow is **a large-scale distributed computing workload** itself.](./assets/rl-w-llms-dataflow-scaled.png){#fig-rl-w-llms-dataflow-scaled fig-align="center" height=400px .lightbox}
 
 ## Constraints: Data Dependencies & Resource Limitations
 
-![Implementing an RL algorithm like PPO requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400 .lightbox}
+![Implementing RL algorithm with LLMs usually requires complex trade-offs between various constraints. [@sheng2024hybridflow]](./assets/implement-ppo-w-device-placement.png){#fig-implement-ppo fig-align="center" height=400px .lightbox}
 
-# Why verl?
+# Why verl for RL with LLMs?
 
-## Flexibility in Programming: "Single-Controller" {.smaller}
+## Flexibility: "Single-Controller" {.smaller}
 
 :::: {.columns}
 
 ::: {.column width="55%"}
-![Dataflow graph of PPO with KL regularization, with data shown explicitly. [@sheng2024hybridflow]](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=250px .lightbox}
+![Dataflow of PPO with KL regularization, with data shown explicitly. [Source: @sheng2024hybridflow]](./assets/rl-dataflow-ppo-kl-reg.png){#fig-rl-dataflow-ppo-kl-reg fig-align="center" height=250px .lightbox}
 :::
 
 ::: {.column width="45%"}
@@ -104,7 +104,9 @@ for prompts in dataloader:
 - RL algorithm core logic in **a few lines of code**!
 - Diverse RL algorithms supported: [PPO](https://github.com/volcengine/verl/blob/main/examples/ppo_trainer), [GRPO](https://github.com/volcengine/verl/blob/main/examples/grpo_trainer), [RLOO](https://github.com/volcengine/verl/blob/main/examples/rloo_trainer), [ReMax](https://github.com/volcengine/verl/blob/main/examples/remax_trainer), [PRIME](https://github.com/volcengine/verl/blob/main/recipe/prime), [DAPO](https://github.com/volcengine/verl/blob/main/recipe/dapo), etc.
 
-## Efficiency Within Workload: "Multi-Controller" & Kernels {.smaller}
+## Efficiency: "Multi-Controller" {.smaller}
+
+verl is efficient for intra-operator with the **"multi-controller"** paradigm and features like:
 
 :::: {.columns}
 
@@ -112,19 +114,18 @@ for prompts in dataloader:
 
 ::: {.nonincremental}
 
-Parallelism Algorithms:
+**Parallelism Algorithms:**
 
 - Data Parallelism
 - Tensor Parallelism
 - Pipeline Parallelism
 - Context / Sequence Parallelism
-- ...
 
-Efficient Kernels:
+**Efficient Kernels:**
 
-- Flash Attention 2
+- Flash Attention
+- Torch Compile
 - Liger Kernel
-- ...
 
 :::
 
@@ -132,7 +133,7 @@ Efficient Kernels:
 
 ::: {.column width="40%"}
 
-Training Backend:
+**Training Backends:**
 
 ::: {.nonincremental}
 
@@ -142,7 +143,7 @@ Training Backend:
 
 :::
 
-Generation Backend:
+**Generation Backends:**
 
 ::: {.nonincremental}
 
@@ -158,14 +159,16 @@ Generation Backend:
 
 ---
 
-## Efficiency Between Workloads: "Hybrid Engine" {.smaller}
+## Efficiency: "Hybrid Engine" {.smaller}
+
+verl is efficient for inter-operator with the **"hybrid engine"** paradigm, utilizing features like:
 
 - **offloading & reloading** enables fully utilizing the GPU memory
 - **resharding** enables switching for the optimal parallelism strategy
 
 . . .
 
-![Example of hybrid engine switching between workloads.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=300px .lightbox}
+![Example of hybrid engine switching between workloads, changing DP for TP.](./assets/resharding-with-hybrid-engine-in-rl.png){#fig-resharding-with-hybrid-engine-in-rl fig-align="center" height=300px .lightbox}
 
 ## Open-Source Community {.center}
 
@@ -173,50 +176,17 @@ Generation Backend:
 
 ### Extensive Participation
 
-So far, verl has:
+So far, verl has gained:
 
 - 8.4k+ stars
 - 1k+ forks
 - ~900 PRs
 - ~200 contributors
-- waiting for your participation!
+- ... Waiting for your participation!
 
 ---
 
 ### Easy for Extension
-
-Many popular projects are built on top of verl, including:
-
-:::: {.columns}
-
-::: {.column width="50%"}
-
-::: {.nonincremental}
-- [TinyZero](https://github.com/Jiayi-Pan/TinyZero) ![GitHub Repo stars](https://img.shields.io/github/stars/Jiayi-Pan/TinyZero)
-- [SimpleRL-Zoo](https://github.com/hkust-nlp/simpleRL-reason) ![GitHub Repo stars](https://img.shields.io/github/stars/hkust-nlp/simpleRL-reason)
-- [rllm](https://github.com/agentica-project/rllm) ![GitHub Repo stars](https://img.shields.io/github/stars/agentica-project/rllm)
-- [SkyThought](https://github.com/NovaSky-AI/SkyThought) ![GitHub Repo stars](https://img.shields.io/github/stars/NovaSky-AI/SkyThought)
-- [OpenManus-RL](https://github.com/OpenManus/OpenManus-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/OpenManus/OpenManus-RL)
-- [Easy-R1](https://github.com/hiyouga/EasyR1) ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/EasyR1)
-
-:::
-
-:::
-
-::: {.column width="50%"}
-
-::: {.nonincremental}
-- [Logic-RL](https://github.com/Unakar/Logic-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/Unakar/Logic-RL)
-- [RAGEN](https://github.com/ZihanWang314/ragen) ![GitHub Repo stars](https://img.shields.io/github/stars/ZihanWang314/ragen)
-- [PRIME](https://github.com/PRIME-RL/PRIME) ![GitHub Repo stars](https://img.shields.io/github/stars/PRIME-RL/PRIME)
-- [Search-R1](https://github.com/PeterGriffinJin/Search-R1) ![GitHub Repo stars](https://img.shields.io/github/stars/PeterGriffinJin/Search-R1)
-- [Absolute Zero Reasoner](https://github.com/LeapLabTHU/Absolute-Zero-Reasoner) ![GitHub Repo stars](https://img.shields.io/github/stars/LeapLabTHU/Absolute-Zero-Reasoner)
-- ...
-:::
-
-:::
-
-::::
 
 # Paradigm behind verl: HybridFlow [@sheng2024hybridflow]
 
@@ -359,29 +329,23 @@ For the most timely updates of important features, please keep an eye on [verl's
 
 # Thanks for Listening! {.unnumbered}
 
-Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) and [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)
+Welcome to join the verl community to [discuss](https://github.com/volcengine/verl?tab=readme-ov-file#verl-volcano-engine-reinforcement-learning-for-llms) / [contribute](https://github.com/volcengine/verl?tab=readme-ov-file#contribution-guide)!
 
-@ Repo: [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-Further Questions @ [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
+💻 Code Repository @ [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-We Are Recruiting @ [haibin.lin@bytedance.com](mailto:haibin.lin@bytedance.com)
+❓ Further Questions @ [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
 
-:::: {.columns}
-
-::: {.column width="50%"}
+💼  We Are Recruiting! @ [haibin.lin@bytedance.com](mailto:haibin.lin@bytedance.com)
 
 ![](./assets/qrcode-github-repo-verl.png){fig-align="center" width=250px .lightbox}
+
+---
+
+### References {.unnumbered}
+
+::: {#refs}
 :::
-
-::: {.column width="50%"}
-
-![](./assets/qrcode-wechat-group-verl.png){fig-align="center" width=240px .lightbox}
-:::
-
-::::
-
-
 
 # Appendix {.unnumbered}
 
@@ -628,3 +592,4 @@ class RayDAPOTrainer(RayPPOTrainer):
 :::
 
 ![](./assets/qrcode-wechat-tongyx361.png){fig-align="center" width=250px height=250px .lightbox}
+

@@ -1,85 +1,142 @@
-@article{sheng2024hybridflow,
-  title   = {HybridFlow: A Flexible and Efficient RLHF Framework},
-  author  = {Guangming Sheng and Chi Zhang and Zilingfeng Ye and Xibin Wu and Wang Zhang and Ru Zhang and Yanghua Peng and Haibin Lin and Chuan Wu},
-  year    = {2024},
-  journal = {arXiv preprint arXiv: 2409.19256}
+@inproceedings{sheng2024hybridflow,
+  title     = {HybridFlow: A Flexible and Efficient RLHF Framework},
+  author    = {Guangming Sheng and Chi Zhang and Zilingfeng Ye and Xibin Wu and Wang Zhang and Ru Zhang and Yanghua Peng and Haibin Lin and Chuan Wu},
+  booktitle = {Proceedings of the 20th European Conference on Computer Systems},
+  series    = {EuroSys '25},
+  year      = {2025},
+  publisher = {ACM},
+  address   = {Rotterdam, The Netherlands}
+}
+
+@article{liang2021rllib,
+  title   = {Rllib flow: Distributed reinforcement learning is a dataflow problem},
+  author  = {Liang, Eric and Wu, Zhanghao and Luo, Michael and Mika, Sven and Gonzalez, Joseph E and Stoica, Ion},
+  journal = {Advances in Neural Information Processing Systems},
+  volume  = {34},
+  pages   = {5506--5517},
+  year    = {2021}
+}
+
+@article{schaarschmidt2019rlgraph,
+  title   = {Rlgraph: modular computation graphs for deep reinforcement learning},
+  author  = {Schaarschmidt, Michael and Mika, Sven and Fricke, Kai and Yoneki, Eiko},
+  journal = {Proceedings of Machine Learning and Systems},
+  volume  = {1},
+  pages   = {65--80},
+  year    = {2019}
 }
 
 @misc{openai2024o1,
-  title   = {Learning to reason with LLMs},
-  author  = {{OpenAI}},
-  year    = {2024},
-  url     = {https://openai.com/index/learning-to-reason-with-llms/},
-  note    = {Accessed: 2025-05-21},
+  title        = {Learning to reason with LLMs},
+  author       = {{OpenAI}},
+  year         = {2024},
+  url          = {https://openai.com/index/learning-to-reason-with-llms/},
+  note         = {Accessed: 2025-05-21},
   howpublished = {OpenAI Blog}
 }
 
+@misc{schulman2017ppo,
+  title         = {Proximal Policy Optimization Algorithms},
+  author        = {John Schulman and Filip Wolski and Prafulla Dhariwal and Alec Radford and Oleg Klimov},
+  year          = {2017},
+  eprint        = {1707.06347},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.LG},
+  url           = {https://arxiv.org/abs/1707.06347}
+}
+
+
+@inproceedings{li2024remax,
+  title      = {{ReMax}: {A} {Simple}, {Effective}, and {Efficient} {Reinforcement} {Learning} {Method} for {Aligning} {Large} {Language} {Models}},
+  shorttitle = {{ReMax}},
+  url        = {https://openreview.net/forum?id=Stn8hXkpe6},
+  abstract   = {Reinforcement Learning from Human Feedback (RLHF) is key to aligning Large Language Models (LLMs), typically paired with the Proximal Policy Optimization (PPO) algorithm. While PPO is a powerful method designed for general reinforcement learning tasks, it is overly sophisticated for LLMs, leading to laborious hyper-parameter tuning and significant computation burdens. To make RLHF efficient, we present ReMax, which leverages 3 properties of RLHF: fast simulation, deterministic transitions, and trajectory-level rewards. These properties are not exploited in PPO, making it less suitable for RLHF. Building on the renowned REINFORCE algorithm, ReMax does not require training an additional value model as in PPO and is further enhanced with a new variance reduction technique. ReMax offers several benefits over PPO: it is simpler to implement, eliminates more than 4 hyper-parameters in PPO, reduces GPU memory usage, and shortens training time. ReMax can save about 46\% GPU memory than PPO when training a 7B model and enables training on A800-80GB GPUs without the memory-saving offloading technique needed by PPO. Applying ReMax to a Mistral-7B model resulted in a 94.78\% win rate on the AlpacaEval leaderboard and a 7.739 score on MT-bench, setting a new SOTA for open-source 7B models. These results show the effectiveness of ReMax while addressing the limitations of PPO in LLMs.},
+  language   = {en},
+  urldate    = {2025-05-30},
+  author     = {Li, Ziniu and Xu, Tian and Zhang, Yushun and Lin, Zhihang and Yu, Yang and Sun, Ruoyu and Luo, Zhi-Quan},
+  month      = jun,
+  year       = {2024}
+}
+
+
+@inproceedings{dai2023saferlhf,
+  title      = {Safe {RLHF}: {Safe} {Reinforcement} {Learning} from {Human} {Feedback}},
+  shorttitle = {Safe {RLHF}},
+  url        = {https://openreview.net/forum?id=TyFrPOKYXw},
+  abstract   = {With the development of large language models (LLMs), striking a balance between the performance and safety of AI systems has never been more critical. However, the inherent tension between the objectives of helpfulness and harmlessness presents a significant challenge during LLM training. To address this issue, we propose Safe Reinforcement Learning from Human Feedback (Safe RLHF), a novel algorithm for human value alignment. Safe RLHF explicitly decouples human preferences regarding helpfulness and harmlessness, effectively avoiding the crowd workers' confusion about the tension and allowing us to train separate reward and cost models. We formalize the safety concern of LLMs as an optimization task of maximizing the reward function while satisfying specified cost constraints. Leveraging the Lagrangian method to solve this constrained problem, Safe RLHF dynamically adjusts the balance between the two objectives during fine-tuning. Through a three-round fine-tuning using Safe RLHF, we demonstrate a superior ability to mitigate harmful responses while enhancing model performance compared to existing value-aligned algorithms. Experimentally, we fine-tuned the Alpaca-7B using Safe RLHF and aligned it with collected human preferences, significantly improving its helpfulness and harmlessness according to human evaluations. Code is available at https://github.com/PKU-Alignment/safe-rlhf. Warning: This paper contains example data that may be offensive or harmful.},
+  language   = {en},
+  urldate    = {2025-05-30},
+  author     = {Dai, Josef and Pan, Xuehai and Sun, Ruiyang and Ji, Jiaming and Xu, Xinbo and Liu, Mickel and Wang, Yizhou and Yang, Yaodong},
+  month      = oct,
+  year       = {2023}
+}
+
 @misc{deepseekai2025r1,
-      title={DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning}, 
-      author={DeepSeek-AI},
-      year={2025},
-      eprint={2501.12948},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2501.12948}, 
+  title         = {DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning},
+  author        = {DeepSeek-AI},
+  year          = {2025},
+  eprint        = {2501.12948},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2501.12948}
 }
 
 @misc{openai2025deepresearch,
-  title   = {Introducing deep research},
-  author  = {{OpenAI}},
-  year    = {2025},
-  url     = {https://openai.com/index/introducing-deep-research/},
-  note    = {Accessed: 2025-05-21},
+  title        = {Introducing deep research},
+  author       = {{OpenAI}},
+  year         = {2025},
+  url          = {https://openai.com/index/introducing-deep-research/},
+  note         = {Accessed: 2025-05-21},
   howpublished = {OpenAI Blog}
 }
 
 
 @article{barham2022pathways,
-	title = {Pathways: {Asynchronous} {Distributed} {Dataflow} for {ML}},
-	volume = {4},
-	shorttitle = {Pathways},
-	url = {https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html},
-	language = {en},
-	urldate = {2025-05-21},
-	journal = {Proceedings of Machine Learning and Systems},
-	author = {Barham, Paul and Chowdhery, Aakanksha and Dean, Jeff and Ghemawat, Sanjay and Hand, Steven and Hurt, Daniel and Isard, Michael and Lim, Hyeontaek and Pang, Ruoming and Roy, Sudip and Saeta, Brennan and Schuh, Parker and Sepassi, Ryan and Shafey, Laurent and Thekkath, Chandu and Wu, Yonghui},
-	month = apr,
-	year = {2022},
-	pages = {430--449},
+  title      = {Pathways: {Asynchronous} {Distributed} {Dataflow} for {ML}},
+  volume     = {4},
+  shorttitle = {Pathways},
+  url        = {https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html},
+  language   = {en},
+  urldate    = {2025-05-21},
+  journal    = {Proceedings of Machine Learning and Systems},
+  author     = {Barham, Paul and Chowdhery, Aakanksha and Dean, Jeff and Ghemawat, Sanjay and Hand, Steven and Hurt, Daniel and Isard, Michael and Lim, Hyeontaek and Pang, Ruoming and Roy, Sudip and Saeta, Brennan and Schuh, Parker and Sepassi, Ryan and Shafey, Laurent and Thekkath, Chandu and Wu, Yonghui},
+  month      = apr,
+  year       = {2022},
+  pages      = {430--449}
 }
 
 @misc{shi2025korgym,
-      title={KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation}, 
-      author={Jiajun Shi and Jian Yang and Jiaheng Liu and Xingyuan Bu and Jiangjie Chen and Junting Zhou and Kaijing Ma and Zhoufutu Wen and Bingli Wang and Yancheng He and Liang Song and Hualei Zhu and Shilong Li and Xingjian Wang and Wei Zhang and Ruibin Yuan and Yifan Yao and Wenjun Yang and Yunli Wang and Siyuan Fang and Siyu Yuan and Qianyu He and Xiangru Tang and Yingshui Tan and Wangchunshu Zhou and Zhaoxiang Zhang and Zhoujun Li and Wenhao Huang and Ge Zhang},
-      year={2025},
-      eprint={2505.14552},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2505.14552}, 
+  title         = {KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation},
+  author        = {Jiajun Shi and Jian Yang and Jiaheng Liu and Xingyuan Bu and Jiangjie Chen and Junting Zhou and Kaijing Ma and Zhoufutu Wen and Bingli Wang and Yancheng He and Liang Song and Hualei Zhu and Shilong Li and Xingjian Wang and Wei Zhang and Ruibin Yuan and Yifan Yao and Wenjun Yang and Yunli Wang and Siyuan Fang and Siyu Yuan and Qianyu He and Xiangru Tang and Yingshui Tan and Wangchunshu Zhou and Zhaoxiang Zhang and Zhoujun Li and Wenhao Huang and Ge Zhang},
+  year          = {2025},
+  eprint        = {2505.14552},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2505.14552}
 }
 
 @misc{mahan2025atropos,
-  title = {{Atropos - An Async First Environment Rollout Controller}},
-  author = {Dakota Mahan, Roger Jin, Teknium, Shannon Sands, Artem Yatsenko, Jai Suphavadeeprasit, Karan Malhotra, Chen Guang, Joe Li},
-  url = {https://www.github.com/NousResearch/Atropos},
-  month = {4},
-  year = {2025},
-  version = {0.1},
+  title   = {{Atropos - An Async First Environment Rollout Controller}},
+  author  = {Dakota Mahan, Roger Jin, Teknium, Shannon Sands, Artem Yatsenko, Jai Suphavadeeprasit, Karan Malhotra, Chen Guang, Joe Li},
+  url     = {https://www.github.com/NousResearch/Atropos},
+  month   = {4},
+  year    = {2025},
+  version = {0.1}
 }
 
 @misc{kimi2025k1p5,
-    title={Kimi k1.5: Scaling Reinforcement Learning with LLMs},
-    author={{Kimi Team}},
-    year={2025},
-    eprint={2501.12599},
-    archivePrefix={arXiv},
-    primaryClass={cs.AI}
+  title         = {Kimi k1.5: Scaling Reinforcement Learning with LLMs},
+  author        = {{Kimi Team}},
+  year          = {2025},
+  eprint        = {2501.12599},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.AI}
 }
 
 @inproceedings{gloeckle2024mtp,
-    title={Better \& Faster Large Language Models via Multi-token Prediction},
-    author={Fabian Gloeckle and Badr Youbi Idrissi and Baptiste Roziere and David Lopez-Paz and Gabriel Synnaeve},
-    booktitle={Forty-first International Conference on Machine Learning},
-    year={2024},
-    url={https://openreview.net/forum?id=pEWAcejiU2}
+  title     = {Better \& Faster Large Language Models via Multi-token Prediction},
+  author    = {Fabian Gloeckle and Badr Youbi Idrissi and Baptiste Roziere and David Lopez-Paz and Gabriel Synnaeve},
+  booktitle = {Forty-first International Conference on Machine Learning},
+  year      = {2024},
+  url       = {https://openreview.net/forum?id=pEWAcejiU2}
 }
