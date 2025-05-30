@@ -10,15 +10,7 @@
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.7.31</generator>
-<lastBuildDate>Sat, 24 May 2025 00:00:00 GMT</lastBuildDate>
-<item>
-  <title></title>
-  <dc:creator>Yuxuan Tong (童雨轩)</dc:creator>
-  <link>https://tongyx361.github.io/blogs/posts/verl-intro-ant-oss-2025/</link>
-  <description><![CDATA[ undefined ]]></description>
-  <guid>https://tongyx361.github.io/blogs/posts/verl-intro-ant-oss-2025/</guid>
-  <pubDate>Sat, 24 May 2025 00:00:00 GMT</pubDate>
-</item>
+<lastBuildDate>Sun, 09 Mar 2025 00:00:00 GMT</lastBuildDate>
 <item>
   <title>重新思考 RL 中的 KL 梯度优化</title>
   <dc:creator>童雨轩 </dc:creator>
@@ -2084,7 +2076,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Thu, 29 May 2025 08:33:56 GMT</pubDate>
+  <pubDate>Fri, 30 May 2025 11:46:33 GMT</pubDate>
 </item>
 <item>
   <title></title>
@@ -2092,7 +2084,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-intro/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-intro/</guid>
-  <pubDate>Thu, 29 May 2025 08:33:56 GMT</pubDate>
+  <pubDate>Fri, 30 May 2025 11:46:33 GMT</pubDate>
 </item>
 </channel>
 </rss>
