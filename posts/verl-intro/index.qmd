@@ -2,8 +2,9 @@
 title: "verl: Flexible and Efficient RL for LLMs"
 author:
   name: "Yuxuan Tong (童雨轩)"
-  affiliation: "ByteDance Seed & Tsinghua University"
+  affiliation: "ByteDance Seed"
   email: tongyuxuan.361@bytedance.com
+date: "2025-06-30"
 format:
   revealjs:
     logo: ./assets/logo-bytedance-seed.png
@@ -43,7 +44,7 @@ Check [OpenAI Deep Research's demo video](https://openai.com/index/introducing-d
 
 # Challenge: Why is Large-Scale RL Challenging?
 
-A good framework solve a challenging problem.
+A good framework solves a challenging problem.
 
 ## RL is Complex Dataflow {.smaller}
 
@@ -178,15 +179,50 @@ verl is efficient for inter-operator with the **"hybrid engine"** paradigm, util
 
 So far, verl has gained:
 
-- 8.4k+ stars
-- 1k+ forks
-- ~900 PRs
-- ~200 contributors
+- 10k+ stars
+- 1.7k+ forks
+- 1.2k+ PRs
+- 200+ contributors
 - ... Waiting for your participation!
 
 ---
 
 ### Easy for Extension
+
+
+Many popular projects are built on top of verl, including:
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [TinyZero](https://github.com/Jiayi-Pan/TinyZero) ![GitHub Repo stars](https://img.shields.io/github/stars/Jiayi-Pan/TinyZero)
+- [SimpleRL-Zoo](https://github.com/hkust-nlp/simpleRL-reason) ![GitHub Repo stars](https://img.shields.io/github/stars/hkust-nlp/simpleRL-reason)
+- [rllm](https://github.com/agentica-project/rllm) ![GitHub Repo stars](https://img.shields.io/github/stars/agentica-project/rllm)
+- [SkyThought](https://github.com/NovaSky-AI/SkyThought) ![GitHub Repo stars](https://img.shields.io/github/stars/NovaSky-AI/SkyThought)
+- [OpenManus-RL](https://github.com/OpenManus/OpenManus-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/OpenManus/OpenManus-RL)
+- [Easy-R1](https://github.com/hiyouga/EasyR1) ![GitHub Repo stars](https://img.shields.io/github/stars/hiyouga/EasyR1)
+
+:::
+
+:::
+
+::: {.column width="50%"}
+
+::: {.nonincremental}
+- [Logic-RL](https://github.com/Unakar/Logic-RL) ![GitHub Repo stars](https://img.shields.io/github/stars/Unakar/Logic-RL)
+- [RAGEN](https://github.com/ZihanWang314/ragen) ![GitHub Repo stars](https://img.shields.io/github/stars/ZihanWang314/ragen)
+- [PRIME](https://github.com/PRIME-RL/PRIME) ![GitHub Repo stars](https://img.shields.io/github/stars/PRIME-RL/PRIME)
+- [Search-R1](https://github.com/PeterGriffinJin/Search-R1) ![GitHub Repo stars](https://img.shields.io/github/stars/PeterGriffinJin/Search-R1)
+- [Absolute Zero Reasoner](https://github.com/LeapLabTHU/Absolute-Zero-Reasoner) ![GitHub Repo stars](https://img.shields.io/github/stars/LeapLabTHU/Absolute-Zero-Reasoner)
+- ...
+:::
+
+:::
+
+::::
+
 
 # Paradigm behind verl: HybridFlow [@sheng2024hybridflow]
 
@@ -287,8 +323,8 @@ The `register` decorator utility manages the distributed data transfer, which al
 
 ## Basic Capability Support
 
-1. **Multi-Modal**: `"images"` & `"videos"` fields in dataset
-2. **Tool**: Extensible interface `BaseTool`
+1. **Multi-Modal**: Qwen2.5-VL, Kimi-VL, etc.
+2. **Multi-Turn & Tool Using**: see progress at [#1882](https://github.com/volcengine/verl/issues/1882) 
 3. ...
 
 ## Diverse Environments & Tools (Ongoing)
@@ -303,25 +339,19 @@ Welcome to discuss about / contribute to:
 
 # Recent Updates & Roadmap
 
-## Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May'25)
+## Efficient RL with Huge MoE like DeepSeek-V3-671B (V0.4+)
 
-verl is working on supporting efficient RL training for **huge MoE like DeepSeek-V3-671B**, based on the following features:
+verl supports efficient RL training for **huge MoE like DeepSeek-V3-671B**, based on the following features:
 
-1. Training: **MoE models classes** based on Megatron `GPTModel`
+1. Training: **MoE models classes** supporting diverse parallelism strategies like Expert Parallelism based on Megatron `GPTModel`
 2. Inference: **Multi-node** inference
-3. Hybrid: **Parameter sharding manager** for Megatron-Core V0.12 + latest version of inference engines
+3. Hybrid: **Parameter sharding manager** for Megatron-Core V0.12 + latest inference engines
 
-. . .
+## 2025 Q3 Focuses
 
-For more details, please check [our tracker #708](https://github.com/volcengine/verl/pull/708).
-
-## Other Plans
-
-We have also received many meaningful feature requests from the community, e.g.,
-
-1. Partial Rollout [@kimi2025k1p5]
-2. Multi-Token-Prediction (MTP) [@gloeckle2024mtp]
-3. ...
+1. MFU Optimization of huge MoE model training
+2. More flexible RL architecture enabling different levels of asynchrony
+3. Agent recipes
 
 . . .
 
@@ -334,7 +364,7 @@ Welcome to join the verl community to [discuss](https://github.com/volcengine/ve
 
 💻 Code Repository @ [https://github.com/volcengine/verl](https://github.com/volcengine/verl)
 
-❓ Further Questions @ [tongyuxuan361@gmail.com](mailto:tongyuxuan361@gmail.com)
+❓ Further Questions @ [tongyuxuan361@bytedance.com](mailto:tongyuxuan361@bytedance.com)
 
 💼  We Are Recruiting! @ [haibin.lin@bytedance.com](mailto:haibin.lin@bytedance.com)
 
