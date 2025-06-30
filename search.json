@@ -1,5 +1,12 @@
 [
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Blogs 博客",
+    "section": "",
+    "text": "Order By\n      Default\n      \n        Title\n      \n      \n        Date - Oldest\n      \n      \n        Date - Newest\n      \n      \n        Author\n      \n    \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\nverl Tutorial\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong\n\n\n\n\n\n\n\n\n\n\n\n\nverl: Flexible and Efficient RL for LLMs\n\n\n\n\n\n\n\n\n\n\n\nJun 30, 2025\n\n\nYuxuan Tong (童雨轩)\n\n\n\n\n\n\n\n\n\n\n\n\n重新思考 RL 中的 KL 梯度优化\n\n\n修正 GRPO 公式与流行 LLM RL 框架\n\n\n\nChinese 中文\n\nTechnical 技术\n\n\n\n对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式\n\n没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决\n先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman “Approximating KL Divergence” 分析不符（对应导出的梯度也可能因此而错误）\n\n目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：\n\n在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度\nKL loss 项的平均操作存在错误。\n\n本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。\n\n\n\n\n\nMar 9, 2025\n\n\n童雨轩\n\n\n\n\n\nNo matching items"
+  },
+  {
     "objectID": "posts/verl-intro/index.html#learning-to-reason-with-large-scale-rl",
     "href": "posts/verl-intro/index.html#learning-to-reason-with-large-scale-rl",
     "title": "verl: Flexible and Efficient RL for LLMs",
@@ -109,7 +116,7 @@
     "href": "posts/verl-intro/index.html#basic-capability-support",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "5.2 Basic Capability Support",
-    "text": "5.2 Basic Capability Support\n\nMulti-Modal: \"images\" & \"videos\" fields in dataset\nTool: Extensible interface BaseTool\n…"
+    "text": "5.2 Basic Capability Support\n\nMulti-Modal: Qwen2.5-VL, Kimi-VL, etc.\nMulti-Turn & Tool Using: see progress at #1882\n…"
   },
   {
     "objectID": "posts/verl-intro/index.html#diverse-environments-tools-ongoing",
@@ -119,25 +126,25 @@
     "text": "5.3 Diverse Environments & Tools (Ongoing)\nWelcome to discuss about / contribute to:\n\nOur ongoing RFC #1172\nIntegrating protocols like MCP\nIntegrating existing environments & tools, e.g.,\n\n\nKORGym @ ByteDance Seed (Shi et al. 2025)\nAtropos @ Nous Research (Dakota Mahan 2025)"
   },
   {
-    "objectID": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
-    "href": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-eta-late-may25",
+    "objectID": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-v0.4",
+    "href": "posts/verl-intro/index.html#efficient-rl-with-huge-moe-like-deepseek-v3-671b-v0.4",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)",
-    "text": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (ETA: Late May’25)\nverl is working on supporting efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nTraining: MoE models classes based on Megatron GPTModel\nInference: Multi-node inference\nHybrid: Parameter sharding manager for Megatron-Core V0.12 + latest version of inference engines\n\n\nFor more details, please check our tracker #708."
+    "section": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (V0.4+)",
+    "text": "6.1 Efficient RL with Huge MoE like DeepSeek-V3-671B (V0.4+)\nverl supports efficient RL training for huge MoE like DeepSeek-V3-671B, based on the following features:\n\nTraining: MoE models classes supporting diverse parallelism strategies like Expert Parallelism based on Megatron GPTModel\nInference: Multi-node inference\nHybrid: Parameter sharding manager for Megatron-Core V0.12 + latest inference engines"
   },
   {
-    "objectID": "posts/verl-intro/index.html#other-plans",
-    "href": "posts/verl-intro/index.html#other-plans",
+    "objectID": "posts/verl-intro/index.html#q3-focuses",
+    "href": "posts/verl-intro/index.html#q3-focuses",
     "title": "verl: Flexible and Efficient RL for LLMs",
-    "section": "6.2 Other Plans",
-    "text": "6.2 Other Plans\nWe have also received many meaningful feature requests from the community, e.g.,\n\nPartial Rollout (Kimi Team 2025)\nMulti-Token-Prediction (MTP) (Gloeckle et al. 2024)\n…\n\n\nFor the most timely updates of important features, please keep an eye on verl’s Roadmap."
+    "section": "6.2 2025 Q3 Focuses",
+    "text": "6.2 2025 Q3 Focuses\n\nMFU Optimization of huge MoE model training\nMore flexible RL architecture enabling different levels of asynchrony\nAgent recipes\n\n\nFor the most timely updates of important features, please keep an eye on verl’s Roadmap."
   },
   {
     "objectID": "posts/verl-intro/index.html#references",
     "href": "posts/verl-intro/index.html#references",
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "",
-    "text": "References\n\n\nBarham, Paul, Aakanksha Chowdhery, Jeff Dean, Sanjay Ghemawat, Steven Hand, Daniel Hurt, Michael Isard, et al. 2022. “Pathways: Asynchronous Distributed Dataflow for ML.” Proceedings of Machine Learning and Systems 4 (April): 430–49. https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html.\n\n\nDai, Josef, Xuehai Pan, Ruiyang Sun, Jiaming Ji, Xinbo Xu, Mickel Liu, Yizhou Wang, and Yaodong Yang. 2023. “Safe RLHF: Safe Reinforcement Learning from Human Feedback.” In. https://openreview.net/forum?id=TyFrPOKYXw.\n\n\nDakota Mahan, Teknium, Roger Jin. 2025. “Atropos - An Async First Environment Rollout Controller.” https://www.github.com/NousResearch/Atropos.\n\n\nDeepSeek-AI. 2025. “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.” https://arxiv.org/abs/2501.12948.\n\n\nGloeckle, Fabian, Badr Youbi Idrissi, Baptiste Roziere, David Lopez-Paz, and Gabriel Synnaeve. 2024. “Better & Faster Large Language Models via Multi-Token Prediction.” In Forty-First International Conference on Machine Learning. https://openreview.net/forum?id=pEWAcejiU2.\n\n\nKimi Team. 2025. “Kimi K1.5: Scaling Reinforcement Learning with LLMs.” https://arxiv.org/abs/2501.12599.\n\n\nLi, Ziniu, Tian Xu, Yushun Zhang, Zhihang Lin, Yang Yu, Ruoyu Sun, and Zhi-Quan Luo. 2024. “ReMax: A Simple, Effective, and Efficient Reinforcement Learning Method for Aligning Large Language Models.” In. https://openreview.net/forum?id=Stn8hXkpe6.\n\n\nLiang, Eric, Zhanghao Wu, Michael Luo, Sven Mika, Joseph E Gonzalez, and Ion Stoica. 2021. “Rllib Flow: Distributed Reinforcement Learning Is a Dataflow Problem.” Advances in Neural Information Processing Systems 34: 5506–17.\n\n\nOpenAI. 2024. “Learning to Reason with LLMs.” OpenAI Blog. https://openai.com/index/learning-to-reason-with-llms/.\n\n\n———. 2025. “Introducing Deep Research.” OpenAI Blog. https://openai.com/index/introducing-deep-research/.\n\n\nSchaarschmidt, Michael, Sven Mika, Kai Fricke, and Eiko Yoneki. 2019. “Rlgraph: Modular Computation Graphs for Deep Reinforcement Learning.” Proceedings of Machine Learning and Systems 1: 65–80.\n\n\nSchulman, John, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. 2017. “Proximal Policy Optimization Algorithms.” https://arxiv.org/abs/1707.06347.\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2025. “HybridFlow: A Flexible and Efficient RLHF Framework.” In Proceedings of the 20th European Conference on Computer Systems. EuroSys ’25. Rotterdam, The Netherlands: ACM.\n\n\nShi, Jiajun, Jian Yang, Jiaheng Liu, Xingyuan Bu, Jiangjie Chen, Junting Zhou, Kaijing Ma, et al. 2025. “KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation.” https://arxiv.org/abs/2505.14552."
+    "text": "References\n\n\nBarham, Paul, Aakanksha Chowdhery, Jeff Dean, Sanjay Ghemawat, Steven Hand, Daniel Hurt, Michael Isard, et al. 2022. “Pathways: Asynchronous Distributed Dataflow for ML.” Proceedings of Machine Learning and Systems 4 (April): 430–49. https://proceedings.mlsys.org/paper_files/paper/2022/hash/37385144cac01dff38247ab11c119e3c-Abstract.html.\n\n\nDai, Josef, Xuehai Pan, Ruiyang Sun, Jiaming Ji, Xinbo Xu, Mickel Liu, Yizhou Wang, and Yaodong Yang. 2023. “Safe RLHF: Safe Reinforcement Learning from Human Feedback.” In. https://openreview.net/forum?id=TyFrPOKYXw.\n\n\nDakota Mahan, Teknium, Roger Jin. 2025. “Atropos - An Async First Environment Rollout Controller.” https://www.github.com/NousResearch/Atropos.\n\n\nDeepSeek-AI. 2025. “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.” https://arxiv.org/abs/2501.12948.\n\n\nLi, Ziniu, Tian Xu, Yushun Zhang, Zhihang Lin, Yang Yu, Ruoyu Sun, and Zhi-Quan Luo. 2024. “ReMax: A Simple, Effective, and Efficient Reinforcement Learning Method for Aligning Large Language Models.” In. https://openreview.net/forum?id=Stn8hXkpe6.\n\n\nLiang, Eric, Zhanghao Wu, Michael Luo, Sven Mika, Joseph E Gonzalez, and Ion Stoica. 2021. “Rllib Flow: Distributed Reinforcement Learning Is a Dataflow Problem.” Advances in Neural Information Processing Systems 34: 5506–17.\n\n\nOpenAI. 2024. “Learning to Reason with LLMs.” OpenAI Blog. https://openai.com/index/learning-to-reason-with-llms/.\n\n\n———. 2025. “Introducing Deep Research.” OpenAI Blog. https://openai.com/index/introducing-deep-research/.\n\n\nSchaarschmidt, Michael, Sven Mika, Kai Fricke, and Eiko Yoneki. 2019. “Rlgraph: Modular Computation Graphs for Deep Reinforcement Learning.” Proceedings of Machine Learning and Systems 1: 65–80.\n\n\nSchulman, John, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. 2017. “Proximal Policy Optimization Algorithms.” https://arxiv.org/abs/1707.06347.\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2025. “HybridFlow: A Flexible and Efficient RLHF Framework.” In Proceedings of the 20th European Conference on Computer Systems. EuroSys ’25. Rotterdam, The Netherlands: ACM.\n\n\nShi, Jiajun, Jian Yang, Jiaheng Liu, Xingyuan Bu, Jiangjie Chen, Junting Zhou, Kaijing Ma, et al. 2025. “KORGym: A Dynamic Game Platform for LLM Reasoning Evaluation.” https://arxiv.org/abs/2505.14552."
   },
   {
     "objectID": "posts/verl-intro/index.html#sequence-packing",
@@ -194,76 +201,6 @@
     "title": "verl: Flexible and Efficient RL for LLMs",
     "section": "9.1 Presenter Contact",
     "text": "9.1 Presenter Contact\n\nEmail: tongyuxuan361@gmail.com\nWeChat / X: tongyx361"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#rl-as-dataflow-graph",
-    "href": "posts/verl-tutorial/index.html#rl-as-dataflow-graph",
-    "title": "verl Tutorial",
-    "section": "1.1 RL as Dataflow Graph",
-    "text": "1.1 RL as Dataflow Graph\n\n\n\n\n\nReinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:\n\nmultiple models: actor, critic, reference, reward model, etc.\nmultiple stages: generating, preparing experiences, training\nmultiple workloads: generation, inference, training"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#implementing-dataflow-graph-as-execution-pattern",
-    "href": "posts/verl-tutorial/index.html#implementing-dataflow-graph-as-execution-pattern",
-    "title": "verl Tutorial",
-    "section": "1.2 Implementing Dataflow Graph as Execution Pattern",
-    "text": "1.2 Implementing Dataflow Graph as Execution Pattern\nIn practice, we should implement the dataflow graph as execution pattern on GPU cluster.\n\n\n\n\n\n\nSpecifically, we:\n\ndesign the parallelism strategy and model placement to optimize the throughput\nwhile restricted by the temporal dependencies and device resources"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#entrypoint",
-    "href": "posts/verl-tutorial/index.html#entrypoint",
-    "title": "verl Tutorial",
-    "section": "2.1 Entrypoint",
-    "text": "2.1 Entrypoint\nverl uses a global resource pool and allocates all the workers (e.g., ActorRollout, Critic) to it by default.\n\n\n\nListing 1: Simplified code for resource allocation in TaskRunner.run().\n\n\nglobal_pool_id = \"global_pool\"\nresource_pool_spec = {\n  global_pool_id: ([config.trainer.n_gpus_per_node] * config.trainer.nnodes),\n}\nmapping = {\n  Role.ActorRollout: global_pool_id, Role.Critic: global_pool_id,\n  Role.RefPolicy: global_pool_id, Role.RewardModel: global_pool_id,\n}\nresource_pool_manager = ResourcePoolManager(\n  resource_pool_spec=resource_pool_spec, mapping=mapping)\n# ...\ntrainer = RayPPOTrainer(config=config, \n                        resource_pool_manager=resource_pool_manager, # ...\n                       )\ntrainer.fit()"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#spawning-worker-groups",
-    "href": "posts/verl-tutorial/index.html#spawning-worker-groups",
-    "title": "verl Tutorial",
-    "section": "2.2 Spawning Worker Groups",
-    "text": "2.2 Spawning Worker Groups\n\nEach worker group corresponds to\n\na resource_pool (some GPUs);\none or more workers in class_dict.\n\nwg_dict.spawn() launches one process per GPU.\n\n\n\n\nListing 2: Simplified code for spawning worker group processes in RayPPOTrainer.init_workers().\n\n\n# `resource_pool_to_cls` is a `dict` \n# mapping resource pools to worker classes.\nfor resource_pool, class_dict in self.resource_pool_to_cls.items():\n  # ...\n  wg_dict = self.ray_worker_group_cls(\n      resource_pool=resource_pool, # ...\n  )\n  spawn_wg = wg_dict.spawn(prefix_set=class_dict.keys())\n  all_wg.update(spawn_wg)\n  self.wg_dicts.append(wg_dict)"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#training-loop-single-controller",
-    "href": "posts/verl-tutorial/index.html#training-loop-single-controller",
-    "title": "verl Tutorial",
-    "section": "2.3 Training Loop: Single-Controller",
-    "text": "2.3 Training Loop: Single-Controller\nBetween worker procedures, verl adopts a single-controller paradigm to maximize the flexibility, which allows the users to\n\nfocus on the dataflow graph\nwithout worrying about the distributed implementation.\n\nverl runs the worker procedures sequentially within the global resource pool by default.\n\n\n\nListing 3: Simplified code for training loop in RayPPOTrainer.fit().\n\n\nfor epoch in range(self.config.trainer.total_epochs):\n  for batch_dict in self.train_dataloader:\n    batch = DataProto.from_single_dict(batch_dict)\n    # Stage 1: Generating\n    gen_batch = batch.pop(...)\n    gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)\n    # Stage 2: Preparing Experiences\n    old_log_prob = self.actor_rollout_wg.compute_log_prob(batch)\n    ref_log_prob = self.ref_policy_wg.compute_ref_log_prob(batch)\n    values = self.critic_wg.compute_values(batch)\n    reward_tensor = self.rm_wg.compute_rm_score(batch)\n    # Stage 3: Training\n    self.critic_wg.update_critic(batch)\n    self.actor_rollout_wg.update_actor(batch)"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#worker-procedure-multi-controller",
-    "href": "posts/verl-tutorial/index.html#worker-procedure-multi-controller",
-    "title": "verl Tutorial",
-    "section": "2.4 Worker Procedure: Multi-Controller",
-    "text": "2.4 Worker Procedure: Multi-Controller\nInside a worker procedure, verl adopts a multi-controller paradigm, i.e., SPMD (Single Program Multiple Data), to maximize the efficiency.\nIn SPMD, all the processes\n\nrun the same program,\nbut process diffrent data based on the distributed environment variables like RANK.\n\nSPMD is the programming model of most popular distributed methods, e.g.,\n\nData Parallelism: DDP, ZeRO, FSDP\nTensor Parallelism\nPipeline Parallelism\nSequence Parallelism"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#how-verl-manages-the-resources",
-    "href": "posts/verl-tutorial/index.html#how-verl-manages-the-resources",
-    "title": "verl Tutorial",
-    "section": "3.1 How verl Manages the Resources",
-    "text": "3.1 How verl Manages the Resources\nverl\n\nspawns a list of _workers, each of which is a Ray worker running on a GPU\nand sets the SPMD environment variables for each worker.\n\n\n\n\nListing 4: Simplified code for initializing worker groups in RayPPOTrainer.init_workers().\n\n\ndef _init_with_resource_pool(self, resource_pool, ray_cls_with_init):\n  # ...\n  rank = -1\n  for pg_idx, pg in enumerate(sort_placement_group_by_node_ip(pgs)): # Node\n    for local_rank in range(local_world_size): # GPU\n      rank += 1\n      env_vars = {\n        'WORLD_SIZE': str(world_size), 'RANK': str(rank), # More env vars ...\n      }\n      ray_cls_with_init.update_options(\n        {'runtime_env': {'env_vars': env_vars}})\n      # ...\n      worker = ray_cls_with_init(placement_group=pg,\n                                 placement_group_bundle_idx=local_rank)\n      self._workers.append(worker)\n  # ..."
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#how-verl-defines-the-spmd-behavior",
-    "href": "posts/verl-tutorial/index.html#how-verl-defines-the-spmd-behavior",
-    "title": "verl Tutorial",
-    "section": "3.2 How verl Defines the SPMD Behavior",
-    "text": "3.2 How verl Defines the SPMD Behavior\nTaking the ActorRolloutRefWorker.update_actor() as an example:\n\n\n\nListing 5: Simplified code for SPMD update_actor() in ActorRolloutRefWorker.\n\n\n@register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)\ndef update_actor(self, data: DataProto):\n  # NOTE: here, we already have only 1/WORLD_SIZE of the whole data\n  data = data.to(torch.cuda.current_device())\n  self.actor.update_policy(data=data)\n  self.actor_lr_scheduler.step()"
-  },
-  {
-    "objectID": "posts/verl-tutorial/index.html#references",
-    "href": "posts/verl-tutorial/index.html#references",
-    "title": "verl Tutorial",
-    "section": "",
-    "text": "References\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024. “HybridFlow: A Flexible and Efficient RLHF Framework.” arXiv Preprint arXiv: 2409.19256."
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Blogs 博客",
-    "section": "",
-    "text": "Order By\n      Default\n      \n        Title\n      \n      \n        Date - Oldest\n      \n      \n        Date - Newest\n      \n      \n        Author\n      \n    \n  \n    \n      \n      \n    \n\n\n\n\n\n\n\n\n\n\nverl Tutorial\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong\n\n\n\n\n\n\n\n\n\n\n\n\nverl: Flexible and Efficient RL for LLMs\n\n\n\n\n\n\n\n\n\n\n\nYuxuan Tong (童雨轩)\n\n\n\n\n\n\n\n\n\n\n\n\n重新思考 RL 中的 KL 梯度优化\n\n\n修正 GRPO 公式与流行 LLM RL 框架\n\n\n\nChinese 中文\n\nTechnical 技术\n\n\n\n对于 LLM RL 中相对于参考策略的 KL 优化，GRPO 公式\n\n没有处理 KL 项的 off-policy 问题，这可以通过在多轮更新时重新计算 KL 项并添加重要性采样系数解决\n先将 KL 估计样本量应用于动作对数条件似然再求和，而非先求和得到概率再应用估计样本量，与 John Schulman “Approximating KL Divergence” 分析不符（对应导出的梯度也可能因此而错误）\n\n目前流行的 LLM RL 框架（TRL，OpenRLHF，verl）也没有避免上述问题，且存在其他问题：\n\n在计算 KL loss 项时默认不去除任何梯度，实际得到的梯度通常不是在优化 KL 散度\nKL loss 项的平均操作存在错误。\n\n本文基于序列决策过程（而非 bandit）建模分析了上述问题，并提供了正确的 KL loss / reward 项实现的数学推导与上述问题的修正思路。\n\n\n\n\n\nMar 9, 2025\n\n\n童雨轩\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/kl-rel-to-ref-in-rl-zh/index.html",
@@ -453,5 +390,68 @@
     "title": "重新思考 RL 中的 KL 梯度优化",
     "section": "9.4 引用",
     "text": "9.4 引用\n\nBibTeX:\n@online{tong2025kl,\n  author = {童雨轩},\n  title = {重新思考 {RL} 中的 {KL} 梯度优化},\n  year = {2025},\n  url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},\n  urldate = {2025-03-09},\n  language = {Chinese},\n}\n文本：\n童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh."
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#rl-as-dataflow-graph",
+    "href": "posts/verl-tutorial/index.html#rl-as-dataflow-graph",
+    "title": "verl Tutorial",
+    "section": "1.1 RL as Dataflow Graph",
+    "text": "1.1 RL as Dataflow Graph\n\n\n\n\n\nReinforcement Learning (RL) for LLM Post-Training can typically be modeled as a dataflow graph, consisting of:\n\nmultiple models: actor, critic, reference, reward model, etc.\nmultiple stages: generating, preparing experiences, training\nmultiple workloads: generation, inference, training"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#implementing-dataflow-graph-as-execution-pattern",
+    "href": "posts/verl-tutorial/index.html#implementing-dataflow-graph-as-execution-pattern",
+    "title": "verl Tutorial",
+    "section": "1.2 Implementing Dataflow Graph as Execution Pattern",
+    "text": "1.2 Implementing Dataflow Graph as Execution Pattern\nIn practice, we should implement the dataflow graph as execution pattern on GPU cluster.\n\n\n\n\n\n\nSpecifically, we:\n\ndesign the parallelism strategy and model placement to optimize the throughput\nwhile restricted by the temporal dependencies and device resources"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#entrypoint",
+    "href": "posts/verl-tutorial/index.html#entrypoint",
+    "title": "verl Tutorial",
+    "section": "2.1 Entrypoint",
+    "text": "2.1 Entrypoint\nverl uses a global resource pool and allocates all the workers (e.g., ActorRollout, Critic) to it by default.\n\n\n\nListing 1: Simplified code for resource allocation in TaskRunner.run().\n\n\nglobal_pool_id = \"global_pool\"\nresource_pool_spec = {\n  global_pool_id: ([config.trainer.n_gpus_per_node] * config.trainer.nnodes),\n}\nmapping = {\n  Role.ActorRollout: global_pool_id, Role.Critic: global_pool_id,\n  Role.RefPolicy: global_pool_id, Role.RewardModel: global_pool_id,\n}\nresource_pool_manager = ResourcePoolManager(\n  resource_pool_spec=resource_pool_spec, mapping=mapping)\n# ...\ntrainer = RayPPOTrainer(config=config, \n                        resource_pool_manager=resource_pool_manager, # ...\n                       )\ntrainer.fit()"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#spawning-worker-groups",
+    "href": "posts/verl-tutorial/index.html#spawning-worker-groups",
+    "title": "verl Tutorial",
+    "section": "2.2 Spawning Worker Groups",
+    "text": "2.2 Spawning Worker Groups\n\nEach worker group corresponds to\n\na resource_pool (some GPUs);\none or more workers in class_dict.\n\nwg_dict.spawn() launches one process per GPU.\n\n\n\n\nListing 2: Simplified code for spawning worker group processes in RayPPOTrainer.init_workers().\n\n\n# `resource_pool_to_cls` is a `dict` \n# mapping resource pools to worker classes.\nfor resource_pool, class_dict in self.resource_pool_to_cls.items():\n  # ...\n  wg_dict = self.ray_worker_group_cls(\n      resource_pool=resource_pool, # ...\n  )\n  spawn_wg = wg_dict.spawn(prefix_set=class_dict.keys())\n  all_wg.update(spawn_wg)\n  self.wg_dicts.append(wg_dict)"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#training-loop-single-controller",
+    "href": "posts/verl-tutorial/index.html#training-loop-single-controller",
+    "title": "verl Tutorial",
+    "section": "2.3 Training Loop: Single-Controller",
+    "text": "2.3 Training Loop: Single-Controller\nBetween worker procedures, verl adopts a single-controller paradigm to maximize the flexibility, which allows the users to\n\nfocus on the dataflow graph\nwithout worrying about the distributed implementation.\n\nverl runs the worker procedures sequentially within the global resource pool by default.\n\n\n\nListing 3: Simplified code for training loop in RayPPOTrainer.fit().\n\n\nfor epoch in range(self.config.trainer.total_epochs):\n  for batch_dict in self.train_dataloader:\n    batch = DataProto.from_single_dict(batch_dict)\n    # Stage 1: Generating\n    gen_batch = batch.pop(...)\n    gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)\n    # Stage 2: Preparing Experiences\n    old_log_prob = self.actor_rollout_wg.compute_log_prob(batch)\n    ref_log_prob = self.ref_policy_wg.compute_ref_log_prob(batch)\n    values = self.critic_wg.compute_values(batch)\n    reward_tensor = self.rm_wg.compute_rm_score(batch)\n    # Stage 3: Training\n    self.critic_wg.update_critic(batch)\n    self.actor_rollout_wg.update_actor(batch)"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#worker-procedure-multi-controller",
+    "href": "posts/verl-tutorial/index.html#worker-procedure-multi-controller",
+    "title": "verl Tutorial",
+    "section": "2.4 Worker Procedure: Multi-Controller",
+    "text": "2.4 Worker Procedure: Multi-Controller\nInside a worker procedure, verl adopts a multi-controller paradigm, i.e., SPMD (Single Program Multiple Data), to maximize the efficiency.\nIn SPMD, all the processes\n\nrun the same program,\nbut process diffrent data based on the distributed environment variables like RANK.\n\nSPMD is the programming model of most popular distributed methods, e.g.,\n\nData Parallelism: DDP, ZeRO, FSDP\nTensor Parallelism\nPipeline Parallelism\nSequence Parallelism"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#how-verl-manages-the-resources",
+    "href": "posts/verl-tutorial/index.html#how-verl-manages-the-resources",
+    "title": "verl Tutorial",
+    "section": "3.1 How verl Manages the Resources",
+    "text": "3.1 How verl Manages the Resources\nverl\n\nspawns a list of _workers, each of which is a Ray worker running on a GPU\nand sets the SPMD environment variables for each worker.\n\n\n\n\nListing 4: Simplified code for initializing worker groups in RayPPOTrainer.init_workers().\n\n\ndef _init_with_resource_pool(self, resource_pool, ray_cls_with_init):\n  # ...\n  rank = -1\n  for pg_idx, pg in enumerate(sort_placement_group_by_node_ip(pgs)): # Node\n    for local_rank in range(local_world_size): # GPU\n      rank += 1\n      env_vars = {\n        'WORLD_SIZE': str(world_size), 'RANK': str(rank), # More env vars ...\n      }\n      ray_cls_with_init.update_options(\n        {'runtime_env': {'env_vars': env_vars}})\n      # ...\n      worker = ray_cls_with_init(placement_group=pg,\n                                 placement_group_bundle_idx=local_rank)\n      self._workers.append(worker)\n  # ..."
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#how-verl-defines-the-spmd-behavior",
+    "href": "posts/verl-tutorial/index.html#how-verl-defines-the-spmd-behavior",
+    "title": "verl Tutorial",
+    "section": "3.2 How verl Defines the SPMD Behavior",
+    "text": "3.2 How verl Defines the SPMD Behavior\nTaking the ActorRolloutRefWorker.update_actor() as an example:\n\n\n\nListing 5: Simplified code for SPMD update_actor() in ActorRolloutRefWorker.\n\n\n@register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)\ndef update_actor(self, data: DataProto):\n  # NOTE: here, we already have only 1/WORLD_SIZE of the whole data\n  data = data.to(torch.cuda.current_device())\n  self.actor.update_policy(data=data)\n  self.actor_lr_scheduler.step()"
+  },
+  {
+    "objectID": "posts/verl-tutorial/index.html#references",
+    "href": "posts/verl-tutorial/index.html#references",
+    "title": "verl Tutorial",
+    "section": "",
+    "text": "References\n\n\nSheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2024. “HybridFlow: A Flexible and Efficient RLHF Framework.” arXiv Preprint arXiv: 2409.19256."
   }
 ]
