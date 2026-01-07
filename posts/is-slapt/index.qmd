@@ -1,6 +1,6 @@
 ---
 # title
-title: 'Justifying Importance Sampling with Sliding Latest Policy Trajectories'
+title: '[WIP] Justifying Importance Sampling with Sliding Latest Policy Trajectories'
 date: "2026-01-07"
 author: 
   - name: "Yuxuan Tong"
@@ -31,7 +31,6 @@ comments: # c.f. https://thedatasavvycorner.com/blogs/17-quarto-comments
 # language
 toc-title: Table of Contents
 categories:
-    - WIP 尚在完善
     - English 英文
     - Technical 技术
 # redirect
