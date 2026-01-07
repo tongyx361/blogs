@@ -12,11 +12,11 @@
 <generator>quarto-1.8.26</generator>
 <lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
 <item>
-  <title>IS with BET: Justifying Importance Sampling with Best-Effort Trajectories</title>
+  <title>Justifying Importance Sampling with Sliding Latest Policy Trajectories</title>
   <dc:creator>Yuxuan Tong</dc:creator>
   <dc:creator>Yingru Li</dc:creator>
   <dc:creator>Guangming Sheng</dc:creator>
-  <link>https://tongyx361.github.io/blogs/posts/is-bet/</link>
+  <link>https://tongyx361.github.io/blogs/posts/is-slapt/</link>
   <description><![CDATA[ 
 
 
@@ -24,23 +24,23 @@
 
 
 
-<section id="is-with-bet" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> IS with BET?</h1>
+<section id="background" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Background</h1>
 <section id="importance-sampling-is" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="importance-sampling-is"><span class="header-section-number">1.1</span> Importance Sampling (IS)</h2>
 <p>It is a common practice to optimize LLM policy on off-policy data with Importance Sampling (IS):</p>
 <p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu%7D%20=%20%5Cfrac%7Bp_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D)%7D%7Bq_%7B%5Cmu%7D(%5Cboldsymbol%7B%5Ctau%7D)%7Df(%5Cboldsymbol%7B%5Ctau%7D),%0A"></p>
 <p>where <img src="https://latex.codecogs.com/png.latex?f(%5Cboldsymbol%7B%5Ctau%7D)"> can be the gradient of the objective function to be optimized, <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D)"> is the trajectory distribution induced by the target policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> and <img src="https://latex.codecogs.com/png.latex?q_%7B%5Cmu%7D(%5Cboldsymbol%7B%5Ctau%7D)"> is the trajectory distribution induced by the behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu">.</p>
 </section>
-<section id="best-effort-trajectory-bet" class="level2" data-number="1.2">
-<h2 data-number="1.2" class="anchored" data-anchor-id="best-effort-trajectory-bet"><span class="header-section-number">1.2</span> Best-Effort Trajectory (BET)</h2>
-<p>We use <em>Best-Effort Trajectories</em> (BETs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bt%7D%7D"> at each moment to sample the actions.</p>
-<p>Formally, a BET can be defined as a trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau%20=%20(s_%7B0%7D,%20a_%7B0,%5Cpi_%7B%5Ctheta_%7Bn%7D%7D%7D,%20%5Cldots,%20s_%7Bt%7D,%20a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D,%20%5Cldots,%20s_%7BT%7D,%20a_%7BT,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D)">, where <img src="https://latex.codecogs.com/png.latex?s_%7Bt%7D"> is the state at timestep <img src="https://latex.codecogs.com/png.latex?t"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D"> is the action sampled from the policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> that is the latest policy available in the system when sampling. So for <img src="https://latex.codecogs.com/png.latex?l%20%3E%20m">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta+%7Bn+l%7D%7D"> is usually more on-policy than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">.</p>
-<p>BETs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.</p>
+<section id="sliding-latest-policy-trajectory-slapt" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="sliding-latest-policy-trajectory-slapt"><span class="header-section-number">1.2</span> Sliding Latest Policy Trajectory (SLAPT)</h2>
+<p>We use <em>Sliding Latest Policy Trajectories</em> (SLAPTs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bt%7D%7D"> at each moment to sample the actions.</p>
+<p>Formally, a SLAPT can be defined as a trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau%20=%20(s_%7B0%7D,%20a_%7B0,%5Cpi_%7B%5Ctheta_%7Bn%7D%7D%7D,%20%5Cldots,%20s_%7Bt%7D,%20a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D,%20%5Cldots,%20s_%7BT%7D,%20a_%7BT,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D)">, where <img src="https://latex.codecogs.com/png.latex?s_%7Bt%7D"> is the state at timestep <img src="https://latex.codecogs.com/png.latex?t"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D"> is the action sampled from the policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> that is the latest policy available in the system when sampling. So for <img src="https://latex.codecogs.com/png.latex?l%20%3E%20m">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta+%7Bn+l%7D%7D"> is usually more on-policy than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">.</p>
+<p>SLAPTs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.</p>
 </section>
 <section id="partial-rollout" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="partial-rollout"><span class="header-section-number">1.3</span> Partial Rollout</h2>
-<p>BETs are a natural result of a popular design choice called <em>Partial Rollout</em> in LLM RL systems nowadays, such as Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(Kimi Team et al. 2025)</span>, AReaL <span class="citation" data-cites="fu2025areal">(Fu et al. 2025)</span> and PipelineRL <span class="citation" data-cites="piché2025pipelinerl">(Piché et al. 2025)</span>, etc., which can date back to a traditional Distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(Espeholt et al. 2020)</span>:</p>
+<p>SLAPTs are a natural result of a popular design choice called <em>Partial Rollout</em> in LLM RL systems nowadays, such as Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(Kimi Team et al. 2025)</span>, AReaL <span class="citation" data-cites="fu2025areal">(Fu et al. 2025)</span> and PipelineRL <span class="citation" data-cites="piché2025pipelinerl">(Piché et al. 2025)</span>, etc., which can date back to a traditional Distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(Espeholt et al. 2020)</span>:</p>
 <p>The ongoing trajectory rollouts are</p>
 <ol type="1">
 <li>aborted when
@@ -65,15 +65,15 @@
 </section>
 </section>
 </section>
-<section id="is-with-bet-1" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> IS with BET!</h1>
-<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about mixing multiple importance sampling with BET, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)">, and it feels weird to mix multiple policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> within a single trajectory.</p>
+<section id="is-with-slapt" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> IS with SLAPT:</h1>
+<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about mixing multiple importance sampling with SLAPT, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)">, and it feels weird to mix multiple policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> within a single trajectory.</p>
 <section id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols"><span class="header-section-number">2.1</span> IS with Global Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
 <p>Since there is always an actual distribution we are sampling from, we can always formulate it as a global behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)">.</p>
 <p>It is natural to try to use <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> for IS. So how can we calculate it?</p>
 <p>It is easy to notice that, for each trajectory of an LLM policy, we can usually construct a behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cforall%20t,%20%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> satisfies that <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20=%20%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> at every timestep <img src="https://latex.codecogs.com/png.latex?t">, since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.</p>
-<p>However, it might be confusing when we also notice that, for the same state <img src="https://latex.codecogs.com/png.latex?s"> in two different BETs <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bj%7D">, the same action <img src="https://latex.codecogs.com/png.latex?a"> might be sampled from different policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> (<img src="https://latex.codecogs.com/png.latex?l%20%5Cneq%20m">) respectively. It is likely that <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20%5Cneq%20%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">, making it impossible to simply construct the same behavior policy for both BETs, i.e., <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> constradicts <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">.</p>
+<p>However, it might be confusing when we also notice that, for the same state <img src="https://latex.codecogs.com/png.latex?s"> in two different SLAPTs <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bj%7D">, the same action <img src="https://latex.codecogs.com/png.latex?a"> might be sampled from different policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> (<img src="https://latex.codecogs.com/png.latex?l%20%5Cneq%20m">) respectively. It is likely that <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20%5Cneq%20%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">, making it impossible to simply construct the same behavior policy for both SLAPTs, i.e., <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> constradicts <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">.</p>
 <p>So where is the problem of the construction for <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> mentioned above?</p>
 <p>The problem hidden here is that, <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> does not consider the probability distribution of which LLM policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> is used, but this distribution is intractable since it depends on the system dynamics.</p>
 </section>
@@ -88,8 +88,8 @@
 <p>Now let’s take a look at the variance. Let the variance of each single-sample estimate be <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E2_%7B%5Cmu_i%7D">, since the samples are independent, the variance of the average estimate <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Ctext%7Bavg%7D%7D"> is:</p>
 <p><img src="https://latex.codecogs.com/png.latex?%0A%5Csigma%5E2_%7B%5Ctext%7Bavg%7D%7D%20=%20%5Cfrac%7B1%7D%7BN%5E2%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Csigma%5E2_%7B%5Cmu_i%7D%0A"></p>
 </section>
-<section id="mixed-best-effort-policy-might-have-lower-variance-than-consistent-old-policy" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="mixed-best-effort-policy-might-have-lower-variance-than-consistent-old-policy"><span class="header-section-number">2.3</span> Mixed Best-Effort Policy Might Have Lower Variance than Consistent Old Policy</h2>
+<section id="mixed-sliding-latest-policy-might-have-lower-variance-than-consistent-old-policy" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="mixed-sliding-latest-policy-might-have-lower-variance-than-consistent-old-policy"><span class="header-section-number">2.3</span> Mixed Sliding Latest Policy Might Have Lower Variance than Consistent Old Policy</h2>
 <p>Now we wonder, given a trajectory <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_%7Bi%7D">, which of the mixed best-effort policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> and the consistent old policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D"> is better for IS estimate, i.e., leads to a lower variance?</p>
 <p><span class="citation" data-cites="metelli2020pois">Metelli et al. (2020)</span> provided a family of bounds of the variance of IS estimate in terms of the <a href="https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence">Rényi divergence</a>:</p>
 <blockquote class="blockquote">
@@ -115,7 +115,7 @@
 <h2 data-number="2.4" class="anchored" data-anchor-id="exploiting-approximatly-identical-distribution-with-multiple-is"><span class="header-section-number">2.4</span> Exploiting (Approximatly) Identical Distribution with Multiple IS</h2>
 <p>Besides the likely superiority for each single-sample estimate, the combination of multiple importance sampling has other properties that can be exploited.</p>
 <p>Formally, the combination can actually generalize from average weight <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7BN%7D"> to any “partion of unity”, which is a collection of <img src="https://latex.codecogs.com/png.latex?J%20%5Cgeqslant%201"> weight functions <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20%5Cgeqslant%200"> which satisfy <img src="https://latex.codecogs.com/png.latex?%5Csum_%7Bj=1%7D%5EJ%20%5Comega_j(%5Cboldsymbol%7Bx%7D)=1"> for all <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bx%7D">. Different partitions of unity will lead to estimates that are all unbiased but with different variances.</p>
-<p>Given the property that BETs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span>:</p>
+<p>Given the property that SLAPTs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span>:</p>
 <blockquote class="blockquote">
 <p>Suppose that <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%20%5Csim%20q_j"> for <img src="https://latex.codecogs.com/png.latex?i=1,%20%5Cldots,%20n_j"> and <img src="https://latex.codecogs.com/png.latex?j=1,%20%5Cldots,%20J"> and that <img src="https://latex.codecogs.com/png.latex?%5Comega_j"> are a partition of unity. The multiple importance sampling estimate is</p>
 <p><img src="https://latex.codecogs.com/png.latex?%5Cwidetilde%7B%5Cmu%7D_%5Comega=%5Csum_%7Bj=1%7D%5EJ%20%5Cfrac%7B1%7D%7Bn_j%7D%20%5Csum_%7Bi=1%7D%5E%7Bn_j%7D%20%5Comega_j%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%20%5Cfrac%7Bf%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%20p%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%7Bq_j%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%20."> <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span></p>
@@ -138,13 +138,15 @@
 background-color: null;
 font-style: inherit;">@article</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
-font-style: inherit;">tong2026isbet</span>,</span>
+font-style: inherit;">tong2026is</span>-<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">slapt</span>,</span>
 <span id="cb1-2">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">author</span> = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span>
 <span id="cb1-3">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">title</span> = {{IS with BET: Justifying Importance Sampling with Best-Effort Trajectories}},</span>
+font-style: inherit;">title</span> = {{Justifying Importance Sampling with Sliding Latest Policy Trajectories}},</span>
 <span id="cb1-4">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">journal</span> = {Blog},</span>
@@ -153,7 +155,7 @@ background-color: null;
 font-style: inherit;">year</span> = {2026},</span>
 <span id="cb1-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/is-bet},</span>
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/is-slapt},</span>
 <span id="cb1-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {English},</span>
@@ -201,7 +203,7 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
   <category>WIP 尚在完善</category>
   <category>English 英文</category>
   <category>Technical 技术</category>
-  <guid>https://tongyx361.github.io/blogs/posts/is-bet/</guid>
+  <guid>https://tongyx361.github.io/blogs/posts/is-slapt/</guid>
   <pubDate>Wed, 07 Jan 2026 00:00:00 GMT</pubDate>
 </item>
 <item>
@@ -2277,7 +2279,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Wed, 07 Jan 2026 15:11:23 GMT</pubDate>
+  <pubDate>Wed, 07 Jan 2026 15:33:09 GMT</pubDate>
 </item>
 </channel>
 </rss>
