@@ -193,12 +193,12 @@ Given the property that SLAPTs of similar lengths usally conform to identical di
 BibTeX:
 
 ```BibTeX
-@article{tong2026isbet,
+@article{tong2026is-slapt,
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
   title = {{Justifying Importance Sampling with Sliding Latest Policy Trajectories}},
   journal = {Blog},
   year = {2026},
-  url = {https://tongyx361.github.io/posts/is-bet},
+  url = {https://tongyx361.github.io/posts/is-slapt},
   language = {English},
 }
 ```
