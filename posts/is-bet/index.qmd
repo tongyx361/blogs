@@ -194,12 +194,12 @@ Given the property that BETs of similar lengths usally conform to identical dist
 BibTeX:
 
 ```BibTeX
-@online{tong2026isbet,
+@article{tong2026isbet,
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
-  title = {{BET}: Justifying Importance Sampling with Best-Effort Trajectories},
+  title = {{IS with BET: Justifying Importance Sampling with Best-Effort Trajectories}},
+  journal = {Blog},
   year = {2026},
   url = {https://tongyx361.github.io/posts/is-bet},
-  urldate = {2026-01-07},
   language = {English},
 }
 ```

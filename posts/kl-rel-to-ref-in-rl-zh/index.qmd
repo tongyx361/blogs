@@ -1332,12 +1332,12 @@ $$
 BibTeX:
 
 ```BibTeX
-@online{tong2025kl,
+@article{tong2025kl,
   author = {童雨轩},
   title = {重新思考 {RL} 中的 {KL} 梯度优化},
+  journal = {Blog},
   year = {2025},
   url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},
-  urldate = {2025-03-09},
   language = {Chinese},
 }
 ```
