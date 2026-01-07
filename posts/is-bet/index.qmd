@@ -1,7 +1,6 @@
 ---
 # title
-title: 'IS with BET'
-subtitle: 'Justifying **I**mportance **S**ampling with **B**est-**E**ffort **T**rajectories'
+title: 'IS with BET: Justifying **I**mportance **S**ampling with **B**est-**E**ffort **T**rajectories'
 date: "2026-01-07"
 author: 
   - name: "Yuxuan Tong"
