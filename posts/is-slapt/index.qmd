@@ -34,6 +34,9 @@ categories:
     - WIP 尚在完善
     - English 英文
     - Technical 技术
+# redirect
+aliases:
+  - /posts/is-bet
 ---
 
 # Background
@@ -86,9 +89,9 @@ AReaL proposes to always only maintain the latest model weights across all the i
 
 This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the bothering to manage the requests across each instance.
 
-# IS with SLAPT:
+# IS with Sliding Latest Policy Trajectories
 
-Despite Partial Rollout's efficiency and simplicity, there have been worries about mixing multiple importance sampling with SLAPT, since most previous works formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
+Despite Partial Rollout's efficiency and simplicity, there have been worries about applying IS with SLAPTs, since most previous works formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
 
 ## IS with Global Behavior Policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$
 
