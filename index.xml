@@ -12,7 +12,7 @@
 <generator>quarto-1.8.26</generator>
 <lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
 <item>
-  <title>Justifying Importance Sampling with Sliding Latest Policy Trajectories</title>
+  <title>[WIP] Justifying Importance Sampling with Sliding Latest Policy Trajectories</title>
   <dc:creator>Yuxuan Tong</dc:creator>
   <dc:creator>Yingru Li</dc:creator>
   <dc:creator>Guangming Sheng</dc:creator>
@@ -65,9 +65,9 @@
 </section>
 </section>
 </section>
-<section id="is-with-slapt" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> IS with SLAPT:</h1>
-<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about mixing multiple importance sampling with SLAPT, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)">, and it feels weird to mix multiple policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> within a single trajectory.</p>
+<section id="is-with-sliding-latest-policy-trajectories" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> IS with Sliding Latest Policy Trajectories</h1>
+<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about applying IS with SLAPTs, since most previous distributed RL works including the most representative IMPALA <span class="citation" data-cites="espeholt2018impala">(Espeholt et al. 2018)</span> formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)">, and it feels weird to mix multiple policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> within a single trajectory.</p>
 <section id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols"><span class="header-section-number">2.1</span> IS with Global Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
 <p>Since there is always an actual distribution we are sampling from, we can always formulate it as a global behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)">.</p>
@@ -169,6 +169,9 @@ font-style: inherit;">language</span> = {English},</span>
 <div id="ref-espeholt2020seedrl" class="csl-entry">
 Espeholt, Lasse, Raphaël Marinier, Piotr Stanczyk, Ke Wang, and Marcin Michalski‎. 2020. <span>“SEED RL: Scalable and Efficient Deep-RL with Accelerated Central Inference.”</span> In <em>International Conference on Learning Representations</em>. <a href="https://openreview.net/forum?id=rkgvXlrKwH">https://openreview.net/forum?id=rkgvXlrKwH</a>.
 </div>
+<div id="ref-espeholt2018impala" class="csl-entry">
+Espeholt, Lasse, Hubert Soyer, Remi Munos, Karen Simonyan, Vlad Mnih, Tom Ward, Yotam Doron, et al. 2018. <span>“<span>IMPALA</span>: Scalable Distributed Deep-<span>RL</span> with Importance Weighted Actor-Learner Architectures.”</span> In <em>Proceedings of the 35th International Conference on Machine Learning</em>, edited by Jennifer Dy and Andreas Krause, 80:1407–16. Proceedings of Machine Learning Research. PMLR. <a href="https://proceedings.mlr.press/v80/espeholt18a.html">https://proceedings.mlr.press/v80/espeholt18a.html</a>.
+</div>
 <div id="ref-fu2025areal" class="csl-entry">
 Fu, Wei, Jiaxuan Gao, Xujie Shen, Chen Zhu, Zhiyu Mei, Chuyi He, Shusheng Xu, et al. 2025. <span>“<span>AREAL</span>: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning.”</span> In <em>The Thirty-Ninth Annual Conference on Neural Information Processing Systems</em>. <a href="https://openreview.net/forum?id=X9diEuva9R">https://openreview.net/forum?id=X9diEuva9R</a>.
 </div>
@@ -200,7 +203,6 @@ Sheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yang
 Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxia Wu, Ammar Ahmad Awan, Jeff Rasley, et al. 2023. <span>“DeepSpeed-Chat: Easy, Fast and Affordable RLHF Training of ChatGPT-Like Models at All Scales.”</span> <a href="https://arxiv.org/abs/2308.01320">https://arxiv.org/abs/2308.01320</a>.
 </div>
 </div></section><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div></div></section></div> ]]></description>
-  <category>WIP 尚在完善</category>
   <category>English 英文</category>
   <category>Technical 技术</category>
   <guid>https://tongyx361.github.io/blogs/posts/is-slapt/</guid>
@@ -2279,7 +2281,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Wed, 07 Jan 2026 15:33:09 GMT</pubDate>
+  <pubDate>Wed, 07 Jan 2026 15:56:36 GMT</pubDate>
 </item>
 </channel>
 </rss>
