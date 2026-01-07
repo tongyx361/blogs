@@ -136,7 +136,7 @@
 <p>BibTeX:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><span class="va" style="color: #111111;
 background-color: null;
-font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
+font-style: inherit;">@article</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">tong2026isbet</span>,</span>
 <span id="cb1-2">  <span class="dt" style="color: #AD0000;
@@ -144,16 +144,16 @@ background-color: null;
 font-style: inherit;">author</span> = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span>
 <span id="cb1-3">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">title</span> = {{BET}: Justifying Importance Sampling with Best-Effort Trajectories},</span>
+font-style: inherit;">title</span> = {{IS with BET: Justifying Importance Sampling with Best-Effort Trajectories}},</span>
 <span id="cb1-4">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">year</span> = {2026},</span>
+font-style: inherit;">journal</span> = {Blog},</span>
 <span id="cb1-5">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/is-bet},</span>
+font-style: inherit;">year</span> = {2026},</span>
 <span id="cb1-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">urldate</span> = {2026-01-07},</span>
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/is-bet},</span>
 <span id="cb1-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {English},</span>
@@ -2205,7 +2205,7 @@ Tip
 <p>BibTeX:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><span class="va" style="color: #111111;
 background-color: null;
-font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
+font-style: inherit;">@article</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">tong2025kl</span>,</span>
 <span id="cb11-2">  <span class="dt" style="color: #AD0000;
@@ -2216,13 +2216,13 @@ background-color: null;
 font-style: inherit;">title</span> = {重新思考 {RL} 中的 {KL} 梯度优化},</span>
 <span id="cb11-4">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">year</span> = {2025},</span>
+font-style: inherit;">journal</span> = {Blog},</span>
 <span id="cb11-5">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},</span>
+font-style: inherit;">year</span> = {2025},</span>
 <span id="cb11-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">urldate</span> = {2025-03-09},</span>
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},</span>
 <span id="cb11-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {Chinese},</span>
@@ -2277,7 +2277,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Wed, 07 Jan 2026 14:56:28 GMT</pubDate>
+  <pubDate>Wed, 07 Jan 2026 15:10:00 GMT</pubDate>
 </item>
 </channel>
 </rss>

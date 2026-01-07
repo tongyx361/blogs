@@ -508,6 +508,6 @@
     "href": "posts/kl-rel-to-ref-in-rl-zh/index.html#引用",
     "title": "重新思考 RL 中的 KL 梯度优化",
     "section": "9.4 引用",
-    "text": "9.4 引用\n\nBibTeX:\n@online{tong2025kl,\n  author = {童雨轩},\n  title = {重新思考 {RL} 中的 {KL} 梯度优化},\n  year = {2025},\n  url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},\n  urldate = {2025-03-09},\n  language = {Chinese},\n}\n文本：\n童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh."
+    "text": "9.4 引用\n\nBibTeX:\n@article{tong2025kl,\n  author = {童雨轩},\n  title = {重新思考 {RL} 中的 {KL} 梯度优化},\n  journal = {Blog},\n  year = {2025},\n  url = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},\n  language = {Chinese},\n}\n文本：\n童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh."
   }
 ]
