@@ -111,6 +111,23 @@
   url           = {https://arxiv.org/abs/2510.12633}
 }
 
+@inproceedings{espeholt2018impala,
+  title     = {{IMPALA}: Scalable Distributed Deep-{RL} with Importance Weighted Actor-Learner Architectures},
+  author    = {Espeholt, Lasse and Soyer, Hubert and Munos, Remi and Simonyan, Karen and Mnih, Vlad and Ward, Tom and Doron, Yotam and Firoiu, Vlad and Harley, Tim and Dunning, Iain and Legg, Shane and Kavukcuoglu, Koray},
+  booktitle = {Proceedings of the 35th International Conference on Machine Learning},
+  pages     = {1407--1416},
+  year      = {2018},
+  editor    = {Dy, Jennifer and Krause, Andreas},
+  volume    = {80},
+  series    = {Proceedings of Machine Learning Research},
+  month     = {10--15 Jul},
+  publisher = {PMLR},
+  pdf       = {http://proceedings.mlr.press/v80/espeholt18a/espeholt18a.pdf},
+  url       = {https://proceedings.mlr.press/v80/espeholt18a.html},
+  abstract  = {In this work we aim to solve a large collection of tasks using a single reinforcement learning agent with a single set of parameters. A key challenge is to handle the increased amount of data and extended training time. We have developed a new distributed agent IMPALA (Importance Weighted Actor-Learner Architecture) that not only uses resources more efficiently in single-machine training but also scales to thousands of machines without sacrificing data efficiency or resource utilisation. We achieve stable learning at high throughput by combining decoupled acting and learning with a novel off-policy correction method called V-trace. We demonstrate the effectiveness of IMPALA for multi-task reinforcement learning on DMLab-30 (a set of 30 tasks from the DeepMind Lab environment (Beattie et al., 2016)) and Atari57 (all available Atari games in Arcade Learning Environment (Bellemare et al., 2013a)). Our results show that IMPALA is able to achieve better performance than previous agents with less data, and crucially exhibits positive transfer between tasks as a result of its multi-task approach.}
+}
+
+
 @article{metelli2020pois,
   author  = {Alberto Maria Metelli and Matteo Papini and Nico Montali and Marcello Restelli},
   title   = {Importance Sampling Techniques for Policy Optimization},

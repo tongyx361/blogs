@@ -91,7 +91,7 @@ This can be simply implemented by always loading the latest weights into all the
 
 # IS with Sliding Latest Policy Trajectories
 
-Despite Partial Rollout's efficiency and simplicity, there have been worries about applying IS with SLAPTs, since most previous works formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
+Despite Partial Rollout's efficiency and simplicity, there have been worries about applying IS with SLAPTs, since most previous distributed RL works including the most representative IMPALA [@espeholt2018impala] formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
 
 ## IS with Global Behavior Policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$
 
