@@ -1,6 +1,6 @@
 ---
 # title
-title: 'IS with BET: Justifying **I**mportance **S**ampling with **B**est-**E**ffort **T**rajectories'
+title: 'Justifying Importance Sampling with Sliding Latest Policy Trajectories'
 date: "2026-01-07"
 author: 
   - name: "Yuxuan Tong"
@@ -16,9 +16,9 @@ keywords:
   - Large Language Model
 abstract: |
 
-  Modern Large Language Model (LLM) Reinforcement Learning (RL) systems, such as Kimi k1.5 and AReaL, increasingly adopt *Partial Rollout* strategies to mitigate long-tail latency and simplify weight management. These systems generate **Best-Effort Trajectories (BETs)** -- sequences where the sampling policy may update mid-rollout -- thereby challenging the standard assumptions of Importance Sampling (IS) which typically rely on a consistent behavior policy.
+  Modern Large Language Model (LLM) Reinforcement Learning (RL) systems, such as Kimi k1.5 and AReaL, increasingly adopt *Partial Rollout* strategies to mitigate long-tail latency and simplify weight management. These systems generate **Sliding Latest Policy Trajectories (SLAPTs)** -- sequences where the sampling policy may update mid-rollout -- thereby challenging the standard assumptions of Importance Sampling (IS) which typically rely on a consistent behavior policy.
 
-  This post provides a justification for applying Importance Sampling to BETs. We demonstrate that by constructing trajectory-wise behavior policies, we can maintain unbiased estimates despite the mixed-policy nature of the rollouts. Furthermore, leveraging variance bounds based on Rényi divergence, we argue that BETs -- being closer to the target policy than consistent but stale behavior policies -- are likelt to yield lower variance. Finally, we propose that *Multiple Importance Sampling (MulIS)* with the *Balance Heuristic (BH)* can be utilized to further exploit the distributional properties of these trajectories for better policy optimization.
+  This post provides a justification for applying Importance Sampling to SLAPTs. We demonstrate that by constructing trajectory-wise behavior policies, we can maintain unbiased estimates despite the mixed-policy nature of the rollouts. Furthermore, leveraging variance bounds based on Rényi divergence, we argue that SLAPTs -- being closer to the target policy than consistent but stale behavior policies -- are likelt to yield lower variance. Finally, we propose that *Multiple Importance Sampling (MulIS)* with the *Balance Heuristic (BH)* can be utilized to further exploit the distributional properties of these trajectories for better policy optimization.
 
 toc-expand: false
 # citation
@@ -36,7 +36,7 @@ categories:
     - Technical 技术
 ---
 
-# IS with BET?
+# Background
 
 ## Importance Sampling (IS)
 
@@ -49,17 +49,17 @@ $$
 where $f(\boldsymbol{\tau})$ can be the gradient of the objective function to be optimized, $p_{\theta}(\boldsymbol{\tau})$ is the trajectory distribution induced by the target policy $\pi_{\theta}$ and $q_{\mu}(\boldsymbol{\tau})$ is the trajectory distribution induced by the behavior policy $\mu$.
 
 
-## Best-Effort Trajectory (BET)
+## Sliding Latest Policy Trajectory (SLAPT)
 
-We use *Best-Effort Trajectories* (BETs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy $\pi_{\theta_{t}}$ at each moment to sample the actions.
+We use *Sliding Latest Policy Trajectories* (SLAPTs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy $\pi_{\theta_{t}}$ at each moment to sample the actions.
 
-Formally, a BET can be defined as a trajectory $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+m}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta+{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
+Formally, a SLAPT can be defined as a trajectory $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+m}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta+{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
 
-BETs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.
+SLAPTs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.
 
 ## Partial Rollout
 
-BETs are a natural result of a popular design choice called *Partial Rollout* in LLM RL systems nowadays, such as Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional Distributed RL system called SEED RL [@espeholt2020seedrl]:
+SLAPTs are a natural result of a popular design choice called *Partial Rollout* in LLM RL systems nowadays, such as Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional Distributed RL system called SEED RL [@espeholt2020seedrl]:
 
 The ongoing trajectory rollouts are
 
@@ -86,9 +86,9 @@ AReaL proposes to always only maintain the latest model weights across all the i
 
 This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the bothering to manage the requests across each instance.
 
-# IS with BET!
+# IS with SLAPT:
 
-Despite Partial Rollout's efficiency and simplicity, there have been worries about mixing multiple importance sampling with BET, since most previous works formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
+Despite Partial Rollout's efficiency and simplicity, there have been worries about mixing multiple importance sampling with SLAPT, since most previous works formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
 
 ## IS with Global Behavior Policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$
 
@@ -98,7 +98,7 @@ It is natural to try to use $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ for IS. So
 
 It is easy to notice that, for each trajectory of an LLM policy, we can usually construct a behavior policy $\forall t, \mu(\boldsymbol{a} \mid \boldsymbol{s})$ satisfies that $\mu(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ at every timestep $t$, since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.
 
-However, it might be confusing when we also notice that, for the same state $s$ in two different BETs $\tau_{i}$ and $\tau_{j}$, the same action $a$ might be sampled from different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) respectively. It is likely that $\pi_{\theta_{n+m}}(a_{t} \mid s_{t}) \neq \pi_{\theta_{n+l}}(a_{t} \mid s_{t})$, making it impossible to simply construct the same behavior policy for both BETs, i.e., $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ constradicts $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+l}}(a_{t} \mid s_{t})$.
+However, it might be confusing when we also notice that, for the same state $s$ in two different SLAPTs $\tau_{i}$ and $\tau_{j}$, the same action $a$ might be sampled from different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) respectively. It is likely that $\pi_{\theta_{n+m}}(a_{t} \mid s_{t}) \neq \pi_{\theta_{n+l}}(a_{t} \mid s_{t})$, making it impossible to simply construct the same behavior policy for both SLAPTs, i.e., $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ constradicts $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+l}}(a_{t} \mid s_{t})$.
 
 So where is the problem of the construction for $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ mentioned above?
 
@@ -124,7 +124,7 @@ $$
 \sigma^2_{\text{avg}} = \frac{1}{N^2} \sum_{i=1}^{N} \sigma^2_{\mu_i}
 $$
 
-## Mixed Best-Effort Policy Might Have Lower Variance than Consistent Old Policy
+## Mixed Sliding Latest Policy Might Have Lower Variance than Consistent Old Policy
 
 Now we wonder, given a trajectory $\boldsymbol{\tau}_{i}$, which of the mixed best-effort policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$  and the consistent old policy $\pi_{\theta_{n}}$ is better for IS estimate, i.e., leads to a lower variance?
 
@@ -165,7 +165,7 @@ Besides the likely superiority for each single-sample estimate, the combination 
 
 Formally, the combination can actually generalize from average weight $\frac{1}{N}$ to any "partion of unity", which is a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.
 
-Given the property that BETs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling [@owen2013mcbook]:
+Given the property that SLAPTs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling [@owen2013mcbook]:
 
 > Suppose that $\boldsymbol{X}_{i j} \sim q_j$ for $i=1, \ldots, n_j$ and $j=1, \ldots, J$ and that $\omega_j$ are a partition of unity. The multiple importance sampling estimate is
 >
@@ -195,7 +195,7 @@ BibTeX:
 ```BibTeX
 @article{tong2026isbet,
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
-  title = {{IS with BET: Justifying Importance Sampling with Best-Effort Trajectories}},
+  title = {{Justifying Importance Sampling with Sliding Latest Policy Trajectories}},
   journal = {Blog},
   year = {2026},
   url = {https://tongyx361.github.io/posts/is-bet},
