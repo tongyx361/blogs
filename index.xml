@@ -9,8 +9,201 @@
 <link>https://tongyx361.github.io/blogs/</link>
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
-<generator>quarto-1.7.32</generator>
-<lastBuildDate>Mon, 30 Jun 2025 00:00:00 GMT</lastBuildDate>
+<generator>quarto-1.8.26</generator>
+<lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>IS with BET</title>
+  <dc:creator>Yuxuan Tong</dc:creator>
+  <dc:creator>Yingru Li</dc:creator>
+  <dc:creator>Guangming Sheng</dc:creator>
+  <link>https://tongyx361.github.io/blogs/posts/is-bet/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<section id="is-with-bet" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> IS with BET?</h1>
+<section id="importance-sampling-is" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="importance-sampling-is"><span class="header-section-number">1.1</span> Importance Sampling (IS)</h2>
+<p>It is a common practice to optimize LLM policy on off-policy data with Importance Sampling (IS):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu%7D%20=%20%5Cfrac%7Bp_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D)%7D%7Bq_%7B%5Cmu%7D(%5Cboldsymbol%7B%5Ctau%7D)%7Df(%5Cboldsymbol%7B%5Ctau%7D),%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?f(%5Cboldsymbol%7B%5Ctau%7D)"> can be the gradient of the objective function to be optimized, <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D)"> is the trajectory distribution induced by the target policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> and <img src="https://latex.codecogs.com/png.latex?q_%7B%5Cmu%7D(%5Cboldsymbol%7B%5Ctau%7D)"> is the trajectory distribution induced by the behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu">.</p>
+</section>
+<section id="best-effort-trajectory-bet" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="best-effort-trajectory-bet"><span class="header-section-number">1.2</span> Best-Effort Trajectory (BET)</h2>
+<p>We use <em>Best-Effort Trajectories</em> (BETs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bt%7D%7D"> at each moment to sample the actions.</p>
+<p>Formally, a BET can be defined as a trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau%20=%20(s_%7B0%7D,%20a_%7B0,%5Cpi_%7B%5Ctheta_%7Bn%7D%7D%7D,%20%5Cldots,%20s_%7Bt%7D,%20a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D,%20%5Cldots,%20s_%7BT%7D,%20a_%7BT,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D)">, where <img src="https://latex.codecogs.com/png.latex?s_%7Bt%7D"> is the state at timestep <img src="https://latex.codecogs.com/png.latex?t"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D"> is the action sampled from the policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> that is the latest policy available in the system when sampling. So for <img src="https://latex.codecogs.com/png.latex?l%20%3E%20m">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta+%7Bn+l%7D%7D"> is usually more on-policy than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">.</p>
+<p>BETs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.</p>
+</section>
+<section id="partial-rollout" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="partial-rollout"><span class="header-section-number">1.3</span> Partial Rollout</h2>
+<p>BETs are a natural result of a popular design choice called <em>Partial Rollout</em> in LLM RL systems nowadays, such as Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(Kimi Team et al. 2025)</span>, AReaL <span class="citation" data-cites="fu2025areal">(Fu et al. 2025)</span> and PipelineRL <span class="citation" data-cites="piché2025pipelinerl">(Piché et al. 2025)</span>, etc., which can date back to a traditional Distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(Espeholt et al. 2020)</span>:</p>
+<p>The ongoing trajectory rollouts are</p>
+<ol type="1">
+<li>aborted when
+<ul>
+<li>either, in synchoronous systems like Kimi k1.5, there are enough samples collected for training, releasing the resources for the training engine to update the model weights,</li>
+<li>or, in asynchronous systems like AReaL and PipelineRL, a new version of model weights is produced by the trainer;</li>
+</ul></li>
+<li>continued with the latest version of model weights.</li>
+</ol>
+<p>Partial Rollout is motivated by its efficiency and simplicity. Let me explain in detail.</p>
+<section id="efficiency-eliminating-long-tail-bubbles" class="level3" data-number="1.3.1">
+<h3 data-number="1.3.1" class="anchored" data-anchor-id="efficiency-eliminating-long-tail-bubbles"><span class="header-section-number">1.3.1</span> Efficiency: Eliminating Long-Tail Bubbles</h3>
+<p>The earliest LLM RL systems <span class="citation" data-cites="yao2023dschat">Hu et al. (2025)</span> all adopt synchoronous architectures, where the trainer always waits for all the trajectories are finished before updating the weights with these data.</p>
+<p>However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasing heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically &lt;30% in practice). <span class="citation" data-cites="sheng2025laminar">(Sheng, Tong, et al. 2025)</span></p>
+<p>Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly update the weights with these data, instead of waiting for all the trajectories to finish, and then continue the rollouts with the new model weights.</p>
+</section>
+<section id="simplicity-only-maintaining-one-version-of-model-weights" class="level3" data-number="1.3.2">
+<h3 data-number="1.3.2" class="anchored" data-anchor-id="simplicity-only-maintaining-one-version-of-model-weights"><span class="header-section-number">1.3.2</span> Simplicity: Only Maintaining One Version of Model Weights</h3>
+<p>In asynchornous RL systems with an experience buffer, it is troublesome to mamage multiple versions of model weights within the rollout engine.</p>
+<p>AReaL proposes to always only maintain the latest model weights across all the instances. Once a new version of model weights is produced by the trainer, all the rollouts of the stale policy are aborted and then continued with the latest policy.</p>
+<p>This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the bothering to manage the requests across each instance.</p>
+</section>
+</section>
+</section>
+<section id="is-with-bet-1" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> IS with BET!</h1>
+<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about mixing multiple importance sampling with BET, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)">, and it feels weird to mix multiple policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> within a single trajectory.</p>
+<section id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="is-with-global-behavior-policy-muboldsymbola-mid-boldsymbols"><span class="header-section-number">2.1</span> IS with Global Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
+<p>Since there is always an actual distribution we are sampling from, we can always formulate it as a global behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)">.</p>
+<p>It is natural to try to use <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> for IS. So how can we calculate it?</p>
+<p>It is easy to notice that, for each trajectory of an LLM policy, we can usually construct a behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cforall%20t,%20%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> satisfies that <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20=%20%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> at every timestep <img src="https://latex.codecogs.com/png.latex?t">, since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.</p>
+<p>However, it might be confusing when we also notice that, for the same state <img src="https://latex.codecogs.com/png.latex?s"> in two different BETs <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bj%7D">, the same action <img src="https://latex.codecogs.com/png.latex?a"> might be sampled from different policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> (<img src="https://latex.codecogs.com/png.latex?l%20%5Cneq%20m">) respectively. It is likely that <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20%5Cneq%20%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">, making it impossible to simply construct the same behavior policy for both BETs, i.e., <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> constradicts <img src="https://latex.codecogs.com/png.latex?%5Cmu(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)">.</p>
+<p>So where is the problem of the construction for <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> mentioned above?</p>
+<p>The problem hidden here is that, <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> does not consider the probability distribution of which LLM policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> is used, but this distribution is intractable since it depends on the system dynamics.</p>
+</section>
+<section id="is-with-trajectory-wise-behavior-policy-mu_iboldsymbola-mid-boldsymbols" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="is-with-trajectory-wise-behavior-policy-mu_iboldsymbola-mid-boldsymbols"><span class="header-section-number">2.2</span> IS with Trajectory-wise Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
+<p>A trivial solution is to construct a trajectory-wise behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> for each trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D">.</p>
+<p>Now for the counter-example mentioned above, <img src="https://latex.codecogs.com/png.latex?%5Cmu_i(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> and <img src="https://latex.codecogs.com/png.latex?%5Cmu_j(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> are obviously compatible.</p>
+<p>With a batch of <img src="https://latex.codecogs.com/png.latex?N"> trajectory samples sampled from each own behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_1%20%5Csim%20q_%7B%5Cmu_1%7D,%20%5Cldots,%20%5Cboldsymbol%7B%5Ctau%7D_N%20%5Csim%20q_%7B%5Cmu_N%7D">, it is easy to formulate single-sample estimate <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu_i%7D%20=%20%5Cfrac%7Bp_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D_i)%7D%7Bq_%7B%5Cmu_i%7D(%5Cboldsymbol%7B%5Ctau%7D_i)%7Df(%5Cboldsymbol%7B%5Ctau%7D_i)">.</p>
+<p>Note that the single-sample estimate is already unbiased, i.e., the unbiasedness does not depend on the sample size.</p>
+<p>The common practice to combine them for an estimate is to average the single-sample estimates <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu_i%7D,%20i%20=%201,%20%5Cldots,%20N">, i.e., <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Ctext%7Bavg%7D%7D%20=%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu_i%7D">.</p>
+<p>Due to linearity of expectation, <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Ctext%7Bavg%7D%7D"> is still unbiased.</p>
+<p>Now let’s take a look at the variance. Let the variance of each single-sample estimate be <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E2_%7B%5Cmu_i%7D">, since the samples are independent, the variance of the average estimate <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Ctext%7Bavg%7D%7D"> is:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csigma%5E2_%7B%5Ctext%7Bavg%7D%7D%20=%20%5Cfrac%7B1%7D%7BN%5E2%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Csigma%5E2_%7B%5Cmu_i%7D%0A"></p>
+</section>
+<section id="mixed-best-effort-policy-might-have-lower-variance-than-consistent-old-policy" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="mixed-best-effort-policy-might-have-lower-variance-than-consistent-old-policy"><span class="header-section-number">2.3</span> Mixed Best-Effort Policy Might Have Lower Variance than Consistent Old Policy</h2>
+<p>Now we wonder, given a trajectory <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_%7Bi%7D">, which of the mixed best-effort policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> and the consistent old policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D"> is better for IS estimate, i.e., leads to a lower variance?</p>
+<p><span class="citation" data-cites="metelli2020pois">Metelli et al. (2020)</span> provided a family of bounds of the variance of IS estimate in terms of the <a href="https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence">Rényi divergence</a>:</p>
+<blockquote class="blockquote">
+<p>Lemma 1. Let <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> be two probability measures on the measurable space <img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BX%7D,%20%5Cmathscr%7BF%7D)"> such that <img src="https://latex.codecogs.com/png.latex?P%20%5Cll%20Q">. Let <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%5B1,+%5Cinfty%5D,%20%5Cmathbf%7Bx%7D=%5Cleft(x_1,%20x_2,%20%5Cldots,%20x_N%5Cright)%5ET"> be i.i.d. random variables sampled from <img src="https://latex.codecogs.com/png.latex?Q"> and <img src="https://latex.codecogs.com/png.latex?f:%20%5Cmathcal%7BX%7D%20%5Crightarrow%20%5Cmathbb%7BR%7D"> be a function with bounded <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D">-moment under <img src="https://latex.codecogs.com/png.latex?Q%5Cleft(%5C%7Cf%5C%7C_%7BQ,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D%3C+%5Cinfty%5Cright)">. Then, for any <img src="https://latex.codecogs.com/png.latex?N%3E0">, the variance of the IS estimator <img src="https://latex.codecogs.com/png.latex?%5Cwidehat%7B%5Cmu%7D_%7BP%20/%20Q%7D"> can be upper bounded as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7BVar%7D_%7B%5Cmathbf%7Bx%7D%20%5Csim%20Q%7D%5Cleft%5B%5Chat%7B%5Cmu%7D_%7BP%20/%20Q%7D%5Cright%5D%20%5Cleqslant%20%5Cfrac%7B1%7D%7BN%7D%5C%7Cf%5C%7C_%7BQ,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D%5E2%20d_%7B2%20%5Calpha%7D(P%20%5C%7C%20Q)%5E%7B2-%5Cfrac%7B1%7D%7B%5Calpha%7D%7D,"></p>
+<p>where we used the abbreviation <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bx%7D%20%5Csim%20Q"> for denoting <img src="https://latex.codecogs.com/png.latex?x_i%20%5Csim%20Q"> for all <img src="https://latex.codecogs.com/png.latex?i=1,2,%20%5Cldots,%20N"> all independent.</p>
+<p>This result generalizes Lemma 4.1 of Metelli et al.&nbsp;(2018), that can be recovered by setting <img src="https://latex.codecogs.com/png.latex?%5Calpha=1"> under the condition that <img src="https://latex.codecogs.com/png.latex?%5C%7Cf%5C%7C_%7B%5Cinfty%7D%3C+%5Cinfty"> :</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7BVar%7D_%7B%5Cmathbf%7Bx%7D%20%5Csim%20Q%7D%5Cleft%5B%5Cwidehat%7B%5Cmu%7D_%7BP%20/%20Q%7D%5Cright%5D%20%5Cleqslant%20%5Cfrac%7B1%7D%7BN%7D%5C%7Cf%5C%7C_%7B%5Cinfty%7D%5E2%20d_2(P%20%5C%7C%20Q)%20."></p>
+</blockquote>
+<p>When <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%201">, the Rényi divergence is the <a href="https://en.wikipedia.org/wiki/Kullback-Leibler_divergence">Kullback-Leibler divergence</a> widely used in RL analysis.</p>
+<blockquote class="blockquote">
+<p>When <img src="https://latex.codecogs.com/png.latex?P=Q"> almost everywhere, we get <img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7BVar%7D_%7B%5Cmathbf%7Bx%7D%20%5Csim%20Q%7D%5Cleft%5B%5Chat%7B%5Cmu%7D_%7BQ%20/%20Q%7D%5Cright%5D%20%5Cleqslant%20%5Cfrac%7B1%7D%7BN%7D%5C%7Cf%5C%7C_%7B%5Cinfty%7D%5E2">, a well-known upper bound to the variance of a Monte Carlo estimator. Recalling the definition of ESS (Equation 7) we can rewrite the previous bound as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cunderset%7B%5Cmathbf%7Bx%7D%20%5Csim%20Q%7D%7B%5Coperatorname%7BVar%7D%7D%5Cleft%5B%5Chat%7B%5Cmu%7D_%7BP%20/%20Q%7D%5Cright%5D%20%5Cleqslant%20%5Cfrac%7B%5C%7Cf%5C%7C_%7B%5Cinfty%7D%5E2%7D%7B%5Coperatorname%7BESS%7D(P%20%5C%7C%20Q)%7D%20."></p>
+<p>Thus, the variance scales with ESS instead of <img src="https://latex.codecogs.com/png.latex?N">, justifying the definition of ESS.</p>
+</blockquote>
+<p>In our context, <img src="https://latex.codecogs.com/png.latex?P"> is the target distribution <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D"> and <img src="https://latex.codecogs.com/png.latex?Q"> is <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> or <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">.</p>
+<p>Intuitively, it is likely that <img src="https://latex.codecogs.com/png.latex?d_%7B2%20%5Calpha%7D(p_%7B%5Ctheta%7D%20%5C%7C%20q_%7B%5Ctheta_%7Bn%7D,M%7D)%20%3C%20d_%7B2%20%5Calpha%7D(p_%7B%5Ctheta%7D%20%5C%7C%20p_%7B%5Ctheta_%7Bn%7D%7D)">, since the newer the policy is, the more similar its induced distribution is to <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D">.</p>
+<p>As long as the <img src="https://latex.codecogs.com/png.latex?%5C%7Cf%5C%7C_%7Bq_%7B%5Ctheta_%7Bn%7D,M%7D,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D"> is not much larger than <img src="https://latex.codecogs.com/png.latex?%5C%7Cf%5C%7C_%7Bp_%7B%5Ctheta_%7Bn%7D%7D,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D">, the estimate using <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> has better guarantee than the estimate using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">.</p>
+<p>These conjectures can be verified by empirical experiments. For example, Figure 6 and 7 by <span class="citation" data-cites="piché2025pipelinerl">Piché et al. (2025)</span> show that <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> has higher ESS and lower KL divergence relative to <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D"> than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">, respectively.</p>
+<p>We are also planning experiments to further verify these conjectures.</p>
+</section>
+<section id="exploiting-approximatly-identical-distribution-with-multiple-is" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="exploiting-approximatly-identical-distribution-with-multiple-is"><span class="header-section-number">2.4</span> Exploiting (Approximatly) Identical Distribution with Multiple IS</h2>
+<p>Besides the likely superiority for each single-sample estimate, the combination of multiple importance sampling has other properties that can be exploited.</p>
+<p>Formally, the combination can actually generalize from average weight <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7BN%7D"> to any “partion of unity”, which is a collection of <img src="https://latex.codecogs.com/png.latex?J%20%5Cgeqslant%201"> weight functions <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20%5Cgeqslant%200"> which satisfy <img src="https://latex.codecogs.com/png.latex?%5Csum_%7Bj=1%7D%5EJ%20%5Comega_j(%5Cboldsymbol%7Bx%7D)=1"> for all <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bx%7D">. Different partitions of unity will lead to estimates that are all unbiased but with different variances.</p>
+<p>Given the property that BETs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span>:</p>
+<blockquote class="blockquote">
+<p>Suppose that <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%20%5Csim%20q_j"> for <img src="https://latex.codecogs.com/png.latex?i=1,%20%5Cldots,%20n_j"> and <img src="https://latex.codecogs.com/png.latex?j=1,%20%5Cldots,%20J"> and that <img src="https://latex.codecogs.com/png.latex?%5Comega_j"> are a partition of unity. The multiple importance sampling estimate is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cwidetilde%7B%5Cmu%7D_%5Comega=%5Csum_%7Bj=1%7D%5EJ%20%5Cfrac%7B1%7D%7Bn_j%7D%20%5Csum_%7Bi=1%7D%5E%7Bn_j%7D%20%5Comega_j%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%20%5Cfrac%7Bf%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%20p%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%7Bq_j%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%20."> <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span></p>
+<p>Now assume that <img src="https://latex.codecogs.com/png.latex?q_j(%5Cboldsymbol%7Bx%7D)%3E0"> whenever <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20p(%5Cboldsymbol%7Bx%7D)%20f(%5Cboldsymbol%7Bx%7D)%20%5Cneq%200">. Then multiple importance sampling is unbiased, because <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D%5Cleft(%5Cwidetilde%7B%5Cmu%7D_%5Comega%5Cright)=%5Csum_%7Bj=1%7D%5EJ%20%5Cmathbb%7BE%7D_%7Bq_j%7D%5Cleft(%5Comega_j(%5Cboldsymbol%7BX%7D)%20%5Cfrac%7Bf(%5Cboldsymbol%7BX%7D)%20p(%5Cboldsymbol%7BX%7D)%7D%7Bq_j(%5Cboldsymbol%7BX%7D)%7D%5Cright)=%5Csum_%7Bj=1%7D%5EJ%20%5Cint%20%5Comega_j(%5Cboldsymbol%7Bx%7D)%20f(%5Cboldsymbol%7Bx%7D)%20p(%5Cboldsymbol%7Bx%7D)%20%5Cmathrm%7Bd%7D%20%5Cboldsymbol%7Bx%7D=%5Cmu%20."></p>
+<p>Among the proposals for functions <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)">, the most studied one is the balance heuristic with <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20%5Cpropto%20n_j%20q_j(%5Cboldsymbol%7Bx%7D)">, that is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)=%5Comega_j%5E%7B%5Cmathrm%7BBH%7D%7D(%5Cboldsymbol%7Bx%7D)%20%5Cequiv%20%5Cfrac%7Bn_j%20q_j(%5Cboldsymbol%7Bx%7D)%7D%7B%5Csum_%7Bk=1%7D%5EJ%20n_k%20q_k(%5Cboldsymbol%7Bx%7D)%7D%20."></p>
+<p>By construction <img src="https://latex.codecogs.com/png.latex?q_j(%5Cboldsymbol%7Bx%7D)%3E0"> holds whenever <img src="https://latex.codecogs.com/png.latex?%5Cleft(%5Comega_j%5E%7B%5Cmathrm%7BBH%7D%7D%20p%20f%5Cright)(%5Cboldsymbol%7Bx%7D)%20%5Cneq%200">. Let <img src="https://latex.codecogs.com/png.latex?n=%5Csum_%7Bj=1%7D%5EJ%20n_j"> and define <img src="https://latex.codecogs.com/png.latex?%5Calpha_j=n_j%20/%20n">. Then using the balance heuristic, <img src="https://latex.codecogs.com/png.latex?%5Cwidetilde%7B%5Cmu%7D_%7B%5Comega%5E%7B%5Ctext%20%7B%D0%92%D0%9D%20%7D%7D%7D"> simplifies to <img src="https://latex.codecogs.com/png.latex?%5Cwidetilde%7B%5Cmu%7D_%5Calpha=%5Cfrac%7B1%7D%7Bn%7D%20%5Csum_%7Bj=1%7D%5EJ%20%5Csum_%7Bi=1%7D%5E%7Bn_j%7D%20%5Cfrac%7Bf%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%20p%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%7B%5Csum_%7Bj=1%7D%5EJ%20%5Calpha_j%20q_j%5Cleft(%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%5Cright)%7D%20."></p>
+<p>In other words, multiple importance sampling, with weights from the balance heuristic reduces to the same estimator we would use in mixture importance sampling with mixture weights <img src="https://latex.codecogs.com/png.latex?%5Calpha_j=n_j%20/%20n">. Once again, the weight on a given sampled value <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BX%7D_%7Bi%20j%7D"> does not depend on which mixture component it came from. The balance heuristic is nearly optimal in the following sense:</p>
+<p>Theorem 9.8. Let <img src="https://latex.codecogs.com/png.latex?n_j%20%5Cgeqslant%201"> be positive integers for <img src="https://latex.codecogs.com/png.latex?j=1,%20%5Cldots,%20J">. Let <img src="https://latex.codecogs.com/png.latex?%5Comega_1,%20%5Cldots,%20%5Comega_J"> be a partition of unity and let <img src="https://latex.codecogs.com/png.latex?%5Comega%5E%7B%5Cmathrm%7BBH%7D%7D"> be the balance heuristic. Suppose that <img src="https://latex.codecogs.com/png.latex?q_j(%5Cboldsymbol%7Bx%7D)%3E"> 0 whenever <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20p(%5Cboldsymbol%7Bx%7D)%20f(%5Cboldsymbol%7Bx%7D)%20%5Cneq%200">. Then</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7BVar%7D%5Cleft(%5Cwidetilde%7B%5Cmu%7D_%7B%5Comega%5E%7B%5Cmathrm%7BBH%7D%7D%7D%5Cright)%20%5Cleqslant%20%5Coperatorname%7BVar%7D%5Cleft(%5Cwidetilde%7B%5Cmu%7D_%5Comega%5Cright)+%5Cleft(%5Cfrac%7B1%7D%7B%5Cmin%20_j%20n_j%7D-%5Cfrac%7B1%7D%7B%5Csum_j%20n_j%7D%5Cright)%20%5Cmu%5E2%20."></p>
+</blockquote>
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="citation" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Citation</h2><div class="quarto-appendix-contents">
+
+<p>BibTeX:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">tong2026isbet</span>,</span>
+<span id="cb1-2">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">author</span> = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span>
+<span id="cb1-3">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">title</span> = {{BET}: Justifying Importance Sampling with Best-Effort Trajectories},</span>
+<span id="cb1-4">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">year</span> = {2026},</span>
+<span id="cb1-5">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/is-bet},</span>
+<span id="cb1-6">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">urldate</span> = {2026-01-07},</span>
+<span id="cb1-7">  <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">language</span> = {English},</span>
+<span id="cb1-8">}</span></code></pre></div></div>
+
+
+<!-- -->
+
+
+</div></section><section class="quarto-appendix-contents" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0">
+<div id="ref-espeholt2020seedrl" class="csl-entry">
+Espeholt, Lasse, Raphaël Marinier, Piotr Stanczyk, Ke Wang, and Marcin Michalski‎. 2020. <span>“SEED RL: Scalable and Efficient Deep-RL with Accelerated Central Inference.”</span> In <em>International Conference on Learning Representations</em>. <a href="https://openreview.net/forum?id=rkgvXlrKwH">https://openreview.net/forum?id=rkgvXlrKwH</a>.
+</div>
+<div id="ref-fu2025areal" class="csl-entry">
+Fu, Wei, Jiaxuan Gao, Xujie Shen, Chen Zhu, Zhiyu Mei, Chuyi He, Shusheng Xu, et al. 2025. <span>“<span>AREAL</span>: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning.”</span> In <em>The Thirty-Ninth Annual Conference on Neural Information Processing Systems</em>. <a href="https://openreview.net/forum?id=X9diEuva9R">https://openreview.net/forum?id=X9diEuva9R</a>.
+</div>
+<div id="ref-hu2025openrlhf" class="csl-entry">
+Hu, Jian, Xibin Wu, Wei Shen, Jason Klein Liu, Weixun Wang, Songlin Jiang, Haoran Wang, et al. 2025. <span>“<span>O</span>pen<span>RLHF</span>: A Ray-Based Easy-to-Use, Scalable and High-Performance <span>RLHF</span> Framework.”</span> In <em>Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing: System Demonstrations</em>, edited by Ivan Habernal, Peter Schulam, and Jörg Tiedemann, 656–66. Suzhou, China: Association for Computational Linguistics. <a href="https://doi.org/10.18653/v1/2025.emnlp-demos.48">https://doi.org/10.18653/v1/2025.emnlp-demos.48</a>.
+</div>
+<div id="ref-kimi2025k15" class="csl-entry">
+Kimi Team, Angang Du, Bofei Gao, Bowei Xing, Changjiu Jiang, Cheng Chen, Cheng Li, et al. 2025. <span>“Kimi K1.5: Scaling Reinforcement Learning with LLMs.”</span> <a href="https://arxiv.org/abs/2501.12599">https://arxiv.org/abs/2501.12599</a>.
+</div>
+<div id="ref-metelli2020pois" class="csl-entry">
+Metelli, Alberto Maria, Matteo Papini, Nico Montali, and Marcello Restelli. 2020. <span>“Importance Sampling Techniques for Policy Optimization.”</span> <em>Journal of Machine Learning Research</em> 21 (141): 1–75. <a href="http://jmlr.org/papers/v21/20-124.html">http://jmlr.org/papers/v21/20-124.html</a>.
+</div>
+<div id="ref-owen2013mcbook" class="csl-entry">
+Owen, Art B. 2013. <em>Monte Carlo Theory, Methods and Examples</em>. <a href="https://artowen.su.domains/mc/" class="uri">https://artowen.su.domains/mc/</a>.
+</div>
+<div id="ref-piché2025pipelinerl" class="csl-entry">
+Piché, Alexandre, Ehsan Kamalloo, Rafael Pardinas, Xiaoyin Chen, and Dzmitry Bahdanau. 2025. <span>“PipelineRL: Faster on-Policy Reinforcement Learning for Long Sequence Generation.”</span> <a href="https://arxiv.org/abs/2509.19128">https://arxiv.org/abs/2509.19128</a>.
+</div>
+<div id="ref-shen2024nemoaligner" class="csl-entry">
+Shen, Gerald, Zhilin Wang, Olivier Delalleau, Jiaqi Zeng, Yi Dong, Daniel Egert, Shengyang Sun, et al. 2024. <span>“NeMo-Aligner: Scalable Toolkit for Efficient Model Alignment.”</span> In <em>First Conference on Language Modeling</em>. <a href="https://openreview.net/forum?id=yK2eGE8QVW">https://openreview.net/forum?id=yK2eGE8QVW</a>.
+</div>
+<div id="ref-sheng2025laminar" class="csl-entry">
+Sheng, Guangming, Yuxuan Tong, Borui Wan, Wang Zhang, Chaobo Jia, Xibin Wu, Yuqi Wu, et al. 2025. <span>“Laminar: A Scalable Asynchronous RL Post-Training Framework.”</span> <a href="https://arxiv.org/abs/2510.12633">https://arxiv.org/abs/2510.12633</a>.
+</div>
+<div id="ref-sheng2025hybridflow" class="csl-entry">
+Sheng, Guangming, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu. 2025. <span>“HybridFlow: A Flexible and Efficient RLHF Framework.”</span> In <em>Proceedings of the Twentieth European Conference on Computer Systems</em>, 1279–97. EuroSys ’25. New York, NY, USA: Association for Computing Machinery. <a href="https://doi.org/10.1145/3689031.3696075">https://doi.org/10.1145/3689031.3696075</a>.
+</div>
+<div id="ref-yao2023dschat" class="csl-entry">
+Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxia Wu, Ammar Ahmad Awan, Jeff Rasley, et al. 2023. <span>“DeepSpeed-Chat: Easy, Fast and Affordable RLHF Training of ChatGPT-Like Models at All Scales.”</span> <a href="https://arxiv.org/abs/2308.01320">https://arxiv.org/abs/2308.01320</a>.
+</div>
+</div></section><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div></div></section></div> ]]></description>
+  <category>WIP 尚在完善</category>
+  <category>English 英文</category>
+  <category>Technical 技术</category>
+  <guid>https://tongyx361.github.io/blogs/posts/is-bet/</guid>
+  <pubDate>Wed, 07 Jan 2026 00:00:00 GMT</pubDate>
+</item>
 <item>
   <title></title>
   <dc:creator>Yuxuan Tong (童雨轩)</dc:creator>
@@ -72,7 +265,7 @@
 Listing&nbsp;1: TRL 计算 KL 样本值 <img src="https://latex.codecogs.com/png.latex?%5Clog%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D%7B%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bref%7D%7D%7D(a_%7Bi,t%7D%20%5Cmid%20s_%7Bi,t%7D)%7D"> 并从 reward 中减去<sup>5</sup>
 </figcaption>
 <div aria-describedby="lst-trl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># 4. compute rewards</span></span>
 <span id="cb1-2">kl <span class="op" style="color: #5E5E5E;
@@ -95,7 +288,7 @@ background-color: null;
 font-style: inherit;"># ...</span></span>
 <span id="cb1-6">rewards[[actual_start, actual_end]] <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">+=</span> scores</span></code></pre></div>
+font-style: inherit;">+=</span> scores</span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -121,7 +314,7 @@ font-style: inherit;">+=</span> scores</span></code></pre></div>
 Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 <sup>6</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="kw" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> compute_approx_kl(</span>
@@ -418,7 +611,7 @@ font-style: inherit;">+=</span> r[i]</span>
 <span id="cb2-64">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
-font-style: inherit;">return</span> reward</span></code></pre></div>
+font-style: inherit;">return</span> reward</span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -438,7 +631,7 @@ font-style: inherit;">return</span> reward</span></code></pre></div>
 Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 <sup>7</sup>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> training_step_actor(<span class="va" style="color: #111111;
@@ -652,7 +845,7 @@ background-color: null;
 font-style: inherit;">"actor"</span>)</span>
 <span id="cb3-53">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># ...</span></span></code></pre></div>
+font-style: inherit;"># ...</span></span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -675,7 +868,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <sup>8</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, kl_penalty<span class="op" style="color: #5E5E5E;
@@ -742,7 +935,7 @@ background-color: null;
 font-style: inherit;">*</span> kld</span>
 <span id="cb4-14">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># ...</span></span></code></pre></div>
+font-style: inherit;"># ...</span></span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -762,7 +955,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 <sup>9</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> update_policy(<span class="va" style="color: #111111;
@@ -931,7 +1124,7 @@ background-color: null;
 font-style: inherit;">self</span>.actor_optimizer.zero_grad()</span>
 <span id="cb5-44">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># ...</span></span></code></pre></div>
+font-style: inherit;"># ...</span></span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -1064,7 +1257,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;6: verl 的 KL 散度 Monte Carlo 估计样本值<sup>14</sup>
 </figcaption>
 <div aria-describedby="lst-verl-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_penalty) <span class="op" style="color: #5E5E5E;
@@ -1195,7 +1388,7 @@ background-color: null;
 font-weight: bold;
 font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">NotImplementedError</span></span></code></pre></div>
+font-style: inherit;">NotImplementedError</span></span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -1223,7 +1416,7 @@ font-style: inherit;">NotImplementedError</span></span></code></pre></div>
 <section id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式" class="level3" data-number="4.1.1">
 <h3 data-number="4.1.1" class="anchored" data-anchor-id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式"><span class="header-section-number">4.1.1</span> 不同 KL 估计量对应的 loss 项导出的梯度估计的一般形式</h3>
 <p>观察 Listing&nbsp;3 计算 “KL loss” 项的部分。</p>
-<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
 <span id="cb7-2">kl <span class="op" style="color: #5E5E5E;
@@ -1258,7 +1451,7 @@ background-color: null;
 font-style: inherit;">=</span> kl_mean.mean()</span>
 <span id="cb7-12"><span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># ...</span></span></code></pre></div>
+font-style: inherit;"># ...</span></span></code></pre></div></div>
 <p>这些代码：</p>
 <ol type="1">
 <li>计算了 <code>kl</code>，对应对每个动作 token <img src="https://latex.codecogs.com/png.latex?a_%7Bi,t%7D"> 计算 “KL 估计量” <img src="https://latex.codecogs.com/png.latex?k">。</li>
@@ -1470,7 +1663,7 @@ font-style: inherit;"># ...</span></span></code></pre></div>
 Listing&nbsp;7: TRL 使用采样样本并使用 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bold%7D%7D%7D"> 计算对数似然<sup>19</sup>
 </figcaption>
 <div aria-describedby="lst-trl-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1">queries <span class="op" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1">queries <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> data[<span class="st" style="color: #20794D;
 background-color: null;
@@ -1525,7 +1718,7 @@ background-color: null;
 font-style: inherit;">+</span> args.local_rollout_forward_batch_size]</span>
 <span id="cb8-17">    logprob <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span> selective_log_softmax(logits, response)</span></code></pre></div>
+font-style: inherit;">=</span> selective_log_softmax(logits, response)</span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -1537,7 +1730,7 @@ font-style: inherit;">=</span> selective_log_softmax(logits, response)</span></c
 Listing&nbsp;8: TRL PPO 多轮更新
 </figcaption>
 <div aria-describedby="lst-trl-ppo-update-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Do multiple epochs of PPO training, with a fresh random shuffle in each epoch</span></span>
 <span id="cb9-2"><span class="cf" style="color: #003B4F;
@@ -1768,7 +1961,7 @@ background-color: null;
 font-style: inherit;">*</span> vf_loss</span>
 <span id="cb9-49">                accelerator.backward(loss)</span>
 <span id="cb9-50">                optimizer.step()</span>
-<span id="cb9-51">                optimizer.zero_grad()</span></code></pre></div>
+<span id="cb9-51">                optimizer.zero_grad()</span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -1788,7 +1981,7 @@ font-style: inherit;">*</span> vf_loss</span>
 Listing&nbsp;9: OpenRLHF 采样样本并使用 <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7B%5Ctext%7Bold%7D%7D%7D"> 计算对数似然
 </figcaption>
 <div aria-describedby="lst-openrlhf-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="co" style="color: #5E5E5E;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595</span></span>
 <span id="cb10-2"><span class="kw" style="color: #003B4F;
@@ -1839,7 +2032,7 @@ font-style: inherit;">=</span> compute_approx_kl(</span>
 <span id="cb10-18">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ...</span></span>
-<span id="cb10-19">    )</span></code></pre></div>
+<span id="cb10-19">    )</span></code></pre></div></div>
 </div>
 </figure>
 </div>
@@ -2010,7 +2203,7 @@ Tip
 </div></section><section id="引用" class="level2 appendix" data-number="9.4"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.4</span> 引用</h2><div class="quarto-appendix-contents">
 
 <p>BibTeX:</p>
-<div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><span class="va" style="color: #111111;
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">@online</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
@@ -2033,9 +2226,9 @@ font-style: inherit;">urldate</span> = {2025-03-09},</span>
 <span id="cb11-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {Chinese},</span>
-<span id="cb11-8">}</span></code></pre></div>
+<span id="cb11-8">}</span></code></pre></div></div>
 <p>文本：</p>
-<div class="sourceCode" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div></div>
 
 
 <!-- -->
@@ -2084,7 +2277,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Mon, 30 Jun 2025 11:14:46 GMT</pubDate>
+  <pubDate>Wed, 07 Jan 2026 14:56:28 GMT</pubDate>
 </item>
 </channel>
 </rss>

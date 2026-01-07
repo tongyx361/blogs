@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.32">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -88,18 +88,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-2fef5ea3f8957b3e4ecc936fc74692ca.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-56cc54d519d6d6d1579dd839b3389b7a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-43c5b85ef76b1267611fda5744540db2.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-56cc54d519d6d6d1579dd839b3389b7a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-e85eba1097e763ab92a8026b31d9210d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-d4dbfae94d399dbf1014af73f007268d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-e85eba1097e763ab92a8026b31d9210d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -148,7 +149,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -658,12 +659,12 @@ window.Quarto = {
 Listing&nbsp;1: TRL 计算 KL 样本值 <span class="math inline">\(\log \frac{\pi_{\theta}(a_{i,t} \mid s_{i,t})}{\pi_{\theta_{\text{ref}}}(a_{i,t} \mid s_{i,t})}\)</span> 并从 reward 中减去<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>
 </figcaption>
 <div aria-describedby="lst-trl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># 4. compute rewards</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># 4. compute rewards</span></span>
 <span id="cb1-2"><a href="#cb1-2"></a>kl <span class="op">=</span> logprobs <span class="op">-</span> ref_logprobs</span>
 <span id="cb1-3"><a href="#cb1-3"></a>non_score_reward <span class="op">=</span> <span class="op">-</span>args.kl_coef <span class="op">*</span> kl</span>
 <span id="cb1-4"><a href="#cb1-4"></a>rewards <span class="op">=</span> non_score_reward.clone()</span>
 <span id="cb1-5"><a href="#cb1-5"></a><span class="co"># ...</span></span>
-<span id="cb1-6"><a href="#cb1-6"></a>rewards[[actual_start, actual_end]] <span class="op">+=</span> scores</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6"></a>rewards[[actual_start, actual_end]] <span class="op">+=</span> scores</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -689,7 +690,7 @@ Listing&nbsp;1: TRL 计算 KL 样本值 <span class="math inline">\(\log \frac{\
 Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 <a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">def</span> compute_approx_kl(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">def</span> compute_approx_kl(</span>
 <span id="cb2-2"><a href="#cb2-2"></a>    log_probs: torch.Tensor,</span>
 <span id="cb2-3"><a href="#cb2-3"></a>    log_probs_base: torch.Tensor,</span>
 <span id="cb2-4"><a href="#cb2-4"></a>    action_mask: Optional[torch.Tensor] <span class="op">=</span> <span class="va">None</span>,</span>
@@ -752,7 +753,7 @@ Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 
 <span id="cb2-61"><a href="#cb2-61"></a>            kl_reward[action_len <span class="op">-</span> <span class="dv">1</span>] <span class="op">+=</span> r[i]</span>
 <span id="cb2-62"><a href="#cb2-62"></a>            reward.append(kl_reward)</span>
 <span id="cb2-63"><a href="#cb2-63"></a></span>
-<span id="cb2-64"><a href="#cb2-64"></a>    <span class="cf">return</span> reward</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-64"><a href="#cb2-64"></a>    <span class="cf">return</span> reward</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -772,7 +773,7 @@ Listing&nbsp;2: OpenRLHF 支持计算 KL 估计样本值并从 reward 中减去 
 Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的 token 计算均值，再在序列之间计算均值，并加入到 loss 中 <a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>
 </figcaption>
 <div aria-describedby="lst-openrlhf-calc-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="kw">def</span> training_step_actor(<span class="va">self</span>, experience: Experience) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">float</span>]:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="kw">def</span> training_step_actor(<span class="va">self</span>, experience: Experience) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">float</span>]:</span>
 <span id="cb3-2"><a href="#cb3-2"></a>    <span class="va">self</span>.actor.train()</span>
 <span id="cb3-3"><a href="#cb3-3"></a>    <span class="co"># ...</span></span>
 <span id="cb3-4"><a href="#cb3-4"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(experience.sequences, <span class="bu">list</span>):</span>
@@ -824,7 +825,7 @@ Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的
 <span id="cb3-50"><a href="#cb3-50"></a>        kl_loss <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb3-51"><a href="#cb3-51"></a>    <span class="co"># ...</span></span>
 <span id="cb3-52"><a href="#cb3-52"></a>    <span class="va">self</span>.strategy.optimizer_step(<span class="va">self</span>.actor_optim, <span class="va">self</span>.actor, <span class="va">self</span>.actor_scheduler, name<span class="op">=</span><span class="st">"actor"</span>)</span>
-<span id="cb3-53"><a href="#cb3-53"></a>    <span class="co"># ...</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-53"><a href="#cb3-53"></a>    <span class="co"># ...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -847,7 +848,7 @@ Listing&nbsp;3: OpenRLHF 支持计算 KL 估计样本值，先对序列内部的
 Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>
 </figcaption>
 <div aria-describedby="lst-verl-kl-reward-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">def</span> apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, kl_penalty<span class="op">=</span><span class="st">'kl'</span>):</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">def</span> apply_kl_penalty(data: DataProto, kl_ctrl: core_algos.AdaptiveKLController, kl_penalty<span class="op">=</span><span class="st">'kl'</span>):</span>
 <span id="cb4-2"><a href="#cb4-2"></a>    <span class="co"># ...</span></span>
 <span id="cb4-3"><a href="#cb4-3"></a>    <span class="co"># compute kl between ref_policy and current policy</span></span>
 <span id="cb4-4"><a href="#cb4-4"></a>    <span class="cf">if</span> <span class="st">'ref_log_prob'</span> <span class="kw">in</span> data.batch.keys():</span>
@@ -860,7 +861,7 @@ Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <a href="#fn8" c
 <span id="cb4-11"><a href="#cb4-11"></a>        kld <span class="op">=</span> torch.zeros_like(response_mask, dtype<span class="op">=</span>torch.float32)</span>
 <span id="cb4-12"><a href="#cb4-12"></a></span>
 <span id="cb4-13"><a href="#cb4-13"></a>    token_level_rewards <span class="op">=</span> token_level_scores <span class="op">-</span> beta <span class="op">*</span> kld</span>
-<span id="cb4-14"><a href="#cb4-14"></a>    <span class="co"># ...</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-14"><a href="#cb4-14"></a>    <span class="co"># ...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -880,7 +881,7 @@ Listing&nbsp;4: verl 将 KL 估计样本值从 reward 中减去 <a href="#fn8" c
 Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，并加入到 loss 中 <a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a>
 </figcaption>
 <div aria-describedby="lst-verl-kl-loss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">def</span> update_policy(<span class="va">self</span>, data: DataProto):</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">def</span> update_policy(<span class="va">self</span>, data: DataProto):</span>
 <span id="cb5-2"><a href="#cb5-2"></a>    <span class="co"># make sure we are in training mode</span></span>
 <span id="cb5-3"><a href="#cb5-3"></a>    <span class="va">self</span>.actor_module.train()</span>
 <span id="cb5-4"><a href="#cb5-4"></a>    <span class="co"># ...</span></span>
@@ -923,7 +924,7 @@ Listing&nbsp;5: verl 计算 KL 估计样本值，对所有 token 计算均值，
 <span id="cb5-41"><a href="#cb5-41"></a>            grad_norm <span class="op">=</span> <span class="va">self</span>._optimizer_step()</span>
 <span id="cb5-42"><a href="#cb5-42"></a>    <span class="co"># ...</span></span>
 <span id="cb5-43"><a href="#cb5-43"></a>    <span class="va">self</span>.actor_optimizer.zero_grad()</span>
-<span id="cb5-44"><a href="#cb5-44"></a>    <span class="co"># ...</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-44"><a href="#cb5-44"></a>    <span class="co"># ...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -1106,7 +1107,7 @@ p(\mathbf{s}_1, \mathbf{a}_1, \cdots, \mathbf{s}_{|\mathbf{\tau}|}, \mathbf{a}_{
 Listing&nbsp;6: verl 的 KL 散度 Monte Carlo 估计样本值<a href="#fn14" class="footnote-ref" id="fnref14" role="doc-noteref"><sup>14</sup></a>
 </figcaption>
 <div aria-describedby="lst-verl-kl-estimator-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">def</span> kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_penalty) <span class="op">-&gt;</span> torch.FloatTensor:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">def</span> kl_penalty(logprob: torch.FloatTensor, ref_logprob: torch.FloatTensor, kl_penalty) <span class="op">-&gt;</span> torch.FloatTensor:</span>
 <span id="cb6-2"><a href="#cb6-2"></a>    <span class="co"># ...</span></span>
 <span id="cb6-3"><a href="#cb6-3"></a>    <span class="cf">if</span> kl_penalty <span class="op">==</span> <span class="st">"kl"</span>:</span>
 <span id="cb6-4"><a href="#cb6-4"></a>        <span class="cf">return</span> logprob <span class="op">-</span> ref_logprob</span>
@@ -1129,7 +1130,7 @@ Listing&nbsp;6: verl 的 KL 散度 Monte Carlo 估计样本值<a href="#fn14" cl
 <span id="cb6-21"><a href="#cb6-21"></a>        <span class="co"># so, here logprob and ref_logprob should contain the logits for every token in vocabulary</span></span>
 <span id="cb6-22"><a href="#cb6-22"></a>        <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span>
 <span id="cb6-23"><a href="#cb6-23"></a></span>
-<span id="cb6-24"><a href="#cb6-24"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-24"><a href="#cb6-24"></a>    <span class="cf">raise</span> <span class="pp">NotImplementedError</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -1163,7 +1164,7 @@ k_{3} &amp; = (r - 1) - \log r
 <section id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式" class="level3" data-number="4.1.1">
 <h3 data-number="4.1.1" class="anchored" data-anchor-id="不同-kl-估计量对应的-loss-项导出的梯度估计的一般形式"><span class="header-section-number">4.1.1</span> 不同 KL 估计量对应的 loss 项导出的梯度估计的一般形式</h3>
 <p>观察 <a href="#lst-openrlhf-calc-kl-loss" class="quarto-xref">Listing&nbsp;3</a> 计算 “KL loss” 项的部分。</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># ...</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># ...</span></span>
 <span id="cb7-2"><a href="#cb7-2"></a>kl <span class="op">=</span> compute_approx_kl(</span>
 <span id="cb7-3"><a href="#cb7-3"></a>    action_log_probs,</span>
 <span id="cb7-4"><a href="#cb7-4"></a>    base_action_log_probs,</span>
@@ -1174,7 +1175,7 @@ k_{3} &amp; = (r - 1) - \log r
 <span id="cb7-9"><a href="#cb7-9"></a>kl_mean <span class="op">=</span> masked_mean(kl, experience.action_mask, dim<span class="op">=-</span><span class="dv">1</span>)</span>
 <span id="cb7-10"><a href="#cb7-10"></a><span class="co"># ...</span></span>
 <span id="cb7-11"><a href="#cb7-11"></a>kl_loss <span class="op">=</span> kl_mean.mean()</span>
-<span id="cb7-12"><a href="#cb7-12"></a><span class="co"># ...</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="co"># ...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>这些代码：</p>
 <ol type="1">
 <li>计算了 <code>kl</code>，对应对每个动作 token <span class="math inline">\(a_{i,t}\)</span> 计算 “KL 估计量” <span class="math inline">\(k\)</span>。</li>
@@ -1590,7 +1591,7 @@ k_{3} &amp; = (r - 1) - \log r
 Listing&nbsp;7: TRL 使用采样样本并使用 <span class="math inline">\(\pi_{\theta_{\text{old}}}\)</span> 计算对数似然<a href="#fn19" class="footnote-ref" id="fnref19" role="doc-noteref"><sup>19</sup></a>
 </figcaption>
 <div aria-describedby="lst-trl-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>queries <span class="op">=</span> data[<span class="st">"input_ids"</span>].to(device)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>queries <span class="op">=</span> data[<span class="st">"input_ids"</span>].to(device)</span>
 <span id="cb8-2"><a href="#cb8-2"></a><span class="co"># ...</span></span>
 <span id="cb8-3"><a href="#cb8-3"></a></span>
 <span id="cb8-4"><a href="#cb8-4"></a><span class="cf">with</span> unwrap_model_for_generation(</span>
@@ -1606,7 +1607,7 @@ Listing&nbsp;7: TRL 使用采样样本并使用 <span class="math inline">\(\pi_
 <span id="cb8-14"><a href="#cb8-14"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, queries.shape[<span class="dv">0</span>], args.local_rollout_forward_batch_size):</span>
 <span id="cb8-15"><a href="#cb8-15"></a>    <span class="co"># ...</span></span>
 <span id="cb8-16"><a href="#cb8-16"></a>    logits <span class="op">=</span> logitss[i : i <span class="op">+</span> args.local_rollout_forward_batch_size]</span>
-<span id="cb8-17"><a href="#cb8-17"></a>    logprob <span class="op">=</span> selective_log_softmax(logits, response)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-17"><a href="#cb8-17"></a>    logprob <span class="op">=</span> selective_log_softmax(logits, response)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -1618,7 +1619,7 @@ Listing&nbsp;7: TRL 使用采样样本并使用 <span class="math inline">\(\pi_
 Listing&nbsp;8: TRL PPO 多轮更新
 </figcaption>
 <div aria-describedby="lst-trl-ppo-update-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># Do multiple epochs of PPO training, with a fresh random shuffle in each epoch</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="co"># Do multiple epochs of PPO training, with a fresh random shuffle in each epoch</span></span>
 <span id="cb9-2"><a href="#cb9-2"></a><span class="cf">for</span> ppo_epoch_idx <span class="kw">in</span> <span class="bu">range</span>(args.num_ppo_epochs):</span>
 <span id="cb9-3"><a href="#cb9-3"></a>    b_inds <span class="op">=</span> np.random.permutation(args.local_batch_size)</span>
 <span id="cb9-4"><a href="#cb9-4"></a>    minibatch_idx <span class="op">=</span> <span class="dv">0</span></span>
@@ -1668,7 +1669,7 @@ Listing&nbsp;8: TRL PPO 多轮更新
 <span id="cb9-48"><a href="#cb9-48"></a>                loss <span class="op">=</span> pg_loss <span class="op">+</span> args.vf_coef <span class="op">*</span> vf_loss</span>
 <span id="cb9-49"><a href="#cb9-49"></a>                accelerator.backward(loss)</span>
 <span id="cb9-50"><a href="#cb9-50"></a>                optimizer.step()</span>
-<span id="cb9-51"><a href="#cb9-51"></a>                optimizer.zero_grad()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-51"><a href="#cb9-51"></a>                optimizer.zero_grad()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -1688,7 +1689,7 @@ Listing&nbsp;8: TRL PPO 多轮更新
 Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{\theta_{\text{old}}}\)</span> 计算对数似然
 </figcaption>
 <div aria-describedby="lst-openrlhf-sample-and-calc-old-logprob-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a><span class="co"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a><span class="co"># https://github.com/OpenRLHF/OpenRLHF/blob/cdcabf3548ed67f7454eed4fb70905ac8faa8694/openrlhf/trainer/ppo_utils/experience_maker.py#L592-L595</span></span>
 <span id="cb10-2"><a href="#cb10-2"></a><span class="kw">def</span> make_experience(<span class="va">self</span>, samples: Samples) <span class="op">-&gt;</span> Experience:</span>
 <span id="cb10-3"><a href="#cb10-3"></a>    <span class="co">"""</span></span>
 <span id="cb10-4"><a href="#cb10-4"></a><span class="co">    Turn samples into experience by calculating logprobs, values, rewards, and kl divergence.</span></span>
@@ -1706,7 +1707,7 @@ Listing&nbsp;9: OpenRLHF 采样样本并使用 <span class="math inline">\(\pi_{
 <span id="cb10-16"><a href="#cb10-16"></a>        action_log_probs,</span>
 <span id="cb10-17"><a href="#cb10-17"></a>        base_action_log_probs,</span>
 <span id="cb10-18"><a href="#cb10-18"></a>        <span class="co"># ...</span></span>
-<span id="cb10-19"><a href="#cb10-19"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-19"><a href="#cb10-19"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </figure>
 </div>
@@ -1921,16 +1922,16 @@ L^{\text{KLPEN}}(\theta)=\hat{\mathbb{E}}_t\left[\frac{\pi_\theta\left(a_t \mid 
 </div></section><section id="引用" class="level2 appendix" data-number="9.4"><h2 class="anchored quarto-appendix-heading"><span class="header-section-number">9.4</span> 引用</h2><div class="quarto-appendix-contents">
 
 <p>BibTeX:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><a href="#cb11-1"></a><span class="va">@online</span>{<span class="ot">tong2025kl</span>,</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb11-1"><a href="#cb11-1"></a><span class="va">@online</span>{<span class="ot">tong2025kl</span>,</span>
 <span id="cb11-2"><a href="#cb11-2"></a>  <span class="dt">author</span> = {童雨轩},</span>
 <span id="cb11-3"><a href="#cb11-3"></a>  <span class="dt">title</span> = {重新思考 {RL} 中的 {KL} 梯度优化},</span>
 <span id="cb11-4"><a href="#cb11-4"></a>  <span class="dt">year</span> = {2025},</span>
 <span id="cb11-5"><a href="#cb11-5"></a>  <span class="dt">url</span> = {https://tongyx361.github.io/posts/kl-rel-to-ref-in-rl-zh},</span>
 <span id="cb11-6"><a href="#cb11-6"></a>  <span class="dt">urldate</span> = {2025-03-09},</span>
 <span id="cb11-7"><a href="#cb11-7"></a>  <span class="dt">language</span> = {Chinese},</span>
-<span id="cb11-8"><a href="#cb11-8"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-8"><a href="#cb11-8"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>文本：</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1"><a href="#cb12-1"></a>童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1"><a href="#cb12-1"></a>童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 <!-- -->
@@ -2032,13 +2033,14 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
@@ -2470,7 +2472,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   }
   loadGiscus();
 </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb13" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1"></a><span class="co">---</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13" data-shortcodes="false"><pre class="sourceCode numberSource markdown number-lines code-with-copy"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1"></a><span class="co">---</span></span>
 <span id="cb13-2"><a href="#cb13-2"></a><span class="co"># title</span></span>
 <span id="cb13-3"><a href="#cb13-3"></a><span class="an">title:</span><span class="co"> "重新思考 RL 中的 KL 梯度优化"</span></span>
 <span id="cb13-4"><a href="#cb13-4"></a><span class="an">subtitle:</span><span class="co"> "修正 GRPO 公式与流行 LLM RL 框架"</span></span>
@@ -3818,7 +3820,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
 <span id="cb13-1346"><a href="#cb13-1346"></a></span>
 <span id="cb13-1347"><a href="#cb13-1347"></a><span class="in">```text</span></span>
 <span id="cb13-1348"><a href="#cb13-1348"></a><span class="in">童雨轩. 2025. “重新思考 RL 中的 KL 梯度优化.” https://tongyx361.github.io/blogs/posts/kl-rel-to-ref-in-rl-zh.</span></span>
-<span id="cb13-1349"><a href="#cb13-1349"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+<span id="cb13-1349"><a href="#cb13-1349"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
