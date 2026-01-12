@@ -34,6 +34,8 @@ toc-title: Table of Contents
 categories:
     - English 英文
     - Technical 技术
+language:
+  title-block-modified: "Last Modified"
 # redirect
 aliases:
   - /posts/is-bet
