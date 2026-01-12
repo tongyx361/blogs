@@ -258,12 +258,12 @@ The optimal weighting should be still an open problem that is beyond our scope. 
 BibTeX:
 
 ```BibTeX
-@article{tong2026is-slapt,
+@article{tong2026isdr,
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
-  title = {{Justifying Importance Sampling with Sliding Latest Policy Trajectories}},
+  title = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},
   journal = {Blog},
-  year = {2026},
-  url = {https://tongyx361.github.io/posts/is-slapt},
+  date = {2026-01-12},
+  url = {https://tongyx361.github.io/posts/isdr},
   language = {English},
 }
 ```
