@@ -258,6 +258,18 @@ Beyond the comparison on each single-sample estimate, we can also consider the o
 
 The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in @sec-is-mcspt. This also supports the comparability of SLAPT and MCSPT.
 
+## Discussions
+
+### Off-policyness Allocation
+
+With similar utilization of the same hardware resources, the total number of actions (tokens) that can be sampled with each version of the (LLM) policy should be roughly the same. Such a constraint might be helpful for analyzing how to allocate the "off-policyness" will be optimal for the IS estimate.
+
+Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.
+
+# Acknowledgments
+
+Thanks for helpful discussion with Wang Zhang.
+
 # Citation {.appendix .unnumbered}
 
 BibTeX:
@@ -272,3 +284,4 @@ BibTeX:
   language = {English},
 }
 ```
+
