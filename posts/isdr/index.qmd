@@ -1,7 +1,8 @@
 ---
 # title
 title: '[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems'
-date: "2026-01-12"
+date: "2026-01-07"
+date-modified: last-modified
 author: 
   - name: "Yuxuan Tong"
     email: "tongyuxuan361@gmail.com"
@@ -264,7 +265,7 @@ BibTeX:
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
   title = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},
   journal = {Blog},
-  date = {2026-01-12},
+  date = {2026-01-07},
   url = {https://tongyx361.github.io/posts/isdr},
   language = {English},
 }
