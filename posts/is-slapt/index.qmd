@@ -1,6 +1,6 @@
 ---
 # title
-title: '[WIP] Justifying Importance Sampling with Sliding Latest Policy Trajectories'
+title: '[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems'
 date: "2026-01-07"
 author: 
   - name: "Yuxuan Tong"
@@ -16,9 +16,7 @@ keywords:
   - Large Language Model
 abstract: |
 
-  Modern Large Language Model (LLM) Reinforcement Learning (RL) systems, such as Kimi k1.5 and AReaL, increasingly adopt *Partial Rollout* strategies to mitigate long-tail latency and simplify weight management. These systems generate **Sliding Latest Policy Trajectories (SLAPTs)** -- sequences where the sampling policy may update mid-rollout -- thereby challenging the standard assumptions of Importance Sampling (IS) which typically rely on a consistent behavior policy.
-
-  This post provides a justification for applying Importance Sampling to SLAPTs. We demonstrate that by constructing trajectory-wise behavior policies, we can maintain unbiased estimates despite the mixed-policy nature of the rollouts. Furthermore, leveraging variance bounds based on Rényi divergence, we argue that SLAPTs -- being closer to the target policy than consistent but stale behavior policies -- are likelt to yield lower variance. Finally, we propose that *Multiple Importance Sampling (MulIS)* with the *Balance Heuristic (BH)* can be utilized to further exploit the distributional properties of these trajectories for better policy optimization.
+  TODO
 
 toc-expand: false
 # citation
@@ -38,30 +36,24 @@ aliases:
   - /posts/is-bet
 ---
 
-# Background
+# Off-Policy Data in Fully-Utilized LLM RL Systems
 
-## Importance Sampling (IS)
+In Reinforcement Learning (RL) systems for Large Language Models (LLMs), especially those that pursue full utilization of the hardware resources, it is common that we have to utilize **off-policy** data, typically a batch of trajectory samples collected from one or multiple stale policies.
 
-It is a common practice to optimize LLM policy on off-policy data with Importance Sampling (IS):
+So far, there have been two main kinds of off-policy data emerging in such systems, which in this post we refer to as:
 
-$$
-\hat{\mathbb{E}}_{\mu} = \frac{p_{\theta}(\boldsymbol{\tau})}{q_{\mu}(\boldsymbol{\tau})}f(\boldsymbol{\tau}),
-$$
+1. Sliding Latest Policy Trajectories (SLAPTs)
+2. Multiple Consistent Stale Policy Trajectories (MCSPTs)
 
-where $f(\boldsymbol{\tau})$ can be the gradient of the objective function to be optimized, $p_{\theta}(\boldsymbol{\tau})$ is the trajectory distribution induced by the target policy $\pi_{\theta}$ and $q_{\mu}(\boldsymbol{\tau})$ is the trajectory distribution induced by the behavior policy $\mu$.
+## Sliding Latest Policy Trajectories (SLAPTs)
 
+We use *Sliding Latest Policy Trajectories* to refer to such batches of trajectories that are sampled in an RL system where we always use the latest policy $\pi_{\theta_{t}}$ at each moment to sample the actions.
 
-## Sliding Latest Policy Trajectory (SLAPT)
+Formally, a SLAPT can be defined as a trajectory $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta_{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
 
-We use *Sliding Latest Policy Trajectories* (SLAPTs) to refer to the trajectories sampled in a Reinforcement Learning (RL) system where we always use the latest policy $\pi_{\theta_{t}}$ at each moment to sample the actions.
+SLAPTs in a batch usually have different policy compositions, depending on the system dynamics.
 
-Formally, a SLAPT can be defined as a trajectory $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+m}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta+{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
-
-SLAPTs are off-policy by definition, but are as close to on-policy as possible with the best effort in the system.
-
-## Partial Rollout
-
-SLAPTs are a natural result of a popular design choice called *Partial Rollout* in LLM RL systems nowadays, such as Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional Distributed RL system called SEED RL [@espeholt2020seedrl]:
+SLAPTs are a natural result of a popular design choice called *Partial Rollout* in LLM RL systems nowadays, such as Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional distributed RL system called SEED RL [@espeholt2020seedrl]:
 
 The ongoing trajectory rollouts are
 
@@ -72,15 +64,9 @@ The ongoing trajectory rollouts are
 
 Partial Rollout is motivated by its efficiency and simplicity. Let me explain in detail.
 
-### Efficiency: Eliminating Long-Tail Bubbles
-
-The earliest LLM RL systems [@yao2023dschat, @shen2024nemoaligner, @sheng2025hybridflow, @hu2025openrlhf] all adopt synchoronous architectures, where the trainer always waits for all the trajectories are finished before updating the weights with these data.
-
-However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasing heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically <30% in practice). [@sheng2025laminar]
+The earliest LLM RL systems [@yao2023dschat, @shen2024nemoaligner, @sheng2025hybridflow, @hu2025openrlhf] all adopt synchoronous architectures, where the trainer always waits for all the trajectories are finished before updating the weights with these data. However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasing heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically <30% in practice).
 
 Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly update the weights with these data, instead of waiting for all the trajectories to finish, and then continue the rollouts with the new model weights.
-
-### Simplicity: Only Maintaining One Version of Model Weights
 
 In asynchornous RL systems with an experience buffer, it is troublesome to mamage multiple versions of model weights within the rollout engine.
 
@@ -88,47 +74,150 @@ AReaL proposes to always only maintain the latest model weights across all the i
 
 This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the bothering to manage the requests across each instance.
 
-# IS with Sliding Latest Policy Trajectories
+Despite Partial Rollout's efficiency and simplicity, there have been worries about mixing multiple policies within a single trajectory, since most previous works formulate IS with a single consistent behavior policy $\mu(\cdot \mid \boldsymbol{s})$ while such formulation is rather under-explored. We defer a more detailed discussion about this to @sec-is.
 
-Despite Partial Rollout's efficiency and simplicity, there have been worries about applying IS with SLAPTs, since most previous distributed RL works including the most representative IMPALA [@espeholt2018impala] formulate IS with a single consistent behavior policy $\mu(a \mid s)$, and it feels weird to mix multiple policies $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+m}},\ldots,\pi_{\theta_{n+M}}$ within a single trajectory.
+## Multiple Consistent Stale Policy Trajectories (MCSPTs)
 
-## IS with Global Behavior Policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$
+We use *Multiple Consistent Stale Policy Trajectories* (MCSPTs) to refer to such batches of trajectories that
 
-Since there is always an actual distribution we are sampling from, we can always formulate it as a global behavior policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$.
+- each of them is sampled with a consistent stale policy $\pi_{\theta_{n}}$,
+- while there might be different $n$ for different trajectories.
 
-It is natural to try to use $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ for IS. So how can we calculate it?
+The consistency of policy within a trajectory makes the formulation simpler, which is widely used in traditional distributed RL systems like IMPALA [@espeholt2018impala].
 
-It is easy to notice that, for each trajectory of an LLM policy, we can usually construct a behavior policy $\forall t, \mu(\boldsymbol{a} \mid \boldsymbol{s})$ satisfies that $\mu(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ at every timestep $t$, since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.
+In contrast, MCSPT sampling is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.
 
-However, it might be confusing when we also notice that, for the same state $s$ in two different SLAPTs $\tau_{i}$ and $\tau_{j}$, the same action $a$ might be sampled from different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) respectively. It is likely that $\pi_{\theta_{n+m}}(a_{t} \mid s_{t}) \neq \pi_{\theta_{n+l}}(a_{t} \mid s_{t})$, making it impossible to simply construct the same behavior policy for both SLAPTs, i.e., $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ constradicts $\mu(a_{t} \mid s_{t})=\pi_{\theta_{n+l}}(a_{t} \mid s_{t})$.
+@sheng2025laminar implement an LLM RL system that samples MCSPTs with full utilization of the hardware resources.
 
-So where is the problem of the construction for $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ mentioned above?
+# Importance Sampling with Off-Policy Data in (Fully-Utilized) LLM RL Systems {#sec-is}
 
-The problem hidden here is that, $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ does not consider the probability distribution of which LLM policy $\pi_{\theta_{n+m}}$ is used, but this distribution is intractable since it depends on the system dynamics.
+[Importance Sampling (IS)](https://en.wikipedia.org/wiki/Importance_sampling) has been widely used in LLM RL systems.
 
-## IS with Trajectory-wise Behavior Policy $\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})$
+It is useful for estimating the expection of some random function, typically the gradient of the return respect to the policy parameters, on the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:
 
-A trivial solution is to construct a trajectory-wise behavior policy $\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})$ for each trajectory $\tau_{i}$.
+$$
+\begin{aligned}
+\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau})) =& \frac{1}{N} \sum_{i=1}^{N} \frac{p_{\theta}(\boldsymbol{\tau}_i)}{q_{\mu}(\boldsymbol{\tau}_i)}f(\boldsymbol{\tau}_i) \\
+=& \frac{1}{N} \sum_{i=1}^{N} \frac{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}f(\boldsymbol{\tau}_i) \\
+=& \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
+\end{aligned}
+$$ {#eq-is-batch}
 
-Now for the counter-example mentioned above, $\mu_i(\boldsymbol{a} \mid \boldsymbol{s})=\pi_{\theta_{n+m}}(\boldsymbol{a} \mid \boldsymbol{s})$ and $\mu_j(\boldsymbol{a} \mid \boldsymbol{s})=\pi_{\theta_{n+l}}(\boldsymbol{a} \mid \boldsymbol{s})$ are obviously compatible.
+where 
 
-With a batch of $N$ trajectory samples sampled from each own behavior policy $\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}$, it is easy to formulate single-sample estimate $\hat{\mathbb{E}}_{\mu_i} = \frac{p_{\theta}(\boldsymbol{\tau}_i)}{q_{\mu_i}(\boldsymbol{\tau}_i)}f(\boldsymbol{\tau}_i)$.
+- $N$ is the batch size,
+- $f(\cdot)$ can be any function of the trajectory sample $\boldsymbol{\tau}$, of which the most important one is the gradient function of the optimization objective $\mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}[J(\cdot)]$ relative to the policy parameters $\theta$,
+- $p_{\theta}(\cdot)$ is the probability density function of the trajectory distribution induced by the target policy $\pi_{\theta}$ parameterized by $\theta$ and the enviroment state transition distribution $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$,
+- $q_{\mu}(\cdot)$ is the probability density function of the trajectory distribution induced by the behavior policy $\mu$ and $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$.
 
-Note that the single-sample estimate is already unbiased, i.e., the unbiasedness does not depend on the sample size.
+One important property of @eq-is-batch is that it is unbiased, i.e.,
 
-The common practice to combine them for an estimate is to average the single-sample estimates $\hat{\mathbb{E}}_{\mu_i}, i = 1, \ldots, N$, i.e., $\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i}$.
+$$
+\mathbb{E}_{\boldsymbol{\tau} \sim q_{\mu}}[\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau}))] = \mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}[f(\boldsymbol{\tau})]
+$$ {#eq-is-unbiased}
 
-Due to linearity of expectation, $\hat{\mathbb{E}}_{\text{avg}}$ is still unbiased.
+Of the components mentioned above, the only one that is ambiguous for calculation is the behavior policy $\mu(\cdot \mid \boldsymbol{s})$.
 
-Now let's take a look at the variance. Let the variance of each single-sample estimate be $\sigma^2_{\mu_i}$, since the samples are independent, the variance of the average estimate $\hat{\mathbb{E}}_{\text{avg}}$ is:
+However, the correct calculation of $\mu(\cdot \mid \boldsymbol{s})$ with the off-policy data in fully-utilized LLM RL systems mentioned above is not straightforward.
+
+## Simple but Intractable: Global Behavior Policy $\mu^{*}(\cdot \mid \boldsymbol{s})$ {#sec-intractable-global-behav-policy}
+
+Since there is always an actual distribution we are sampling from, we can always formulate the IS estimate with a global behavior policy $\mu^{*}(\cdot \mid \boldsymbol{s})$.
+
+The most direct thought is to use $\mu^{*}(\cdot \mid \boldsymbol{s})$ for IS in practice. But this requires us to calculate the  probabilities under it.
+
+@fu2025areal Proposition 1 resorts to constructing a behavior policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ that satisfies $\mu^{*}(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ for each $(s_{t}, a_{t})$ pair in the trajectory samples. This sounds reasonable for LLM RL since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.
+
+However, it might be confusing when we also notice that, the same state $s$ might appear in two different trajectory samples $\tau_{i}$ and $\tau_{j}$, especially for the initial states $s_{0}$, i.e., the prompts, and the same action $a$ might be sampled from different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) respectively. It is very likely that $\pi_{\theta_{n+m}}(a \mid s) \neq \pi_{\theta_{n+l}}(a \mid s)$, making it infeasible to simply construct the same behavior policy for both trajectory samples, i.e., $\mu^{*}(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ constradicts $\mu(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$.
+
+So where is the problem in the construction for $\mu(\cdot \mid \boldsymbol{s})$ mentioned above?
+
+The problem hidden here is that, $\mu(\cdot \mid \boldsymbol{s})$ does not consider the probability distribution of which LLM policy $\pi_{\theta_{n+m}}$ is used. Furthermore, this distribution is actually intractable since it depends on the system dynamics.
+
+## IS with MCSPTs {#sec-is-mcspt}
+
+IS with MCSPTs is simpler to formulate since each trajectory is sampled with a consistent stale policy $\pi_{\theta_{n}}$, and we only need to correctly formulate the policy used by each trajectory.
+
+### Mixture Importance Sampling
+
+In some simple cases, the distribution of which policy is used, i.e., the hyper-policy distribution, is known, where we can formulate the IS estimate as *Mixture Importance Sampling* [@owen2013mcbook].
+
+### Multiple Importance Sampling
+
+However, in more general cases, we can only know ad hoc that the number of trajectories sampled from each policy $\pi_{\theta_{j}}$ is $n_{j}$, where $N = \sum_{j} n_{j}$. For such cases, we can formulate the IS estimate as *Multiple Importance Sampling* [@owen2013mcbook]:
+
+> Suppose that $\boldsymbol{X}_{i j} \sim q_j$ for $i=1, \ldots, n_j$ and $j=1, \ldots, J$ and that $\omega_j$ are a partition of unity. The multiple importance sampling estimate is
+>
+> $$\widetilde{\mu}_\omega=\sum_{j=1}^J \frac{1}{n_j} \sum_{i=1}^{n_j} \omega_j\left(\boldsymbol{X}_{i j}\right) \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{q_j\left(\boldsymbol{X}_{i j}\right)} .$$
+>
+> Now assume that $q_j(\boldsymbol{x})>0$ whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then multiple importance sampling is unbiased, because
+> $$\mathbb{E}\left(\widetilde{\mu}_\omega\right)=\sum_{j=1}^J \mathbb{E}_{q_j}\left(\omega_j(\boldsymbol{X}) \frac{f(\boldsymbol{X}) p(\boldsymbol{X})}{q_j(\boldsymbol{X})}\right)=\sum_{j=1}^J \int \omega_j(\boldsymbol{x}) f(\boldsymbol{x}) p(\boldsymbol{x}) \mathrm{d} \boldsymbol{x}=\mu .$$
+
+### Balance Heuristic
+
+The natural problem following is how to choose the partition of unity $\omega_j$:
+
+> Among the proposals for functions $\omega_j(\boldsymbol{x})$, the most studied one is the balance heuristic with $\omega_j(\boldsymbol{x}) \propto n_j q_j(\boldsymbol{x})$, that is
+> 
+>$$\omega_j(\boldsymbol{x})=\omega_j^{\mathrm{BH}}(\boldsymbol{x}) \equiv \frac{n_j q_j(\boldsymbol{x})}{\sum_{k=1}^J n_k q_k(\boldsymbol{x})} .$$
+>
+> By construction $q_j(\boldsymbol{x})>0$ holds whenever $\left(\omega_j^{\mathrm{BH}} p f\right)(\boldsymbol{x}) \neq 0$. Let $n=\sum_{j=1}^J n_j$ and define $\alpha_j=n_j / n$. Then using the balance heuristic, $\widetilde{\mu}_{\omega^{\text {ВН }}}$ simplifies to
+> $$\widetilde{\mu}_\alpha=\frac{1}{n} \sum_{j=1}^J \sum_{i=1}^{n_j} \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{\sum_{j=1}^J \alpha_j q_j\left(\boldsymbol{X}_{i j}\right)} .$$
+>
+> In other words, multiple importance sampling, with weights from the balance heuristic reduces to the same estimator we would use in mixture importance sampling with mixture weights $\alpha_j=n_j / n$. Once again, the weight on a given sampled value $\boldsymbol{X}_{i j}$ does not depend on which mixture component it came from. The balance heuristic is nearly optimal in the following sense:
+>
+> Theorem 9.8. Let $n_j \geqslant 1$ be positive integers for $j=1, \ldots, J$. Let $\omega_1, \ldots, \omega_J$ be a partition of unity and let $\omega^{\mathrm{BH}}$ be the balance heuristic. Suppose that $q_j(\boldsymbol{x})>$ 0 whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then
+> 
+> $$\operatorname{Var}\left(\widetilde{\mu}_{\omega^{\mathrm{BH}}}\right) \leqslant \operatorname{Var}\left(\widetilde{\mu}_\omega\right)+\left(\frac{1}{\min _j n_j}-\frac{1}{\sum_j n_j}\right) \mu^2 .$$
+>
+> [@owen2013mcbook]
+
+The heuristic behind the balance heuristic to make $\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})$ can be also understood as the more samples we have from a policy, the more information we have about it, thus the more weight it should have.
+
+## IS with SLAPTs
+
+The IS with SLAPTs is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is in absense in previous works including @espeholt2020seedrl that first proposed the usage of SLAPTs.
+
+In this section, we try to discuss the formulation and some properties of IS with SLAPTs that might be useful in practice.
+
+### Trajectory-dependent Behavior Policy $\mu_{i}(\cdot \mid \boldsymbol{s})$
+
+A general but trivial formulation for IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use $\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})$ for each trajectory $\tau_{i}$.
+
+Now for the counter-example mentioned in @sec-intractable-global-behav-policy, $\mu_i(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ and $\mu_j(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$ are obviously compatible.
+
+With a batch of $N$ trajectory samples sampled from each own behavior policy $\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}$, we can only use the special case of the batch estimate @eq-is-batch with $N=1$, i.e., the single-sample estimate
+
+$$
+\hat{\mathbb{E}}_{\mu_i}(\boldsymbol{\tau}_i) = \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
+$$ {#eq-is-single-sample}
+
+Note that the single-sample estimate is also unbiased, i.e., the unbiasedness of @eq-is-batch does not depend on the sample size $N$.
+
+The common practice to combine them into an estimate with the batch of samples is to average the single-sample estimates @eq-is-single-sample, i.e., 
+
+$$
+\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i} = \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
+$$ {#eq-is-single-sample-avg}
+
+With the linearity of expectation, it is obvious to see the unbiasedness of the average estimate $\hat{\mathbb{E}}_{\text{avg}}$.
+
+Now let's take a look at the variance. Let the variance of each single-sample estimate be $\sigma^2_{\mu_i}$, since the samples are independent, the variance of $\hat{\mathbb{E}}_{\text{avg}}$ is:
 
 $$
 \sigma^2_{\text{avg}} = \frac{1}{N^2} \sum_{i=1}^{N} \sigma^2_{\mu_i}
-$$
+$$ {#eq-is-single-sample-avg-var}
 
-## Mixed Sliding Latest Policy Might Have Lower Variance than Consistent Old Policy
+Given the batch variance is determined by composing the variances of the single-sample estimates, we can first try to analyze the variance of the single-sample estimate.
 
-Now we wonder, given a trajectory $\boldsymbol{\tau}_{i}$, which of the mixed best-effort policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$  and the consistent old policy $\pi_{\theta_{n}}$ is better for IS estimate, i.e., leads to a lower variance?
+### Variance of Single-Sample Estimate -- MCSPT vs. SLAPT
+
+MCSPT and SLAPT just form two different cases of the single-sample estimate. We might wonder that, given a trajectory $\boldsymbol{\tau}_{i}$, which of
+
+1) the consistent old policy $\pi_{\theta_{n+m}}$ and
+2) the sliding latest policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$ successively
+
+is better for the unbiased single-sample IS estimate @eq-is-single-sample, i.e., leads to a lower variance?
 
 @metelli2020pois provided a family of bounds of the variance of IS estimate in terms of the [Rényi divergence](https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence):
 
@@ -153,42 +242,15 @@ When $\alpha = 1$, the Rényi divergence is the [Kullback-Leibler divergence](ht
 
 In our context, $P$ is the target distribution $p_{\theta}$ and $Q$ is $\mu_{\theta_{n},M}$ or $\pi_{\theta_{n}}$.
 
-Intuitively, it is likely that $d_{2 \alpha}(p_{\theta} \| q_{\theta_{n},M}) < d_{2 \alpha}(p_{\theta} \| p_{\theta_{n}})$, since the newer the policy is, the more similar its induced distribution is to $p_{\theta}$.
+It is possible that $d_{2 \alpha}(p_{\theta} \| q_{\theta_{n},M}) < d_{2 \alpha}(p_{\theta} \| p_{\theta_{n}})$, since the newer the policy is, the more similar its induced distribution is to $p_{\theta}$. Then as long as the $\|f\|_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}$ is not much larger than $\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}$, the estimate using $\mu_{\theta_{n},M}$ has better guarantee than the estimate using $\pi_{\theta_{n}}$.
 
-As long as the $\|f\|_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}$ is not much larger than $\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}$, the estimate using $\mu_{\theta_{n},M}$ has better guarantee than the estimate using $\pi_{\theta_{n}}$.
+In practice, the final effectiveness of the IS estimate usually relies on empirical diagnostic metrics like [Effective Sample Size (ESS)](https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section). For example, @piché2025pipelinerl measured the ESS of different sampling policies they used.
 
-These conjectures can be verified by empirical experiments. For example, Figure 6 and 7 by @piché2025pipelinerl show that $\mu_{\theta_{n},M}$ has higher ESS and lower KL divergence relative to $p_{\theta}$ than $\pi_{\theta_{n}}$, respectively.
+### Minimizing Variance by Optimizing the Weighting
 
-We are also planning experiments to further verify these conjectures.
+Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In @eq-is-single-sample-avg, we use the simplest average weight $\frac{1}{N}$ for each single-sample estimate. But we can actually use any other weight functions $\omega_i(\boldsymbol{x})$ to combine them, as long as they form a *partition of unity*, i.e., a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.
 
-## Exploiting (Approximatly) Identical Distribution with Multiple IS
-
-Besides the likely superiority for each single-sample estimate, the combination of multiple importance sampling has other properties that can be exploited.
-
-Formally, the combination can actually generalize from average weight $\frac{1}{N}$ to any "partion of unity", which is a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.
-
-Given the property that SLAPTs of similar lengths usally conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can reformulate the estimation as Multiple Importance Sampling [@owen2013mcbook]:
-
-> Suppose that $\boldsymbol{X}_{i j} \sim q_j$ for $i=1, \ldots, n_j$ and $j=1, \ldots, J$ and that $\omega_j$ are a partition of unity. The multiple importance sampling estimate is
->
-> $$\widetilde{\mu}_\omega=\sum_{j=1}^J \frac{1}{n_j} \sum_{i=1}^{n_j} \omega_j\left(\boldsymbol{X}_{i j}\right) \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{q_j\left(\boldsymbol{X}_{i j}\right)} .$$
-> [@owen2013mcbook]
->
-> Now assume that $q_j(\boldsymbol{x})>0$ whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then multiple importance sampling is unbiased, because
-> $$\mathbb{E}\left(\widetilde{\mu}_\omega\right)=\sum_{j=1}^J \mathbb{E}_{q_j}\left(\omega_j(\boldsymbol{X}) \frac{f(\boldsymbol{X}) p(\boldsymbol{X})}{q_j(\boldsymbol{X})}\right)=\sum_{j=1}^J \int \omega_j(\boldsymbol{x}) f(\boldsymbol{x}) p(\boldsymbol{x}) \mathrm{d} \boldsymbol{x}=\mu .$$
->
-> Among the proposals for functions $\omega_j(\boldsymbol{x})$, the most studied one is the balance heuristic with $\omega_j(\boldsymbol{x}) \propto n_j q_j(\boldsymbol{x})$, that is
-> 
->$$\omega_j(\boldsymbol{x})=\omega_j^{\mathrm{BH}}(\boldsymbol{x}) \equiv \frac{n_j q_j(\boldsymbol{x})}{\sum_{k=1}^J n_k q_k(\boldsymbol{x})} .$$
->
-> By construction $q_j(\boldsymbol{x})>0$ holds whenever $\left(\omega_j^{\mathrm{BH}} p f\right)(\boldsymbol{x}) \neq 0$. Let $n=\sum_{j=1}^J n_j$ and define $\alpha_j=n_j / n$. Then using the balance heuristic, $\widetilde{\mu}_{\omega^{\text {ВН }}}$ simplifies to
-> $$\widetilde{\mu}_\alpha=\frac{1}{n} \sum_{j=1}^J \sum_{i=1}^{n_j} \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{\sum_{j=1}^J \alpha_j q_j\left(\boldsymbol{X}_{i j}\right)} .$$
->
-> In other words, multiple importance sampling, with weights from the balance heuristic reduces to the same estimator we would use in mixture importance sampling with mixture weights $\alpha_j=n_j / n$. Once again, the weight on a given sampled value $\boldsymbol{X}_{i j}$ does not depend on which mixture component it came from. The balance heuristic is nearly optimal in the following sense:
->
-> Theorem 9.8. Let $n_j \geqslant 1$ be positive integers for $j=1, \ldots, J$. Let $\omega_1, \ldots, \omega_J$ be a partition of unity and let $\omega^{\mathrm{BH}}$ be the balance heuristic. Suppose that $q_j(\boldsymbol{x})>$ 0 whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then
-> 
-> $$\operatorname{Var}\left(\widetilde{\mu}_{\omega^{\mathrm{BH}}}\right) \leqslant \operatorname{Var}\left(\widetilde{\mu}_\omega\right)+\left(\frac{1}{\min _j n_j}-\frac{1}{\sum_j n_j}\right) \mu^2 .$$
+The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in @sec-is-mcspt. This also supports the comparability of SLAPT and MCSPT.
 
 # Citation {.appendix .unnumbered}
 
