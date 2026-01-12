@@ -34,6 +34,7 @@ categories:
 # redirect
 aliases:
   - /posts/is-bet
+  - /posts/is-slapt
 ---
 
 # Off-Policy Data in Fully-Utilized LLM RL Systems
