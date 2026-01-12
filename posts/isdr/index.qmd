@@ -1,7 +1,7 @@
 ---
 # title
 title: '[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems'
-date: "2026-01-07"
+date: "2026-01-12"
 author: 
   - name: "Yuxuan Tong"
     email: "tongyuxuan361@gmail.com"
