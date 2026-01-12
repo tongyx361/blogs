@@ -455,7 +455,12 @@ window.Quarto = {
   <li><a href="#variance-of-single-sample-estimate-mcspt-vs.-slapt" id="toc-variance-of-single-sample-estimate-mcspt-vs.-slapt" class="nav-link" data-scroll-target="#variance-of-single-sample-estimate-mcspt-vs.-slapt"><span class="header-section-number">2.3.2</span> Variance of Single-Sample Estimate – MCSPT vs.&nbsp;SLAPT</a></li>
   <li><a href="#minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure" id="toc-minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure" class="nav-link" data-scroll-target="#minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure"><span class="header-section-number">2.3.3</span> Minimizing Variance by Optimizing the Weighting – Exploiting the Practical Problem Structure</a></li>
   </ul></li>
+  <li><a href="#discussions" id="toc-discussions" class="nav-link" data-scroll-target="#discussions"><span class="header-section-number">2.4</span> Discussions</a>
+  <ul class="collapse">
+  <li><a href="#off-policyness-allocation" id="toc-off-policyness-allocation" class="nav-link" data-scroll-target="#off-policyness-allocation"><span class="header-section-number">2.4.1</span> Off-policyness Allocation</a></li>
   </ul></li>
+  </ul></li>
+  <li><a href="#acknowledgments" id="toc-acknowledgments" class="nav-link" data-scroll-target="#acknowledgments"><span class="header-section-number">3</span> Acknowledgments</a></li>
   
   </ul>
 </nav>
@@ -491,7 +496,12 @@ window.Quarto = {
   <li><a href="#variance-of-single-sample-estimate-mcspt-vs.-slapt" id="toc-variance-of-single-sample-estimate-mcspt-vs.-slapt"><span class="header-section-number">2.3.2</span> Variance of Single-Sample Estimate – MCSPT vs.&nbsp;SLAPT</a></li>
   <li><a href="#minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure" id="toc-minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure"><span class="header-section-number">2.3.3</span> Minimizing Variance by Optimizing the Weighting – Exploiting the Practical Problem Structure</a></li>
   </ul></li>
+  <li><a href="#discussions" id="toc-discussions"><span class="header-section-number">2.4</span> Discussions</a>
+  <ul>
+  <li><a href="#off-policyness-allocation" id="toc-off-policyness-allocation"><span class="header-section-number">2.4.1</span> Off-policyness Allocation</a></li>
   </ul></li>
+  </ul></li>
+  <li><a href="#acknowledgments" id="toc-acknowledgments"><span class="header-section-number">3</span> Acknowledgments</a></li>
   <li><a href="#citation" id="toc-citation">Citation</a></li>
   </ul>
 </nav>
@@ -658,6 +668,18 @@ window.Quarto = {
 <p>The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in <a href="#sec-is-mcspt" class="quarto-xref">Section&nbsp;2.2</a>. This also supports the comparability of SLAPT and MCSPT.</p>
 </section>
 </section>
+<section id="discussions" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="discussions"><span class="header-section-number">2.4</span> Discussions</h2>
+<section id="off-policyness-allocation" class="level3" data-number="2.4.1">
+<h3 data-number="2.4.1" class="anchored" data-anchor-id="off-policyness-allocation"><span class="header-section-number">2.4.1</span> Off-policyness Allocation</h3>
+<p>With similar utilization of the same hardware resources, the total number of actions (tokens) that can be sampled with each version of the (LLM) policy should be roughly the same. Such a constraint might be helpful for analyzing how to allocate the “off-policyness” will be optimal for the IS estimate.</p>
+<p>Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.</p>
+</section>
+</section>
+</section>
+<section id="acknowledgments" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Acknowledgments</h1>
+<p>Thanks for helpful discussion with Wang Zhang.</p>
 </section>
 
 
@@ -1478,20 +1500,32 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
 <span id="cb2-258"><a href="#cb2-258"></a></span>
 <span id="cb2-259"><a href="#cb2-259"></a>The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in @sec-is-mcspt. This also supports the comparability of SLAPT and MCSPT.</span>
 <span id="cb2-260"><a href="#cb2-260"></a></span>
-<span id="cb2-261"><a href="#cb2-261"></a><span class="fu"># Citation {.appendix .unnumbered}</span></span>
+<span id="cb2-261"><a href="#cb2-261"></a><span class="fu">## Discussions</span></span>
 <span id="cb2-262"><a href="#cb2-262"></a></span>
-<span id="cb2-263"><a href="#cb2-263"></a>BibTeX:</span>
+<span id="cb2-263"><a href="#cb2-263"></a><span class="fu">### Off-policyness Allocation</span></span>
 <span id="cb2-264"><a href="#cb2-264"></a></span>
-<span id="cb2-265"><a href="#cb2-265"></a><span class="in">```BibTeX</span></span>
-<span id="cb2-266"><a href="#cb2-266"></a><span class="in">@article{tong2026isdr,</span></span>
-<span id="cb2-267"><a href="#cb2-267"></a><span class="in">  author = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span></span>
-<span id="cb2-268"><a href="#cb2-268"></a><span class="in">  title = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},</span></span>
-<span id="cb2-269"><a href="#cb2-269"></a><span class="in">  journal = {Blog},</span></span>
-<span id="cb2-270"><a href="#cb2-270"></a><span class="in">  date = {2026-01-07},</span></span>
-<span id="cb2-271"><a href="#cb2-271"></a><span class="in">  url = {https://tongyx361.github.io/posts/isdr},</span></span>
-<span id="cb2-272"><a href="#cb2-272"></a><span class="in">  language = {English},</span></span>
-<span id="cb2-273"><a href="#cb2-273"></a><span class="in">}</span></span>
-<span id="cb2-274"><a href="#cb2-274"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb2-265"><a href="#cb2-265"></a>With similar utilization of the same hardware resources, the total number of actions (tokens) that can be sampled with each version of the (LLM) policy should be roughly the same. Such a constraint might be helpful for analyzing how to allocate the "off-policyness" will be optimal for the IS estimate.</span>
+<span id="cb2-266"><a href="#cb2-266"></a></span>
+<span id="cb2-267"><a href="#cb2-267"></a>Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.</span>
+<span id="cb2-268"><a href="#cb2-268"></a></span>
+<span id="cb2-269"><a href="#cb2-269"></a><span class="fu"># Acknowledgments</span></span>
+<span id="cb2-270"><a href="#cb2-270"></a></span>
+<span id="cb2-271"><a href="#cb2-271"></a>Thanks for helpful discussion with Wang Zhang.</span>
+<span id="cb2-272"><a href="#cb2-272"></a></span>
+<span id="cb2-273"><a href="#cb2-273"></a><span class="fu"># Citation {.appendix .unnumbered}</span></span>
+<span id="cb2-274"><a href="#cb2-274"></a></span>
+<span id="cb2-275"><a href="#cb2-275"></a>BibTeX:</span>
+<span id="cb2-276"><a href="#cb2-276"></a></span>
+<span id="cb2-277"><a href="#cb2-277"></a><span class="in">```BibTeX</span></span>
+<span id="cb2-278"><a href="#cb2-278"></a><span class="in">@article{tong2026isdr,</span></span>
+<span id="cb2-279"><a href="#cb2-279"></a><span class="in">  author = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span></span>
+<span id="cb2-280"><a href="#cb2-280"></a><span class="in">  title = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},</span></span>
+<span id="cb2-281"><a href="#cb2-281"></a><span class="in">  journal = {Blog},</span></span>
+<span id="cb2-282"><a href="#cb2-282"></a><span class="in">  date = {2026-01-07},</span></span>
+<span id="cb2-283"><a href="#cb2-283"></a><span class="in">  url = {https://tongyx361.github.io/posts/isdr},</span></span>
+<span id="cb2-284"><a href="#cb2-284"></a><span class="in">  language = {English},</span></span>
+<span id="cb2-285"><a href="#cb2-285"></a><span class="in">}</span></span>
+<span id="cb2-286"><a href="#cb2-286"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
