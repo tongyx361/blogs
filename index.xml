@@ -182,13 +182,13 @@
 </section>
 </section>
 </section>
-<section id="acknowledgments" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Acknowledgments</h1>
+
+
+
+<div id="quarto-appendix" class="default"><section id="acknowledgments" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Acknowledgments</h2><div class="quarto-appendix-contents">
+
 <p>Thanks for helpful discussion with Wang Zhang.</p>
-</section>
-
-
-<div id="quarto-appendix" class="default"><section id="citation" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Citation</h2><div class="quarto-appendix-contents">
+</div></section><section id="citation" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Citation</h2><div class="quarto-appendix-contents">
 
 <p>BibTeX:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource bibtex number-lines code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><span class="va" style="color: #111111;
@@ -2336,7 +2336,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Mon, 12 Jan 2026 15:57:26 GMT</pubDate>
+  <pubDate>Mon, 12 Jan 2026 16:05:35 GMT</pubDate>
 </item>
 </channel>
 </rss>
