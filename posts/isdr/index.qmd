@@ -252,7 +252,7 @@ It is possible that $d_{2 \alpha}(p_{\theta} \| q_{\theta_{n},M}) < d_{2 \alpha}
 
 In practice, the final effectiveness of the IS estimate usually relies on empirical diagnostic metrics like [Effective Sample Size (ESS)](https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section). For example, @piché2025pipelinerl measured the ESS of different sampling policies they used.
 
-### Minimizing Variance by Optimizing the Weighting
+### Minimizing Variance by Optimizing the Weighting -- Exploiting the Practical Problem Structure
 
 Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In @eq-is-single-sample-avg, we use the simplest average weight $\frac{1}{N}$ for each single-sample estimate. But we can actually use any other weight functions $\omega_i(\boldsymbol{x})$ to combine them, as long as they form a *partition of unity*, i.e., a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.
 
