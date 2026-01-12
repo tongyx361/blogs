@@ -266,7 +266,7 @@ With similar utilization of the same hardware resources, the total number of act
 
 Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.
 
-# Acknowledgments
+# Acknowledgments {.appendix .unnumbered}
 
 Thanks for helpful discussion with Wang Zhang.
 
