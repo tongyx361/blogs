@@ -10,7 +10,7 @@
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.8.26</generator>
-<lastBuildDate>Mon, 12 Jan 2026 00:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
 <item>
   <title>[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems</title>
   <dc:creator>Yuxuan Tong</dc:creator>
@@ -195,7 +195,7 @@ background-color: null;
 font-style: inherit;">journal</span> = {Blog},</span>
 <span id="cb1-5">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">date</span> = {2026-01-12},</span>
+font-style: inherit;">date</span> = {2026-01-07},</span>
 <span id="cb1-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/isdr},</span>
@@ -249,7 +249,7 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
   <category>English 英文</category>
   <category>Technical 技术</category>
   <guid>https://tongyx361.github.io/blogs/posts/isdr/</guid>
-  <pubDate>Mon, 12 Jan 2026 00:00:00 GMT</pubDate>
+  <pubDate>Wed, 07 Jan 2026 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title></title>
@@ -2324,7 +2324,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Mon, 12 Jan 2026 15:09:56 GMT</pubDate>
+  <pubDate>Mon, 12 Jan 2026 15:13:37 GMT</pubDate>
 </item>
 </channel>
 </rss>
