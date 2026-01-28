@@ -9,7 +9,7 @@
 <link>https://tongyx361.github.io/blogs/</link>
 <atom:link href="https://tongyx361.github.io/blogs/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
-<generator>quarto-1.8.26</generator>
+<generator>quarto-1.8.27</generator>
 <lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
 <item>
   <title>[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems</title>
@@ -2336,7 +2336,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Mon, 12 Jan 2026 16:05:35 GMT</pubDate>
+  <pubDate>Wed, 28 Jan 2026 13:47:20 GMT</pubDate>
 </item>
 </channel>
 </rss>
