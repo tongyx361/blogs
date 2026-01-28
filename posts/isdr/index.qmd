@@ -21,7 +21,7 @@ abstract: |
   This introduces complex off-policy data structures, which we categorize into **Sliding Latest Policy Trajectories (SLAPTs)** and **Multiple Consistent Stale Policy Trajectories (MCSPTs)**.
   This post discusses the properties of applying **Importance Sampling (IS)** to these distinct data forms, combining theoretical notations like Multiple Importance Sampling and Rényi divergence and practical observations like the (approximate) indentical distribution structure of SLAPTs of similar lengths.
 
-toc-expand: false
+toc-expand: true
 # citation
 citation: false # Manual citation
 # comments
