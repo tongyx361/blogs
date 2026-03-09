@@ -227,6 +227,22 @@ is better for the unbiased single-sample IS estimate @eq-is-single-sample, i.e.,
 
 @metelli2020pois provided a family of bounds of the variance of IS estimate in terms of the [Rényi divergence](https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence):
 
+> Intuitively, the magnitude of the importance weights provides an indication of how much the probability measures $P$ and $Q$ are dissimilar. This notion can be formalized by the Rényi divergence (Rényi, 1961; Van Erven and Harremos, 2014), an information-theoretic dissimilarity index between probability measures.
+>
+> Remark 1 (Rényi divergence) Let $P$ and $Q$ be two probability measures on a measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q(P$ is absolutely continuous w.r.t. $Q)$ and $Q$ is $\sigma$-finite. Let $P$ and $Q$ admit $p$ and $q$ as Lebesgue probability density functions (p.d.f.), respectively. The $\alpha$-Rényi divergence between $P$ and $Q$ is defined as:
+>
+> $$D_\alpha(P \| Q)=\frac{1}{\alpha-1} \log \int_{\mathcal{X}}\left(\frac{\mathrm{d} P}{\mathrm{~d} Q}\right)^\alpha \mathrm{d} Q=\frac{1}{\alpha-1} \log \int_{\mathcal{X}} q(x)\left(\frac{p(x)}{q(x)}\right)^\alpha \mathrm{d} x,$$
+>
+> where $\mathrm{d} P / \mathrm{d} Q$ is the Radon-Nikodym derivative of $P$ w.r.t. $Q$ and $\alpha \in[0, \infty]$. Some remarkable cases, defined as limits, are: $\alpha=1$ when $D_1(P \| Q)=D_{\mathrm{KL}}(P \| Q)$ and $\alpha=\infty$ yielding $D_{\infty}(P \| Q)=\log \operatorname{ess} \sup _{\mathcal{X}}\left\{\frac{\mathrm{d} P}{\mathrm{~d} Q}\right\} .$ ($\operatorname{ess} \sup$ is the essential supremum of a measurable function $f$, i.e., the smallest $M$ such that $f(x) \leqslant M$ *almost everywhere*.) Importing the notation from Cortes et al. (2010), we denote the exponentiated $\alpha$-Rényi divergence as $d_\alpha(P \| Q)=\exp \left\{D_\alpha(P \| Q)\right\}$. With little abuse of notation, we will replace $D_\alpha(P \| Q)$ with $D_\alpha(p \| q)$ whenever possible within the context. When $P$ and $Q$ are (multivariate) Gaussian distributions, i.e., $P \sim \mathcal{N}\left(\boldsymbol{\mu}_P, \boldsymbol{\Sigma}_P\right)$ and $Q \sim \mathcal{N}\left(\boldsymbol{\mu}_Q, \boldsymbol{\Sigma}_Q\right)$, the Rényi divergence admits a closed-form for $\alpha \in[0, \infty)$ (Burbea, 1984):
+>
+> $$D_\alpha(P \| Q)=\frac{\alpha}{2}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)^T \boldsymbol{\Sigma}_\alpha^{-1}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)-\frac{1}{2(\alpha-1)} \log \frac{\operatorname{det}\left(\boldsymbol{\Sigma}_\alpha\right)}{\operatorname{det}\left(\boldsymbol{\Sigma}_P\right)^{1-\alpha} \operatorname{det}\left(\boldsymbol{\Sigma}_Q\right)^\alpha},$$
+> 
+> where $\boldsymbol{\Sigma}_\alpha=\alpha \boldsymbol{\Sigma}_Q+(1-\alpha) \boldsymbol{\Sigma}_P$ under the assumption that $\boldsymbol{\Sigma}_\alpha$ is positive-definite. The Rényi divergence can be computed in closed form also for several widely used distributions (Gil et al., 2013).
+>
+> The Rényi divergence provides a convenient expression for the moments of the importance weights: $\mathbb{E}_{x \sim Q}\left[w_{P / Q}(x)^\alpha\right]=d_\alpha(P \| Q)^{\alpha-1}$. Moreover, we can relate the Rényi divergence with the variance and the essential supremum of the importance weights (Cortes et al., 2010):
+>
+>$$\begin{aligned}& \underset{x \sim Q}{\operatorname{Var}}\left[w_{P / Q}(x)\right]=d_2(P \| Q)-1 \\ & \underset{x \sim Q}{\operatorname{ess} \sup }\left\{w_{P / Q}(x)\right\}=d_{\infty}(P \| Q) .\end{aligned}$$
+
 > Lemma 1. Let $P$ and $Q$ be two probability measures on the measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q$. Let $\alpha \in[1,+\infty], \mathbf{x}=\left(x_1, x_2, \ldots, x_N\right)^T$ be i.i.d. random variables sampled from $Q$ and $f: \mathcal{X} \rightarrow \mathbb{R}$ be a function with bounded $\frac{2 \alpha}{\alpha-1}$-moment under $Q\left(\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}<+\infty\right)$. Then, for any $N>0$, the variance of the IS estimator $\widehat{\mu}_{P / Q}$ can be upper bounded as:
 >
 > $$\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}^2 d_{2 \alpha}(P \| Q)^{2-\frac{1}{\alpha}},$$
