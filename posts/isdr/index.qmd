@@ -1,6 +1,6 @@
 ---
 # title
-title: '[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems'
+title: '[WIP] Partial Rollout vs Consistent Rollout in LLM RL'
 date: "2026-01-07"
 date-modified: last-modified
 author: 
@@ -12,14 +12,16 @@ copyright:
   holder: "Yuxuan Tong, Yingru Li, Guangming Sheng"
   year: 2026
 keywords:
+  - Partial Rollout
+  - Consistent Rollout
   - Importance Sampling
   - Off-Policy Reinforcement Learning
   - Large Language Model
 abstract: |
 
-  In the pursuit of maximizing hardware utilization for Large Language Model (LLM) Reinforcement Learning, systems introduces some new sampling strategies like Partial Rollout and Asynchornous Rollout.
-  This introduces complex off-policy data structures, which we categorize into **Sliding Latest Policy Trajectories (SLAPTs)** and **Multiple Consistent Stale Policy Trajectories (MCSPTs)**.
-  This post discusses the properties of applying **Importance Sampling (IS)** to these distinct data forms, combining theoretical notations like Multiple Importance Sampling and Rényi divergence and practical observations like the (approximate) indentical distribution structure of SLAPTs of similar lengths.
+  Large Language Model (LLM) Reinforcement Learning (RL) systems nowadays usually achieves high utilization of rollout by introducing off-policy data.
+  Two dominant rollout strategies have emerged: **Partial Rollout**, which aborts and resumes trajectories with the latest policy, producing trajectories with mixed policy compositions; and **Consistent Rollout**, which completes each trajectory under a single stale policy.
+  This post compares the two strategies from the perspective of **Importance Sampling (IS)**, drawing on Multiple Importance Sampling, Rényi divergence bounds, and the practical observation that partial rollout trajectories of similar lengths approximately share the same distribution.
 
 toc-expand: true
 # citation
@@ -42,24 +44,24 @@ aliases:
   - /posts/is-slapt
 ---
 
-# Off-Policy Data in Fully-Utilized LLM RL Systems
+# Two Rollout Strategies in Fully-Utilized LLM RL Systems
 
 In Reinforcement Learning (RL) systems for Large Language Models (LLMs), especially those that pursue full utilization of the hardware resources, it is common that we have to utilize **off-policy** data, typically a batch of trajectory samples collected from one or multiple stale policies.
 
-So far, there have been two main kinds of off-policy data emerging in such systems, which in this post we refer to as:
+Two dominant rollout strategies have emerged to handle this, each producing a different kind of off-policy data:
 
-1. Sliding Latest Policy Trajectories (SLAPTs)
-2. Multiple Consistent Stale Policy Trajectories (MCSPTs)
+1. **Partial Rollout** — produces trajectories composed of actions from multiple successive policy versions
+2. **Consistent Rollout** — produces trajectories each sampled entirely from a single (possibly stale) policy
 
-## Sliding Latest Policy Trajectories (SLAPTs)
+## Partial Rollout
 
-We use *Sliding Latest Policy Trajectories* to refer to such batches of trajectories that are sampled in an RL system where we always use the latest policy $\pi_{\theta_{t}}$ at each moment to sample the actions.
+In a Partial Rollout system, the latest policy $\pi_{\theta_{t}}$ available at each moment is always used to sample actions. This means a single trajectory can span multiple policy versions.
 
-Formally, a SLAPT can be defined as a trajectory $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta_{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
+Formally, a partial rollout trajectory can be defined as $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l > m$, $\pi_{\theta_{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.
 
-SLAPTs in a batch usually have different policy compositions, depending on the system dynamics.
+Partial rollout trajectories in a batch usually have different policy compositions, depending on the system dynamics.
 
-SLAPTs are a natural result of a popular design choice called *Partial Rollout* in LLM RL systems nowadays, such as Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional distributed RL system called SEED RL [@espeholt2020seedrl]:
+Partial Rollout is a popular design choice in LLM RL systems nowadays, adopted by Kimi k1.5 [@kimi2025k15], AReaL [@fu2025areal] and PipelineRL [@piché2025pipelinerl], etc., which can date back to a traditional distributed RL system called SEED RL [@espeholt2020seedrl]:
 
 The ongoing trajectory rollouts are
 
@@ -82,20 +84,17 @@ This can be simply implemented by always loading the latest weights into all the
 
 Despite Partial Rollout's efficiency and simplicity, there have been worries about mixing multiple policies within a single trajectory, since most previous works formulate IS with a single consistent behavior policy $\mu(\cdot \mid \boldsymbol{s})$ while such formulation is rather under-explored. We defer a more detailed discussion about this to @sec-is.
 
-## Multiple Consistent Stale Policy Trajectories (MCSPTs)
+## Consistent Rollout
 
-We use *Multiple Consistent Stale Policy Trajectories* (MCSPTs) to refer to such batches of trajectories that
-
-- each of them is sampled with a consistent stale policy $\pi_{\theta_{n}}$,
-- while there might be different $n$ for different trajectories.
+In a Consistent Rollout system, each trajectory is sampled entirely with a single stale policy $\pi_{\theta_{n}}$, though different trajectories in the same batch may come from different policy versions (i.e., different $n$).
 
 The consistency of policy within a trajectory makes the formulation simpler, which is widely used in traditional distributed RL systems like IMPALA [@espeholt2018impala].
 
-In contrast, MCSPT sampling is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.
+In contrast, Consistent Rollout is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.
 
-@sheng2025laminar implement an LLM RL system that samples MCSPTs with full utilization of the hardware resources.
+@sheng2025laminar implement an LLM RL system that achieves Consistent Rollout with full utilization of the hardware resources.
 
-# Importance Sampling with Off-Policy Data in (Fully-Utilized) LLM RL Systems {#sec-is}
+# Importance Sampling: Partial vs. Consistent Rollout {#sec-is}
 
 [Importance Sampling (IS)](https://en.wikipedia.org/wiki/Importance_sampling) has been widely used in LLM RL systems.
 
@@ -140,9 +139,9 @@ So where is the problem in the construction for $\mu(\cdot \mid \boldsymbol{s})$
 
 The problem hidden here is that, $\mu(\cdot \mid \boldsymbol{s})$ does not consider the probability distribution of which LLM policy $\pi_{\theta_{n+m}}$ is used. Furthermore, this distribution is actually intractable since it depends on the system dynamics.
 
-## IS with MCSPTs {#sec-is-mcspt}
+## IS with Consistent Rollout Data {#sec-is-consistent}
 
-IS with MCSPTs is simpler to formulate since each trajectory is sampled with a consistent stale policy $\pi_{\theta_{n}}$, and we only need to correctly formulate the policy used by each trajectory.
+IS with consistent rollout data is simpler to formulate since each trajectory is sampled with a consistent stale policy $\pi_{\theta_{n}}$, and we only need to correctly formulate the policy used by each trajectory.
 
 ### Mixture Importance Sampling
 
@@ -180,11 +179,11 @@ The natural problem following is how to choose the partition of unity $\omega_j$
 
 The heuristic behind the balance heuristic to make $\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})$ can be also understood as the more samples we have from a policy, the more information we have about it, thus the more weight it should have.
 
-## IS with SLAPTs
+## IS with Partial Rollout Data
 
-The IS with SLAPTs is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is in absense in previous works including @espeholt2020seedrl that first proposed the usage of SLAPTs.
+The IS with partial rollout data is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is absent in previous works including @espeholt2020seedrl that first proposed Partial Rollout.
 
-In this section, we try to discuss the formulation and some properties of IS with SLAPTs that might be useful in practice.
+In this section, we try to discuss the formulation and some properties of IS with partial rollout data that might be useful in practice.
 
 ### Trajectory-dependent Behavior Policy $\mu_{i}(\cdot \mid \boldsymbol{s})$
 
@@ -216,12 +215,12 @@ $$ {#eq-is-single-sample-avg-var}
 
 Given the batch variance is determined by composing the variances of the single-sample estimates, we can first try to analyze the variance of the single-sample estimate.
 
-### Variance of Single-Sample Estimate -- MCSPT vs. SLAPT
+### Variance of Single-Sample Estimate -- Consistent vs. Partial Rollout
 
-MCSPT and SLAPT just form two different cases of the single-sample estimate. We might wonder that, given a trajectory $\boldsymbol{\tau}_{i}$, which of
+Consistent Rollout and Partial Rollout just form two different cases of the single-sample estimate. We might wonder that, given a trajectory $\boldsymbol{\tau}_{i}$, which of
 
-1) the consistent old policy $\pi_{\theta_{n+m}}$ and
-2) the sliding latest policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$ successively
+1) the consistent old policy $\pi_{\theta_{n+m}}$ (Consistent Rollout) and
+2) the sliding latest policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$ successively (Partial Rollout)
 
 is better for the unbiased single-sample IS estimate @eq-is-single-sample, i.e., leads to a lower variance?
 
@@ -256,7 +255,7 @@ In practice, the final effectiveness of the IS estimate usually relies on empiri
 
 Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In @eq-is-single-sample-avg, we use the simplest average weight $\frac{1}{N}$ for each single-sample estimate. But we can actually use any other weight functions $\omega_i(\boldsymbol{x})$ to combine them, as long as they form a *partition of unity*, i.e., a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.
 
-The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in @sec-is-mcspt. This also supports the comparability of SLAPT and MCSPT.
+The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the Partial Rollout structure. For example, in practical systems, partial rollout trajectories of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to partial rollout data like in @sec-is-consistent. This also supports the comparability of Partial Rollout and Consistent Rollout.
 
 ## Discussions
 
@@ -264,7 +263,7 @@ The optimal weighting should be still an open problem that is beyond our scope. 
 
 With similar utilization of the same hardware resources, the total number of actions (tokens) that can be sampled with each version of the (LLM) policy should be roughly the same. Such a constraint might be helpful for analyzing how to allocate the "off-policyness" will be optimal for the IS estimate.
 
-Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.
+Specifically, Partial Rollout allocates actions from different policies to different segments within each trajectory, while Consistent Rollout allocates actions from different policies to different whole trajectories.
 
 # Acknowledgments {.appendix .unnumbered}
 
@@ -275,9 +274,9 @@ Thanks for helpful discussion with Wang Zhang.
 BibTeX:
 
 ```BibTeX
-@article{tong2026isdr,
+@article{tong2026partialvsconsistent,
   author = {Yuxuan Tong and Yingru Li and Guangming Sheng},
-  title = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},
+  title = {{Partial Rollout vs Consistent Rollout in LLM RL}},
   journal = {Blog},
   date = {2026-01-07},
   url = {https://tongyx361.github.io/posts/isdr},
