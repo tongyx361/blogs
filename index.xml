@@ -12,11 +12,11 @@
 <generator>quarto-1.8.27</generator>
 <lastBuildDate>Wed, 07 Jan 2026 00:00:00 GMT</lastBuildDate>
 <item>
-  <title>[WIP] Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems</title>
+  <title>[WIP] Partial Rollout vs Consistent Rollout in LLM RL</title>
   <dc:creator>Yuxuan Tong</dc:creator>
   <dc:creator>Yingru Li</dc:creator>
   <dc:creator>Guangming Sheng</dc:creator>
-  <link>https://tongyx361.github.io/blogs/posts/isdr/</link>
+  <link>https://tongyx361.github.io/blogs/posts/pr-vs-cr/</link>
   <description><![CDATA[ 
 
 
@@ -24,83 +24,165 @@
 
 
 
-<section id="off-policy-data-in-fully-utilized-llm-rl-systems" class="level1" data-number="1">
-<h1 data-number="1"><span class="header-section-number">1</span> Off-Policy Data in Fully-Utilized LLM RL Systems</h1>
+<section id="three-rollout-strategies-in-fully-utilized-llm-rl-systems" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Three Rollout Strategies in Fully-Utilized LLM RL Systems</h1>
 <p>In Reinforcement Learning (RL) systems for Large Language Models (LLMs), especially those that pursue full utilization of the hardware resources, it is common that we have to utilize <strong>off-policy</strong> data, typically a batch of trajectory samples collected from one or multiple stale policies.</p>
-<p>So far, there have been two main kinds of off-policy data emerging in such systems, which in this post we refer to as:</p>
+<p>Three dominant rollout strategies have emerged to handle this, each producing a different kind of off-policy data:</p>
 <ol type="1">
-<li>Sliding Latest Policy Trajectories (SLAPTs)</li>
-<li>Multiple Consistent Stale Policy Trajectories (MCSPTs)</li>
+<li><strong>Partial Rollout (PR)</strong> — once a newer policy is available, aborts and resumes the trajectory with the latest policy, producing trajectories with mixed policy compositions, at the cost of (repeated) re-prefill.</li>
+<li><strong>Partial Rollout with Stale KV (PR-SKV)</strong> — similar to PR, but keeps the stale KV cache to avoid re-prefill, at the cost of introducing distribution shift.</li>
+<li><strong>Consistent Rollout (CR)</strong> — completes each trajectory with a single (possibly stale) policy, avoiding re-prefill and distribution shift, at the cost of more off-policiness.</li>
 </ol>
-<section id="sliding-latest-policy-trajectories-slapts" class="level2" data-number="1.1">
-<h2 data-number="1.1" class="anchored" data-anchor-id="sliding-latest-policy-trajectories-slapts"><span class="header-section-number">1.1</span> Sliding Latest Policy Trajectories (SLAPTs)</h2>
-<p>We use <em>Sliding Latest Policy Trajectories</em> to refer to such batches of trajectories that are sampled in an RL system where we always use the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bt%7D%7D"> at each moment to sample the actions.</p>
-<p>Formally, a SLAPT can be defined as a trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau%20=%20(s_%7B0%7D,%20a_%7B0,%5Cpi_%7B%5Ctheta_%7Bn%7D%7D%7D,%20%5Cldots,%20s_%7Bt%7D,%20a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D,%20%5Cldots,%20s_%7BT%7D,%20a_%7BT,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D%7D)">, where <img src="https://latex.codecogs.com/png.latex?s_%7Bt%7D"> is the state at timestep <img src="https://latex.codecogs.com/png.latex?t"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D"> is the action sampled from the policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> that is the latest policy available in the system when sampling. So for <img src="https://latex.codecogs.com/png.latex?l%20%3E%20m">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> is usually more on-policy than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">.</p>
-<p>SLAPTs in a batch usually have different policy compositions, depending on the system dynamics.</p>
-<p>SLAPTs are a natural result of a popular design choice called <em>Partial Rollout</em> in LLM RL systems nowadays, such as Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(Kimi Team et al. 2025)</span>, AReaL <span class="citation" data-cites="fu2025areal">(Fu et al. 2025)</span> and PipelineRL <span class="citation" data-cites="piché2025pipelinerl">(Piché et al. 2025)</span>, etc., which can date back to a traditional distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(Espeholt et al. 2020)</span>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Partial Rollout (PR)</th>
+<th data-quarto-table-cell-role="th">Partial Rollout with Stale KV (PR-SKV)</th>
+<th data-quarto-table-cell-role="th">Consistent Rollout (CR)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Policy per trajectory</strong></td>
+<td colspan="2">Mixed (multiple versions within one trajectory)</td>
+<td>Single (single consistent version)</td>
+</tr>
+<tr class="even">
+<td><strong>Re-prefill overhead</strong></td>
+<td>O(L³/K) — cubic</td>
+<td>None (reuses stale KV)</td>
+<td>None (no mid-trajectory switch)</td>
+</tr>
+<tr class="odd">
+<td><strong>KV consistency</strong></td>
+<td>Fully consistent (fresh KV)</td>
+<td>Inconsistent (stale KV + new weights)</td>
+<td>Fully consistent</td>
+</tr>
+<tr class="even">
+<td><strong>Off-policiness</strong></td>
+<td colspan="2">Lower (always uses latest policy once available)</td>
+<td>Higher (keeps stale policy throughout)</td>
+</tr>
+<tr class="odd">
+<td><strong>IS formulation</strong></td>
+<td>Trajectory-dependent μ<sub>i</sub></td>
+<td>Trajectory-dependent μ<sub>i</sub> (approximate)</td>
+<td>Clean (Multiple Importance Sampling)</td>
+</tr>
+</tbody>
+</table>
+<section id="partial-rollout-pr" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="partial-rollout-pr"><span class="header-section-number">1.1</span> Partial Rollout (PR)</h2>
+<p>In a Partial Rollout system, the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bt%7D%7D"> available at each moment is always used to sample actions. This means a single trajectory can span multiple policy versions.</p>
+<p>Formally, a partial rollout trajectory can be defined as <img src="https://latex.codecogs.com/png.latex?%5Ctau%20=%20(s_%7B0%7D,%20a_%7B0,%5Cpi_%7B%5Ctheta_%7Bn%7D%7D%7D,%20%5Cldots,%20s_%7Bt%7D,%20a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D,%20%5Cldots,%20s_%7BT%7D,%20a_%7BT,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D%7D)">, where <img src="https://latex.codecogs.com/png.latex?s_%7Bt%7D"> is the state at timestep <img src="https://latex.codecogs.com/png.latex?t"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bt,%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D%7D"> is the action sampled from the policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> that is the latest policy available in the system when sampling. So for <img src="https://latex.codecogs.com/png.latex?l%20%3E%20m">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> is usually more on-policy than <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">.</p>
+<p>Partial rollout trajectories in a batch usually have different policy compositions, depending on the system dynamics.</p>
+<p>Partial Rollout is a popular design choice in LLM RL systems nowadays, adopted by Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(Kimi Team et al. 2025)</span>, AReaL <span class="citation" data-cites="fu2025areal">(Fu et al. 2025)</span>, etc., which can date back to a traditional distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(Espeholt et al. 2020)</span>:</p>
 <p>The ongoing trajectory rollouts are</p>
 <ol type="1">
 <li>aborted when
 <ul>
-<li>either, in synchoronous systems like Kimi k1.5, there are enough samples collected for training, releasing the resources for the training engine to update the model weights,</li>
+<li>either, in synchronous systems like Kimi k1.5, there are enough samples collected for training, releasing the resources for the training engine to update the model weights,</li>
 <li>or, in asynchronous systems like AReaL and PipelineRL, a new version of model weights is produced by the trainer;</li>
 </ul></li>
 <li>continued with the latest version of model weights.</li>
 </ol>
 <p>Partial Rollout is motivated by its efficiency and simplicity. Let me explain in detail.</p>
-<p>The earliest LLM RL systems <span class="citation" data-cites="yao2023dschat">Hu et al. (2025)</span> all adopt synchoronous architectures, where the trainer always waits for all the trajectories are finished before updating the weights with these data. However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasing heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically &lt;30% in practice).</p>
-<p>Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly update the weights with these data, instead of waiting for all the trajectories to finish, and then continue the rollouts with the new model weights.</p>
-<p>In asynchornous RL systems with an experience buffer, it is troublesome to mamage multiple versions of model weights within the rollout engine.</p>
+<p>The earliest LLM RL systems <span class="citation" data-cites="yao2023dschat shen2024nemoaligner sheng2025hybridflow hu2025openrlhf">(Yao et al. 2023; Shen et al. 2024; Sheng, Zhang, et al. 2025; Hu et al. 2025)</span> all adopt synchronous architectures, where the trainer always waits for all the trajectories to finish before updating the weights with these data. However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasingly heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically &lt;30% in practice).</p>
+<p>Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly updating the weights with these data, instead of waiting for all the trajectories to finish, and then continuing the rollouts with the new model weights.</p>
+<p>In asynchronous RL systems with an experience buffer, it is troublesome to manage multiple versions of model weights within the rollout engine.</p>
 <p>AReaL proposes to always only maintain the latest model weights across all the instances. Once a new version of model weights is produced by the trainer, all the rollouts of the stale policy are aborted and then continued with the latest policy.</p>
-<p>This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the bothering to manage the requests across each instance.</p>
-<p>Despite Partial Rollout’s efficiency and simplicity, there have been worries about mixing multiple policies within a single trajectory, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> while such formulation is rather under-explored. We defer a more detailed discussion about this to Section&nbsp;2.</p>
+<p>This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the need to manage the requests across each instance.</p>
+<p>However, PR comes with a critical system cost: <strong>re-prefill</strong>. When a trajectory is aborted and resumed with a newer policy, the new policy must re-process the entire existing context (prompt + previously generated tokens) to rebuild its KV cache before it can continue generation. We analyze this overhead in detail in Section&nbsp;2.</p>
+<p>Beyond system cost, there have been worries about mixing multiple policies within a single trajectory from the algorithmic perspective, since most previous works formulate IS with a single consistent behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> while such formulation is rather under-explored. We defer a more detailed discussion about this to Section&nbsp;3.</p>
 </section>
-<section id="multiple-consistent-stale-policy-trajectories-mcspts" class="level2" data-number="1.2">
-<h2 data-number="1.2" class="anchored" data-anchor-id="multiple-consistent-stale-policy-trajectories-mcspts"><span class="header-section-number">1.2</span> Multiple Consistent Stale Policy Trajectories (MCSPTs)</h2>
-<p>We use <em>Multiple Consistent Stale Policy Trajectories</em> (MCSPTs) to refer to such batches of trajectories that</p>
+<section id="partial-rollout-with-stale-kv-pr-skv" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="partial-rollout-with-stale-kv-pr-skv"><span class="header-section-number">1.2</span> Partial Rollout with Stale KV (PR-SKV)</h2>
+<p>PR-SKV is a variant of PR designed to avoid the re-prefill overhead, proposed by PipelineRL <span class="citation" data-cites="piché2025pipelinerl">(Piché et al. 2025)</span>. Like PR, it aborts the ongoing trajectory and switches to the latest policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+1%7D%7D"> once available. However, instead of re-computing the KV cache from scratch, PR-SKV <strong>retains and reuses the stale KV cache</strong> that was computed under the old policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">.</p>
+<p>In standard autoregressive transformer inference, the KV cache stores the key and value projections of all past tokens:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7BK%7D_%7B0:t%7D%20=%20%5Cboldsymbol%7BW%7D_K%5E%7B(n)%7D%20%5Cboldsymbol%7BX%7D_%7B0:t%7D,%20%5Cquad%20%5Cboldsymbol%7BV%7D_%7B0:t%7D%20=%20%5Cboldsymbol%7BW%7D_V%5E%7B(n)%7D%20%5Cboldsymbol%7BX%7D_%7B0:t%7D,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BW%7D_K%5E%7B(n)%7D,%20%5Cboldsymbol%7BW%7D_V%5E%7B(n)%7D"> are the key and value projection matrices of policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_n%7D">, and <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BX%7D_%7B0:t%7D"> denotes the hidden representations of the tokens generated so far.</p>
+<p>When the policy switches from <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_n%7D"> to <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+1%7D%7D">, PR-SKV continues using the KV cache computed under <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_n%7D"> while applying <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+1%7D%7D">’s weights for subsequent token generation. This means the query projections for new tokens are computed with <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BW%7D_Q%5E%7B(n+1)%7D">, but they attend to keys and values still computed with <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BW%7D_K%5E%7B(n)%7D,%20%5Cboldsymbol%7BW%7D_V%5E%7B(n)%7D">. This inconsistency between the query and key-value projections introduces a <strong>distribution shift</strong>: the resulting token distribution is neither exactly <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_n%7D"> nor <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+1%7D%7D">, but some hybrid that is difficult to characterize analytically.</p>
+<p>The trade-off is clear:</p>
 <ul>
-<li>each of them is sampled with a consistent stale policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">,</li>
-<li>while there might be different <img src="https://latex.codecogs.com/png.latex?n"> for different trajectories.</li>
+<li><strong>Advantage</strong>: eliminates the re-prefill overhead entirely (Section&nbsp;2), matching the system efficiency of CR.</li>
+<li><strong>Disadvantage</strong>: the distribution shift makes the actual sampling distribution hard to specify, complicating the importance sampling formulation. In contrast, standard PR and CR both sample from well-defined policy distributions at each timestep.</li>
 </ul>
+<p>In practice, if the policy update is small (e.g., the parameter change <img src="https://latex.codecogs.com/png.latex?%5C%7C%5Ctheta_%7Bn+1%7D%20-%20%5Ctheta_n%5C%7C"> is small), the distribution shift introduced by the stale KV cache may be negligible. But for larger updates or long contexts where many layers of stale KV accumulate, the shift can become significant.</p>
+</section>
+<section id="consistent-rollout-cr" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="consistent-rollout-cr"><span class="header-section-number">1.3</span> Consistent Rollout (CR)</h2>
+<p>In a Consistent Rollout system, each trajectory is sampled entirely with a single stale policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">, though different trajectories in the same batch may come from different policy versions (i.e., different <img src="https://latex.codecogs.com/png.latex?n">).</p>
 <p>The consistency of policy within a trajectory makes the formulation simpler, which is widely used in traditional distributed RL systems like IMPALA <span class="citation" data-cites="espeholt2018impala">(Espeholt et al. 2018)</span>.</p>
-<p>In contrast, MCSPT sampling is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.</p>
-<p><span class="citation" data-cites="sheng2025laminar">Sheng, Tong, et al. (2025)</span> implement an LLM RL system that samples MCSPTs with full utilization of the hardware resources.</p>
+<p>In contrast, Consistent Rollout is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.</p>
+<p><span class="citation" data-cites="sheng2025laminar">Sheng, Tong, et al. (2025)</span> implement an LLM RL system that achieves Consistent Rollout with full utilization of the hardware resources.</p>
+<p>The key advantages of CR are:</p>
+<ul>
+<li><strong>No re-prefill overhead</strong>: each trajectory runs to completion with a single policy, so no KV cache invalidation occurs.</li>
+<li><strong>No distribution shift</strong>: unlike PR-SKV, the KV cache is always consistent with the generating policy.</li>
+<li><strong>Clean IS formulation</strong>: each trajectory has a well-defined, single behavior policy, fitting naturally into Multiple Importance Sampling (Section&nbsp;3.2).</li>
+</ul>
+<p>The main cost is <strong>more off-policiness</strong>: by the time a trajectory finishes (especially a long one), the trainer may have produced several newer policy versions, making the completing policy more stale compared to what PR would use.</p>
 </section>
 </section>
-<section id="sec-is" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> Importance Sampling with Off-Policy Data in (Fully-Utilized) LLM RL Systems</h1>
+<section id="sec-system" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> System Perspective: Cubic Overhead of Full Re-Prefill</h1>
+<p>A key system-level distinction between PR and the other two strategies (PR-SKV and CR) is the <strong>re-prefill overhead</strong>. When PR aborts a trajectory and resumes with a newer policy, the new policy must re-process the entire existing context to rebuild its KV cache. We show that this overhead scales <strong>cubically</strong> with the context length, making it prohibitive for long-context tasks, which are increasingly significant in LLM applications.</p>
+<section id="re-prefill-frequency-scales-linearly-with-context-length" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="re-prefill-frequency-scales-linearly-with-context-length"><span class="header-section-number">2.1</span> Re-Prefill Frequency Scales Linearly with Context Length</h2>
+<p>Consider a trajectory of total length <img src="https://latex.codecogs.com/png.latex?L"> tokens (including the prompt). Suppose the policy is updated approximately every <img src="https://latex.codecogs.com/png.latex?K"> tokens of generation (this interval is determined by the training frequency and system throughput).</p>
+<p>The number of re-prefill events during this trajectory is approximately <img src="https://latex.codecogs.com/png.latex?L%20/%20K">, which grows <strong>linearly</strong> with <img src="https://latex.codecogs.com/png.latex?L">. Longer sequences take more time to generate, during which more policy updates occur, triggering more re-prefills.</p>
+</section>
+<section id="each-re-prefill-scales-quadratically-with-context-length" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="each-re-prefill-scales-quadratically-with-context-length"><span class="header-section-number">2.2</span> Each Re-Prefill Scales Quadratically with Context Length</h2>
+<p>Each re-prefill requires the new policy to process all previously generated tokens with dot-product attention. For a context of length <img src="https://latex.codecogs.com/png.latex?l">, the attention computation costs <img src="https://latex.codecogs.com/png.latex?O(l%5E2)"> (ignoring the linear terms from feed-forward layers).</p>
+<p>Moreover, each successive re-prefill processes a longer context than the previous one: the <img src="https://latex.codecogs.com/png.latex?m">-th re-prefill (at approximately <img src="https://latex.codecogs.com/png.latex?mK"> tokens of generation) must process a context of length <img src="https://latex.codecogs.com/png.latex?%5Csim%20mK">.</p>
+</section>
+<section id="total-re-prefill-overhead-scales-cubically" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="total-re-prefill-overhead-scales-cubically"><span class="header-section-number">2.3</span> Total Re-Prefill Overhead Scales Cubically</h2>
+<p>The total <strong>cubic scaling</strong> <img src="https://latex.codecogs.com/png.latex?O(L%5E3/K)"> is the product of two factors:</p>
+<ol type="1">
+<li>The <strong>quadratic</strong> attention complexity <img src="https://latex.codecogs.com/png.latex?O(L%5E2)"> per re-prefill.</li>
+<li>The <strong>linear</strong> growth <img src="https://latex.codecogs.com/png.latex?O(L/K)"> in the number of re-prefills.</li>
+</ol>
+<p>Frontier models nowadays are increasing their context length from 100k+ to 1M+ tokens, and the overhead of re-prefill becomes prohibitive.</p>
+</section>
+</section>
+<section id="sec-is" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Algorithm Perspective: Importance Sampling</h1>
 <p><a href="https://en.wikipedia.org/wiki/Importance_sampling">Importance Sampling (IS)</a> has been widely used in LLM RL systems.</p>
-<p>It is useful for estimating the expection of some random function, typically the gradient of the return respect to the policy parameters, on the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</p>
+<p>It is useful for estimating the expectation of some random function, typically the gradient of the return with respect to the policy parameters, on the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</p>
 <p><span id="eq-is-batch"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu%7D(f(%5Cboldsymbol%7B%5Ctau%7D))%20=&amp;%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Cfrac%7Bp_%7B%5Ctheta%7D(%5Cboldsymbol%7B%5Ctau%7D_i)%7D%7Bq_%7B%5Cmu%7D(%5Cboldsymbol%7B%5Ctau%7D_i)%7Df(%5Cboldsymbol%7B%5Ctau%7D_i)%20%5C%5C%0A=&amp;%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Cfrac%7Bp(%5Cboldsymbol%7Bs%7D_%7B0%7D)%20%5Cprod_%7Bt=0%7D%5E%7BT-1%7D%20%5Cpi_%7B%5Ctheta%7D(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)p(%5Cboldsymbol%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D,%20%5Cboldsymbol%7Ba%7D_%7Bt%7D)%7D%7Bp(%5Cboldsymbol%7Bs%7D_%7B0%7D)%20%5Cprod_%7Bt=0%7D%5E%7BT-1%7D%20%5Cmu(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)p(%5Cboldsymbol%7Bs%7D_%7Bt+1%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D,%20%5Cboldsymbol%7Ba%7D_%7Bt%7D)%7Df(%5Cboldsymbol%7B%5Ctau%7D_i)%20%5C%5C%0A=&amp;%20%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Cprod_%7Bt=0%7D%5E%7BT-1%7D%20%5Cfrac%7B%5Cpi_%7B%5Ctheta%7D(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)%7D%7B%5Cmu(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)%7Df(%5Cboldsymbol%7B%5Ctau%7D_i)%0A%5Cend%7Baligned%7D%0A%5Ctag%7B1%7D"></span></p>
 <p>where</p>
 <ul>
 <li><img src="https://latex.codecogs.com/png.latex?N"> is the batch size,</li>
 <li><img src="https://latex.codecogs.com/png.latex?f(%5Ccdot)"> can be any function of the trajectory sample <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D">, of which the most important one is the gradient function of the optimization objective <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D_%7B%5Cboldsymbol%7B%5Ctau%7D%20%5Csim%20p_%7B%5Ctheta%7D%7D%5BJ(%5Ccdot)%5D"> relative to the policy parameters <img src="https://latex.codecogs.com/png.latex?%5Ctheta">,</li>
-<li><img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D(%5Ccdot)"> is the probability density function of the trajectory distribution induced by the target policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> parameterized by <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> and the enviroment state transition distribution <img src="https://latex.codecogs.com/png.latex?p(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D,%20%5Cboldsymbol%7Ba%7D)">,</li>
+<li><img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D(%5Ccdot)"> is the probability density function of the trajectory distribution induced by the target policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta%7D"> parameterized by <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> and the environment state transition distribution <img src="https://latex.codecogs.com/png.latex?p(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D,%20%5Cboldsymbol%7Ba%7D)">,</li>
 <li><img src="https://latex.codecogs.com/png.latex?q_%7B%5Cmu%7D(%5Ccdot)"> is the probability density function of the trajectory distribution induced by the behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu"> and <img src="https://latex.codecogs.com/png.latex?p(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D,%20%5Cboldsymbol%7Ba%7D)">.</li>
 </ul>
 <p>One important property of Equation&nbsp;1 is that it is unbiased, i.e.,</p>
 <p><span id="eq-is-unbiased"><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbb%7BE%7D_%7B%5Cboldsymbol%7B%5Ctau%7D%20%5Csim%20q_%7B%5Cmu%7D%7D%5B%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu%7D(f(%5Cboldsymbol%7B%5Ctau%7D))%5D%20=%20%5Cmathbb%7BE%7D_%7B%5Cboldsymbol%7B%5Ctau%7D%20%5Csim%20p_%7B%5Ctheta%7D%7D%5Bf(%5Cboldsymbol%7B%5Ctau%7D)%5D%0A%5Ctag%7B2%7D"></span></p>
 <p>Of the components mentioned above, the only one that is ambiguous for calculation is the behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)">.</p>
 <p>However, the correct calculation of <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> with the off-policy data in fully-utilized LLM RL systems mentioned above is not straightforward.</p>
-<section id="sec-intractable-global-behav-policy" class="level2" data-number="2.1">
-<h2 data-number="2.1" class="anchored" data-anchor-id="sec-intractable-global-behav-policy"><span class="header-section-number">2.1</span> Simple but Intractable: Global Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
+<section id="sec-intractable-global-behav-policy" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-intractable-global-behav-policy"><span class="header-section-number">3.1</span> Simple but Intractable: Global Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h2>
 <p>Since there is always an actual distribution we are sampling from, we can always formulate the IS estimate with a global behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)">.</p>
 <p>The most direct thought is to use <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> for IS in practice. But this requires us to calculate the probabilities under it.</p>
 <p><span class="citation" data-cites="fu2025areal">Fu et al. (2025)</span> Proposition 1 resorts to constructing a behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> that satisfies <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)%20=%20%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a_%7Bt%7D%20%5Cmid%20s_%7Bt%7D)"> for each <img src="https://latex.codecogs.com/png.latex?(s_%7Bt%7D,%20a_%7Bt%7D)"> pair in the trajectory samples. This sounds reasonable for LLM RL since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.</p>
-<p>However, it might be confusing when we also notice that, the same state <img src="https://latex.codecogs.com/png.latex?s"> might appear in two different trajectory samples <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bj%7D">, especially for the initial states <img src="https://latex.codecogs.com/png.latex?s_%7B0%7D">, i.e., the prompts, and the same action <img src="https://latex.codecogs.com/png.latex?a"> might be sampled from different policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> (<img src="https://latex.codecogs.com/png.latex?l%20%5Cneq%20m">) respectively. It is very likely that <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)%20%5Cneq%20%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)">, making it infeasible to simply construct the same behavior policy for both trajectory samples, i.e., <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)"> constradicts <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)">.</p>
+<p>However, it might be confusing when we also notice that, the same state <img src="https://latex.codecogs.com/png.latex?s"> might appear in two different trajectory samples <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bj%7D">, especially for the initial states <img src="https://latex.codecogs.com/png.latex?s_%7B0%7D">, i.e., the prompts, and the same action <img src="https://latex.codecogs.com/png.latex?a"> might be sampled from different policies <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D"> (<img src="https://latex.codecogs.com/png.latex?l%20%5Cneq%20m">) respectively. It is very likely that <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)%20%5Cneq%20%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)">, making it infeasible to simply construct the same behavior policy for both trajectory samples, i.e., <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B*%7D(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)"> contradicts <img src="https://latex.codecogs.com/png.latex?%5Cmu(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)">.</p>
 <p>So where is the problem in the construction for <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> mentioned above?</p>
 <p>The problem hidden here is that, <img src="https://latex.codecogs.com/png.latex?%5Cmu(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> does not consider the probability distribution of which LLM policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> is used. Furthermore, this distribution is actually intractable since it depends on the system dynamics.</p>
 </section>
-<section id="sec-is-mcspt" class="level2" data-number="2.2">
-<h2 data-number="2.2" class="anchored" data-anchor-id="sec-is-mcspt"><span class="header-section-number">2.2</span> IS with MCSPTs</h2>
-<p>IS with MCSPTs is simpler to formulate since each trajectory is sampled with a consistent stale policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">, and we only need to correctly formulate the policy used by each trajectory.</p>
-<section id="mixture-importance-sampling" class="level3" data-number="2.2.1">
-<h3 data-number="2.2.1" class="anchored" data-anchor-id="mixture-importance-sampling"><span class="header-section-number">2.2.1</span> Mixture Importance Sampling</h3>
+<section id="sec-is-consistent" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-is-consistent"><span class="header-section-number">3.2</span> IS with Consistent Rollout Data</h2>
+<p>IS with consistent rollout data is simpler to formulate since each trajectory is sampled with a consistent stale policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">, and we only need to correctly formulate the policy used by each trajectory.</p>
+<section id="mixture-importance-sampling" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="mixture-importance-sampling"><span class="header-section-number">3.2.1</span> Mixture Importance Sampling</h3>
 <p>In some simple cases, the distribution of which policy is used, i.e., the hyper-policy distribution, is known, where we can formulate the IS estimate as <em>Mixture Importance Sampling</em> <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span>.</p>
 </section>
-<section id="multiple-importance-sampling" class="level3" data-number="2.2.2">
-<h3 data-number="2.2.2" class="anchored" data-anchor-id="multiple-importance-sampling"><span class="header-section-number">2.2.2</span> Multiple Importance Sampling</h3>
+<section id="multiple-importance-sampling" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="multiple-importance-sampling"><span class="header-section-number">3.2.2</span> Multiple Importance Sampling</h3>
 <p>However, in more general cases, we can only know ad hoc that the number of trajectories sampled from each policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bj%7D%7D"> is <img src="https://latex.codecogs.com/png.latex?n_%7Bj%7D">, where <img src="https://latex.codecogs.com/png.latex?N%20=%20%5Csum_%7Bj%7D%20n_%7Bj%7D">. For such cases, we can formulate the IS estimate as <em>Multiple Importance Sampling</em> <span class="citation" data-cites="owen2013mcbook">(Owen 2013)</span>:</p>
 <blockquote class="blockquote">
 <p>Suppose that <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BX%7D_%7Bi%20j%7D%20%5Csim%20q_j"> for <img src="https://latex.codecogs.com/png.latex?i=1,%20%5Cldots,%20n_j"> and <img src="https://latex.codecogs.com/png.latex?j=1,%20%5Cldots,%20J"> and that <img src="https://latex.codecogs.com/png.latex?%5Comega_j"> are a partition of unity. The multiple importance sampling estimate is</p>
@@ -108,8 +190,8 @@
 <p>Now assume that <img src="https://latex.codecogs.com/png.latex?q_j(%5Cboldsymbol%7Bx%7D)%3E0"> whenever <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20p(%5Cboldsymbol%7Bx%7D)%20f(%5Cboldsymbol%7Bx%7D)%20%5Cneq%200">. Then multiple importance sampling is unbiased, because <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D%5Cleft(%5Cwidetilde%7B%5Cmu%7D_%5Comega%5Cright)=%5Csum_%7Bj=1%7D%5EJ%20%5Cmathbb%7BE%7D_%7Bq_j%7D%5Cleft(%5Comega_j(%5Cboldsymbol%7BX%7D)%20%5Cfrac%7Bf(%5Cboldsymbol%7BX%7D)%20p(%5Cboldsymbol%7BX%7D)%7D%7Bq_j(%5Cboldsymbol%7BX%7D)%7D%5Cright)=%5Csum_%7Bj=1%7D%5EJ%20%5Cint%20%5Comega_j(%5Cboldsymbol%7Bx%7D)%20f(%5Cboldsymbol%7Bx%7D)%20p(%5Cboldsymbol%7Bx%7D)%20%5Cmathrm%7Bd%7D%20%5Cboldsymbol%7Bx%7D=%5Cmu%20."></p>
 </blockquote>
 </section>
-<section id="balance-heuristic" class="level3" data-number="2.2.3">
-<h3 data-number="2.2.3" class="anchored" data-anchor-id="balance-heuristic"><span class="header-section-number">2.2.3</span> Balance Heuristic</h3>
+<section id="balance-heuristic" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="balance-heuristic"><span class="header-section-number">3.2.3</span> Balance Heuristic</h3>
 <p>The natural problem following is how to choose the partition of unity <img src="https://latex.codecogs.com/png.latex?%5Comega_j">:</p>
 <blockquote class="blockquote">
 <p>Among the proposals for functions <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)">, the most studied one is the balance heuristic with <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20%5Cpropto%20n_j%20q_j(%5Cboldsymbol%7Bx%7D)">, that is</p>
@@ -123,14 +205,15 @@
 <p>The heuristic behind the balance heuristic to make <img src="https://latex.codecogs.com/png.latex?%5Comega_j%5E%7B%5Cmathrm%7BBH%7D%7D%20%5Cpropto%20n_%7Bj%7Dq_j(%5Cboldsymbol%7Bx%7D)"> can be also understood as the more samples we have from a policy, the more information we have about it, thus the more weight it should have.</p>
 </section>
 </section>
-<section id="is-with-slapts" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="is-with-slapts"><span class="header-section-number">2.3</span> IS with SLAPTs</h2>
-<p>The IS with SLAPTs is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is in absense in previous works including <span class="citation" data-cites="espeholt2020seedrl">Espeholt et al. (2020)</span> that first proposed the usage of SLAPTs.</p>
-<p>In this section, we try to discuss the formulation and some properties of IS with SLAPTs that might be useful in practice.</p>
-<section id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols" class="level3" data-number="2.3.1">
-<h3 data-number="2.3.1" class="anchored" data-anchor-id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols"><span class="header-section-number">2.3.1</span> Trajectory-dependent Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h3>
+<section id="is-with-partial-rollout-data" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="is-with-partial-rollout-data"><span class="header-section-number">3.3</span> IS with Partial Rollout Data</h2>
+<p>The IS with partial rollout data (applicable to both PR and PR-SKV) is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is absent in previous works including <span class="citation" data-cites="espeholt2020seedrl">Espeholt et al. (2020)</span> that first proposed Partial Rollout.</p>
+<p>In this section, we try to discuss the formulation and some properties of IS with partial rollout data that might be useful in practice.</p>
+<p>Note that for PR-SKV, the actual sampling distribution at each timestep is affected by the stale KV cache and is not exactly any single policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D">. The formulation below assumes we can identify the policy used at each timestep, which holds exactly for PR but only approximately for PR-SKV (with the approximation quality depending on how much the policy has changed).</p>
+<section id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols"><span class="header-section-number">3.3.1</span> Trajectory-dependent Behavior Policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D(%5Ccdot%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"></h3>
 <p>A general but trivial formulation for IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D(%5Cboldsymbol%7Ba%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D)"> for each trajectory <img src="https://latex.codecogs.com/png.latex?%5Ctau_%7Bi%7D">.</p>
-<p>Now for the counter-example mentioned in Section&nbsp;2.1, <img src="https://latex.codecogs.com/png.latex?%5Cmu_i(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)"> and <img src="https://latex.codecogs.com/png.latex?%5Cmu_j(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)"> are obviously compatible.</p>
+<p>Now for the counter-example mentioned in Section&nbsp;3.1, <img src="https://latex.codecogs.com/png.latex?%5Cmu_i(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(a%20%5Cmid%20s)"> and <img src="https://latex.codecogs.com/png.latex?%5Cmu_j(a%20%5Cmid%20s)=%5Cpi_%7B%5Ctheta_%7Bn+l%7D%7D(a%20%5Cmid%20s)"> are obviously compatible.</p>
 <p>With a batch of <img src="https://latex.codecogs.com/png.latex?N"> trajectory samples sampled from each own behavior policy <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_1%20%5Csim%20q_%7B%5Cmu_1%7D,%20%5Cldots,%20%5Cboldsymbol%7B%5Ctau%7D_N%20%5Csim%20q_%7B%5Cmu_N%7D">, we can only use the special case of the batch estimate Equation&nbsp;1 with <img src="https://latex.codecogs.com/png.latex?N=1">, i.e., the single-sample estimate</p>
 <p><span id="eq-is-single-sample"><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Cmathbb%7BE%7D%7D_%7B%5Cmu_i%7D(%5Cboldsymbol%7B%5Ctau%7D_i)%20=%20%5Cprod_%7Bt=0%7D%5E%7BT-1%7D%20%5Cfrac%7B%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)%7D%7B%5Cmu_i(%5Cboldsymbol%7Ba%7D_%7Bt%7D%20%5Cmid%20%5Cboldsymbol%7Bs%7D_%7Bt%7D)%7Df(%5Cboldsymbol%7B%5Ctau%7D_i)%0A%5Ctag%7B3%7D"></span></p>
 <p>Note that the single-sample estimate is also unbiased, i.e., the unbiasedness of Equation&nbsp;1 does not depend on the sample size <img src="https://latex.codecogs.com/png.latex?N">.</p>
@@ -141,15 +224,25 @@
 <p><span id="eq-is-single-sample-avg-var"><img src="https://latex.codecogs.com/png.latex?%0A%5Csigma%5E2_%7B%5Ctext%7Bavg%7D%7D%20=%20%5Cfrac%7B1%7D%7BN%5E2%7D%20%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Csigma%5E2_%7B%5Cmu_i%7D%0A%5Ctag%7B5%7D"></span></p>
 <p>Given the batch variance is determined by composing the variances of the single-sample estimates, we can first try to analyze the variance of the single-sample estimate.</p>
 </section>
-<section id="variance-of-single-sample-estimate-mcspt-vs.-slapt" class="level3" data-number="2.3.2">
-<h3 data-number="2.3.2" class="anchored" data-anchor-id="variance-of-single-sample-estimate-mcspt-vs.-slapt"><span class="header-section-number">2.3.2</span> Variance of Single-Sample Estimate – MCSPT vs.&nbsp;SLAPT</h3>
-<p>MCSPT and SLAPT just form two different cases of the single-sample estimate. We might wonder that, given a trajectory <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_%7Bi%7D">, which of</p>
+<section id="variance-of-single-sample-estimate-consistent-vs.-partial-rollout" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="variance-of-single-sample-estimate-consistent-vs.-partial-rollout"><span class="header-section-number">3.3.2</span> Variance of Single-Sample Estimate – Consistent vs.&nbsp;Partial Rollout</h3>
+<p>Consistent Rollout and Partial Rollout just form two different cases of the single-sample estimate. We might wonder that, given a trajectory <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctau%7D_%7Bi%7D">, which of</p>
 <ol type="1">
-<li>the consistent old policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> and</li>
-<li>the sliding latest policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> successively</li>
+<li>the consistent old policy <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn+m%7D%7D"> (Consistent Rollout) and</li>
+<li>the sliding latest policy <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D,%5Cldots,%5Cpi_%7B%5Ctheta_%7Bn+M%7D%7D"> successively (Partial Rollout)</li>
 </ol>
 <p>is better for the unbiased single-sample IS estimate Equation&nbsp;3, i.e., leads to a lower variance?</p>
 <p><span class="citation" data-cites="metelli2020pois">Metelli et al. (2020)</span> provided a family of bounds of the variance of IS estimate in terms of the <a href="https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence">Rényi divergence</a>:</p>
+<blockquote class="blockquote">
+<p>Intuitively, the magnitude of the importance weights provides an indication of how much the probability measures <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> are dissimilar. This notion can be formalized by the Rényi divergence (Rényi, 1961; Van Erven and Harremos, 2014), an information-theoretic dissimilarity index between probability measures.</p>
+<p>Remark 1 (Rényi divergence) Let <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> be two probability measures on a measurable space <img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BX%7D,%20%5Cmathscr%7BF%7D)"> such that <img src="https://latex.codecogs.com/png.latex?P%20%5Cll%20Q(P"> is absolutely continuous w.r.t. <img src="https://latex.codecogs.com/png.latex?Q)"> and <img src="https://latex.codecogs.com/png.latex?Q"> is <img src="https://latex.codecogs.com/png.latex?%5Csigma">-finite. Let <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> admit <img src="https://latex.codecogs.com/png.latex?p"> and <img src="https://latex.codecogs.com/png.latex?q"> as Lebesgue probability density functions (p.d.f.), respectively. The <img src="https://latex.codecogs.com/png.latex?%5Calpha">-Rényi divergence between <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> is defined as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?D_%5Calpha(P%20%5C%7C%20Q)=%5Cfrac%7B1%7D%7B%5Calpha-1%7D%20%5Clog%20%5Cint_%7B%5Cmathcal%7BX%7D%7D%5Cleft(%5Cfrac%7B%5Cmathrm%7Bd%7D%20P%7D%7B%5Cmathrm%7B~d%7D%20Q%7D%5Cright)%5E%5Calpha%20%5Cmathrm%7Bd%7D%20Q=%5Cfrac%7B1%7D%7B%5Calpha-1%7D%20%5Clog%20%5Cint_%7B%5Cmathcal%7BX%7D%7D%20q(x)%5Cleft(%5Cfrac%7Bp(x)%7D%7Bq(x)%7D%5Cright)%5E%5Calpha%20%5Cmathrm%7Bd%7D%20x,"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Bd%7D%20P%20/%20%5Cmathrm%7Bd%7D%20Q"> is the Radon-Nikodym derivative of <img src="https://latex.codecogs.com/png.latex?P"> w.r.t. <img src="https://latex.codecogs.com/png.latex?Q"> and <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%5B0,%20%5Cinfty%5D">. Some remarkable cases, defined as limits, are: <img src="https://latex.codecogs.com/png.latex?%5Calpha=1"> when <img src="https://latex.codecogs.com/png.latex?D_1(P%20%5C%7C%20Q)=D_%7B%5Cmathrm%7BKL%7D%7D(P%20%5C%7C%20Q)"> and <img src="https://latex.codecogs.com/png.latex?%5Calpha=%5Cinfty"> yielding <img src="https://latex.codecogs.com/png.latex?D_%7B%5Cinfty%7D(P%20%5C%7C%20Q)=%5Clog%20%5Coperatorname%7Bess%7D%20%5Csup%20_%7B%5Cmathcal%7BX%7D%7D%5Cleft%5C%7B%5Cfrac%7B%5Cmathrm%7Bd%7D%20P%7D%7B%5Cmathrm%7B~d%7D%20Q%7D%5Cright%5C%7D%20."> (<img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7Bess%7D%20%5Csup"> is the essential supremum of a measurable function <img src="https://latex.codecogs.com/png.latex?f">, i.e., the smallest <img src="https://latex.codecogs.com/png.latex?M"> such that <img src="https://latex.codecogs.com/png.latex?f(x)%20%5Cleqslant%20M"> <em>almost everywhere</em>.) Importing the notation from Cortes et al.&nbsp;(2010), we denote the exponentiated <img src="https://latex.codecogs.com/png.latex?%5Calpha">-Rényi divergence as <img src="https://latex.codecogs.com/png.latex?d_%5Calpha(P%20%5C%7C%20Q)=%5Cexp%20%5Cleft%5C%7BD_%5Calpha(P%20%5C%7C%20Q)%5Cright%5C%7D">. With little abuse of notation, we will replace <img src="https://latex.codecogs.com/png.latex?D_%5Calpha(P%20%5C%7C%20Q)"> with <img src="https://latex.codecogs.com/png.latex?D_%5Calpha(p%20%5C%7C%20q)"> whenever possible within the context. When <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> are (multivariate) Gaussian distributions, i.e., <img src="https://latex.codecogs.com/png.latex?P%20%5Csim%20%5Cmathcal%7BN%7D%5Cleft(%5Cboldsymbol%7B%5Cmu%7D_P,%20%5Cboldsymbol%7B%5CSigma%7D_P%5Cright)"> and <img src="https://latex.codecogs.com/png.latex?Q%20%5Csim%20%5Cmathcal%7BN%7D%5Cleft(%5Cboldsymbol%7B%5Cmu%7D_Q,%20%5Cboldsymbol%7B%5CSigma%7D_Q%5Cright)">, the Rényi divergence admits a closed-form for <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%5B0,%20%5Cinfty)"> (Burbea, 1984):</p>
+<p><img src="https://latex.codecogs.com/png.latex?D_%5Calpha(P%20%5C%7C%20Q)=%5Cfrac%7B%5Calpha%7D%7B2%7D%5Cleft(%5Cboldsymbol%7B%5Cmu%7D_P-%5Cboldsymbol%7B%5Cmu%7D_Q%5Cright)%5ET%20%5Cboldsymbol%7B%5CSigma%7D_%5Calpha%5E%7B-1%7D%5Cleft(%5Cboldsymbol%7B%5Cmu%7D_P-%5Cboldsymbol%7B%5Cmu%7D_Q%5Cright)-%5Cfrac%7B1%7D%7B2(%5Calpha-1)%7D%20%5Clog%20%5Cfrac%7B%5Coperatorname%7Bdet%7D%5Cleft(%5Cboldsymbol%7B%5CSigma%7D_%5Calpha%5Cright)%7D%7B%5Coperatorname%7Bdet%7D%5Cleft(%5Cboldsymbol%7B%5CSigma%7D_P%5Cright)%5E%7B1-%5Calpha%7D%20%5Coperatorname%7Bdet%7D%5Cleft(%5Cboldsymbol%7B%5CSigma%7D_Q%5Cright)%5E%5Calpha%7D,"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5CSigma%7D_%5Calpha=%5Calpha%20%5Cboldsymbol%7B%5CSigma%7D_Q+(1-%5Calpha)%20%5Cboldsymbol%7B%5CSigma%7D_P"> under the assumption that <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5CSigma%7D_%5Calpha"> is positive-definite. The Rényi divergence can be computed in closed form also for several widely used distributions (Gil et al., 2013).</p>
+<p>The Rényi divergence provides a convenient expression for the moments of the importance weights: <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D_%7Bx%20%5Csim%20Q%7D%5Cleft%5Bw_%7BP%20/%20Q%7D(x)%5E%5Calpha%5Cright%5D=d_%5Calpha(P%20%5C%7C%20Q)%5E%7B%5Calpha-1%7D">. Moreover, we can relate the Rényi divergence with the variance and the essential supremum of the importance weights (Cortes et al., 2010):</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cbegin%7Baligned%7D&amp;%20%5Cunderset%7Bx%20%5Csim%20Q%7D%7B%5Coperatorname%7BVar%7D%7D%5Cleft%5Bw_%7BP%20/%20Q%7D(x)%5Cright%5D=d_2(P%20%5C%7C%20Q)-1%20%5C%5C%20&amp;%20%5Cunderset%7Bx%20%5Csim%20Q%7D%7B%5Coperatorname%7Bess%7D%20%5Csup%20%7D%5Cleft%5C%7Bw_%7BP%20/%20Q%7D(x)%5Cright%5C%7D=d_%7B%5Cinfty%7D(P%20%5C%7C%20Q)%20.%5Cend%7Baligned%7D"></p>
+</blockquote>
 <blockquote class="blockquote">
 <p>Lemma 1. Let <img src="https://latex.codecogs.com/png.latex?P"> and <img src="https://latex.codecogs.com/png.latex?Q"> be two probability measures on the measurable space <img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BX%7D,%20%5Cmathscr%7BF%7D)"> such that <img src="https://latex.codecogs.com/png.latex?P%20%5Cll%20Q">. Let <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%5B1,+%5Cinfty%5D,%20%5Cmathbf%7Bx%7D=%5Cleft(x_1,%20x_2,%20%5Cldots,%20x_N%5Cright)%5ET"> be i.i.d. random variables sampled from <img src="https://latex.codecogs.com/png.latex?Q"> and <img src="https://latex.codecogs.com/png.latex?f:%20%5Cmathcal%7BX%7D%20%5Crightarrow%20%5Cmathbb%7BR%7D"> be a function with bounded <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D">-moment under <img src="https://latex.codecogs.com/png.latex?Q%5Cleft(%5C%7Cf%5C%7C_%7BQ,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D%3C+%5Cinfty%5Cright)">. Then, for any <img src="https://latex.codecogs.com/png.latex?N%3E0">, the variance of the IS estimator <img src="https://latex.codecogs.com/png.latex?%5Cwidehat%7B%5Cmu%7D_%7BP%20/%20Q%7D"> can be upper bounded as:</p>
 <p><img src="https://latex.codecogs.com/png.latex?%5Coperatorname%7BVar%7D_%7B%5Cmathbf%7Bx%7D%20%5Csim%20Q%7D%5Cleft%5B%5Chat%7B%5Cmu%7D_%7BP%20/%20Q%7D%5Cright%5D%20%5Cleqslant%20%5Cfrac%7B1%7D%7BN%7D%5C%7Cf%5C%7C_%7BQ,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D%5E2%20d_%7B2%20%5Calpha%7D(P%20%5C%7C%20Q)%5E%7B2-%5Cfrac%7B1%7D%7B%5Calpha%7D%7D,"></p>
@@ -167,18 +260,26 @@
 <p>It is possible that <img src="https://latex.codecogs.com/png.latex?d_%7B2%20%5Calpha%7D(p_%7B%5Ctheta%7D%20%5C%7C%20q_%7B%5Ctheta_%7Bn%7D,M%7D)%20%3C%20d_%7B2%20%5Calpha%7D(p_%7B%5Ctheta%7D%20%5C%7C%20p_%7B%5Ctheta_%7Bn%7D%7D)">, since the newer the policy is, the more similar its induced distribution is to <img src="https://latex.codecogs.com/png.latex?p_%7B%5Ctheta%7D">. Then as long as the <img src="https://latex.codecogs.com/png.latex?%5C%7Cf%5C%7C_%7Bq_%7B%5Ctheta_%7Bn%7D,M%7D,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D"> is not much larger than <img src="https://latex.codecogs.com/png.latex?%5C%7Cf%5C%7C_%7Bp_%7B%5Ctheta_%7Bn%7D%7D,%20%5Cfrac%7B2%20%5Calpha%7D%7B%5Calpha-1%7D%7D">, the estimate using <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7B%5Ctheta_%7Bn%7D,M%7D"> has better guarantee than the estimate using <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7B%5Ctheta_%7Bn%7D%7D">.</p>
 <p>In practice, the final effectiveness of the IS estimate usually relies on empirical diagnostic metrics like <a href="https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section">Effective Sample Size (ESS)</a>. For example, <span class="citation" data-cites="piché2025pipelinerl">Piché et al. (2025)</span> measured the ESS of different sampling policies they used.</p>
 </section>
-<section id="minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure" class="level3" data-number="2.3.3">
-<h3 data-number="2.3.3" class="anchored" data-anchor-id="minimizing-variance-by-optimizing-the-weighting-exploiting-the-practical-problem-structure"><span class="header-section-number">2.3.3</span> Minimizing Variance by Optimizing the Weighting – Exploiting the Practical Problem Structure</h3>
+</section>
+<section id="sec-is-comparison" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="sec-is-comparison"><span class="header-section-number">3.4</span> Comparing PR(-SKV) and CR for Importance Sampling</h2>
+<p>We can now summarize the comparison between the three strategies from the IS perspective.</p>
+<p><strong>Bias.</strong> Both PR(-SKV) and CR can produce <strong>unbiased</strong> IS estimates, as shown above. For CR, each trajectory has a single well-defined behavior policy, and the unbiasedness follows directly from Equation&nbsp;2. For PR, the trajectory-dependent behavior policy formulation (Equation&nbsp;3) preserves unbiasedness, and averaging over the batch (Equation&nbsp;4) inherits it by linearity of expectation. For PR-SKV, the unbiasedness holds approximately under the assumption that the stale KV cache introduces negligible distribution shift.</p>
+<p><strong>Variance.</strong> The variance comparison between PR(-SKV) and CR is more nuanced, and it is hard to declare a clear winner:</p>
+<ul>
+<li><p><strong>PR(-SKV) can be less off-policy.</strong> By always switching to the latest policy once available, PR(-SKV) ensures that the latter portion of each trajectory is generated by a more recent (less stale) policy. This can lead to importance weights closer to 1, reducing variance through smaller Rényi divergence <img src="https://latex.codecogs.com/png.latex?d_%7B2%5Calpha%7D(p_%7B%5Ctheta%7D%20%5C%7C%20q_%7B%5Cmu%7D)">.</p></li>
+<li><p><strong>CR can exploit Multiple Importance Sampling.</strong> Because each trajectory is sampled from a single consistent policy, CR naturally fits the Multiple Importance Sampling formulation (Section&nbsp;3.2). This opens the door to variance reduction techniques like the <strong>balance heuristic</strong>, which provides near-optimal weighting across samples from different policies (Theorem 9.8 in <span class="citation" data-cites="owen2013mcbook">Owen (2013)</span>). PR data, with its mixed-policy trajectories, cannot directly leverage this formulation without additional approximations.</p></li>
+</ul>
+</section>
+<section id="discussions" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="discussions"><span class="header-section-number">3.5</span> Discussions</h2>
+<section id="distribution-shift-from-reusing-stale-kv-cache" class="level3" data-number="3.5.1">
+<h3 data-number="3.5.1" class="anchored" data-anchor-id="distribution-shift-from-reusing-stale-kv-cache"><span class="header-section-number">3.5.1</span> Distribution Shift from Reusing Stale KV Cache</h3>
+<p>The distribution shift introduced by reusing stale KV cache is an important practical concern that deserves further investigation. When the stale KV cache is reused with a new policy, the effective sampling distribution at each timestep depends on the entire history of policy switches and the accumulated staleness of the cached representations. Quantifying this shift and its impact on the IS estimate quality remains an open question.</p>
+</section>
+<section id="minimizing-variance-by-optimizing-the-weighting" class="level3" data-number="3.5.2">
+<h3 data-number="3.5.2" class="anchored" data-anchor-id="minimizing-variance-by-optimizing-the-weighting"><span class="header-section-number">3.5.2</span> Minimizing Variance by Optimizing the Weighting</h3>
 <p>Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In Equation&nbsp;4, we use the simplest average weight <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7BN%7D"> for each single-sample estimate. But we can actually use any other weight functions <img src="https://latex.codecogs.com/png.latex?%5Comega_i(%5Cboldsymbol%7Bx%7D)"> to combine them, as long as they form a <em>partition of unity</em>, i.e., a collection of <img src="https://latex.codecogs.com/png.latex?J%20%5Cgeqslant%201"> weight functions <img src="https://latex.codecogs.com/png.latex?%5Comega_j(%5Cboldsymbol%7Bx%7D)%20%5Cgeqslant%200"> which satisfy <img src="https://latex.codecogs.com/png.latex?%5Csum_%7Bj=1%7D%5EJ%20%5Comega_j(%5Cboldsymbol%7Bx%7D)=1"> for all <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bx%7D">. Different partitions of unity will lead to estimates that are all unbiased but with different variances.</p>
-<p>The optimal weighting should be still an open problem that is beyond our scope. However, there is still some properties that we can exploit from the SLAPT structure. For example, in practical systems, SLAPTs of similar lengths often conform to identical distributions (approximately, but this can be exact if we limit the timesteps where a trajectory can be aborted), we can also apply the formulation of Multiple IS to SLAPT like in Section&nbsp;2.2. This also supports the comparability of SLAPT and MCSPT.</p>
-</section>
-</section>
-<section id="discussions" class="level2" data-number="2.4">
-<h2 data-number="2.4" class="anchored" data-anchor-id="discussions"><span class="header-section-number">2.4</span> Discussions</h2>
-<section id="off-policyness-allocation" class="level3" data-number="2.4.1">
-<h3 data-number="2.4.1" class="anchored" data-anchor-id="off-policyness-allocation"><span class="header-section-number">2.4.1</span> Off-policyness Allocation</h3>
-<p>With similar utilization of the same hardware resources, the total number of actions (tokens) that can be sampled with each version of the (LLM) policy should be roughly the same. Such a constraint might be helpful for analyzing how to allocate the “off-policyness” will be optimal for the IS estimate.</p>
-<p>Specifically, SLAPTs allocate the actions from different policies to different segments within each trajectory, while MCSPTs allocate the actions from the different policy to different whole trajectories.</p>
 </section>
 </section>
 </section>
@@ -195,13 +296,13 @@
 background-color: null;
 font-style: inherit;">@article</span>{<span class="ot" style="color: #003B4F;
 background-color: null;
-font-style: inherit;">tong2026isdr</span>,</span>
+font-style: inherit;">tong2026partialvsconsistent</span>,</span>
 <span id="cb1-2">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">author</span> = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span>
 <span id="cb1-3">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">title</span> = {{Importance Sampling Done Right with Off-Policy Data in Fully-Utilized LLM RL Systems}},</span>
+font-style: inherit;">title</span> = {{Partial Rollout vs Consistent Rollout in LLM RL}},</span>
 <span id="cb1-4">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">journal</span> = {Blog},</span>
@@ -210,7 +311,7 @@ background-color: null;
 font-style: inherit;">date</span> = {2026-01-07},</span>
 <span id="cb1-6">  <span class="dt" style="color: #AD0000;
 background-color: null;
-font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/isdr},</span>
+font-style: inherit;">url</span> = {https://tongyx361.github.io/posts/pr-vs-cr},</span>
 <span id="cb1-7">  <span class="dt" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">language</span> = {English},</span>
@@ -260,7 +361,7 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
 </div></section><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></div></div></section></div> ]]></description>
   <category>English 英文</category>
   <category>Technical 技术</category>
-  <guid>https://tongyx361.github.io/blogs/posts/isdr/</guid>
+  <guid>https://tongyx361.github.io/blogs/posts/pr-vs-cr/</guid>
   <pubDate>Wed, 07 Jan 2026 00:00:00 GMT</pubDate>
 </item>
 <item>
@@ -2336,7 +2437,7 @@ Zhao, Heyang, Chenlu Ye, Wei Xiong, Quanquan Gu, and Tong Zhang. 2025. <span>“
   <link>https://tongyx361.github.io/blogs/posts/verl-tutorial/</link>
   <description><![CDATA[ undefined ]]></description>
   <guid>https://tongyx361.github.io/blogs/posts/verl-tutorial/</guid>
-  <pubDate>Wed, 28 Jan 2026 13:47:20 GMT</pubDate>
+  <pubDate>Mon, 09 Mar 2026 13:29:41 GMT</pubDate>
 </item>
 </channel>
 </rss>
