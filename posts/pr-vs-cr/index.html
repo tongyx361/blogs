@@ -416,9 +416,9 @@ window.Quarto = {
   <div>
     <div class="abstract">
       <div class="block-title">Abstract</div>
-      <p>Large Language Model (LLM) Reinforcement Learning (RL) systems nowadays usually achieves high utilization of rollout by introducing off-policy data, which is typically used for Importance Sampling (IS).</p>
-      <p>Three dominant rollout strategies have emerged: 1) <strong>Partial Rollout (PR)</strong>, which, once a newer policy is available, aborts and resumes the trajectory with the latest policy, producing trajectories with mixed policy compositions, at the cost of (repeated) re-prefill; 2) <strong>Partial Rollout with Stale KV (PR-SKV)</strong>, which is similar to PR, but keeps the stale KV cache to avoid re-prefill, at the cost of introducing distribution shift; 3) <strong>Consistent Rollout (CR)</strong>, which completes each trajectory with a single stale policy, avoiding re-prefill and distribution shift, at the cost of more off-policiness.</p>
-      <p>This post compares the three strategies from both algorithm and system perspectives, drawing the following main conclusions: 1) The overhead of re-prefill in PR scales <strong>cubically</strong> with the context length, with the dot-product attention complexity scaling quadratically and the re-prefill frequency scaling linearly, which is prohibitive for long-context tasks. 2) As data for IS, both PR(-SKV) and CR can produce <strong>unbiased</strong> estimates, while their <strong>variance comparison is nuanced</strong>: while PR(-SKV) can be less off-policy by always using the latest policy once available, CR can fit into the Multiple Importance Sampling formulation and exploit tricks like balance heuristic to reduce variance.</p>
+      <p>Large Language Model (LLM) Reinforcement Learning (RL) systems nowadays usually achieve high rollout utilization by introducing off-policy data, which is typically used for Importance Sampling (IS).</p>
+      <p>Three dominant rollout strategies have emerged: 1) <strong>Partial Rollout (PR)</strong>, which, once a newer policy is available, aborts and resumes the trajectory with the latest policy, producing trajectories with mixed policy compositions, at the cost of (repeated) re-prefill; 2) <strong>Partial Rollout with Stale KV (PR-SKV)</strong>, which is similar to PR but keeps the stale KV cache to avoid re-prefill, at the cost of introducing distribution shift; 3) <strong>Consistent Rollout (CR)</strong>, which completes each trajectory with a single stale policy, avoiding re-prefill and distribution shift, at the cost of more off-policiness.</p>
+      <p>This post compares the three strategies from both algorithmic and system perspectives, drawing the following main conclusions: 1) The re-prefill overhead in PR scales <strong>cubically</strong> with the context length — the dot-product attention complexity scales quadratically and the re-prefill frequency scales linearly — making it prohibitive for long-context tasks. 2) As data for IS, both PR(-SKV) and CR can produce <strong>unbiased</strong> estimates, while their <strong>variance comparison is nuanced</strong>: PR(-SKV) can be less off-policy by always using the latest policy once available, but CR fits naturally into the Multiple Importance Sampling formulation and can exploit techniques like the balance heuristic to reduce variance.</p>
       <p>Experiments are still in progress.</p>
     </div>
   </div>
@@ -576,10 +576,9 @@ window.Quarto = {
 <section id="partial-rollout-pr" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="partial-rollout-pr"><span class="header-section-number">1.1</span> Partial Rollout (PR)</h2>
 <p>In a Partial Rollout system, the latest policy <span class="math inline">\(\pi_{\theta_{t}}\)</span> available at each moment is always used to sample actions. This means a single trajectory can span multiple policy versions.</p>
-<p>Formally, a partial rollout trajectory can be defined as <span class="math inline">\(\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})\)</span>, where <span class="math inline">\(s_{t}\)</span> is the state at timestep <span class="math inline">\(t\)</span> and <span class="math inline">\(a_{t,\pi_{\theta_{n+m}}}\)</span> is the action sampled from the policy <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> that is the latest policy available in the system when sampling. So for <span class="math inline">\(l &gt; m\)</span>, <span class="math inline">\(\pi_{\theta_{n+l}}\)</span> is usually more on-policy than <span class="math inline">\(\pi_{\theta_{n+m}}\)</span>.</p>
+<p>Formally, a partial rollout trajectory can be defined as <span class="math inline">\(\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})\)</span>, where <span class="math inline">\(s_{t}\)</span> is the state at timestep <span class="math inline">\(t\)</span> and <span class="math inline">\(a_{t,\pi_{\theta_{n+m}}}\)</span> is the action sampled from <span class="math inline">\(\pi_{\theta_{n+m}}\)</span>, the latest policy available in the system at that timestep. Hence, for <span class="math inline">\(l &gt; m\)</span>, <span class="math inline">\(\pi_{\theta_{n+l}}\)</span> is usually more on-policy than <span class="math inline">\(\pi_{\theta_{n+m}}\)</span>.</p>
 <p>Partial rollout trajectories in a batch usually have different policy compositions, depending on the system dynamics.</p>
-<p>Partial Rollout is a popular design choice in LLM RL systems nowadays, adopted by Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(<a href="#ref-kimi2025k15" role="doc-biblioref">Kimi Team et al. 2025</a>)</span>, AReaL <span class="citation" data-cites="fu2025areal">(<a href="#ref-fu2025areal" role="doc-biblioref">Fu et al. 2025</a>)</span>, etc., which can date back to a traditional distributed RL system called SEED RL <span class="citation" data-cites="espeholt2020seedrl">(<a href="#ref-espeholt2020seedrl" role="doc-biblioref">Espeholt et al. 2020</a>)</span>:</p>
-<p>The ongoing trajectory rollouts are</p>
+<p>Partial Rollout is a popular design choice in LLM RL systems, adopted by Kimi k1.5 <span class="citation" data-cites="kimi2025k15">(<a href="#ref-kimi2025k15" role="doc-biblioref">Kimi Team et al. 2025</a>)</span>, AReaL <span class="citation" data-cites="fu2025areal">(<a href="#ref-fu2025areal" role="doc-biblioref">Fu et al. 2025</a>)</span>, etc., dating back to SEED RL <span class="citation" data-cites="espeholt2020seedrl">(<a href="#ref-espeholt2020seedrl" role="doc-biblioref">Espeholt et al. 2020</a>)</span> in traditional distributed RL. In these systems, the ongoing trajectory rollouts are</p>
 <ol type="1">
 <li>aborted when
 <ul>
@@ -588,14 +587,14 @@ window.Quarto = {
 </ul></li>
 <li>continued with the latest version of model weights.</li>
 </ol>
-<p>Partial Rollout is motivated by its efficiency and simplicity. Let me explain in detail.</p>
-<p>The earliest LLM RL systems <span class="citation" data-cites="yao2023dschat shen2024nemoaligner sheng2025hybridflow hu2025openrlhf">(<a href="#ref-yao2023dschat" role="doc-biblioref">Yao et al. 2023</a>; <a href="#ref-shen2024nemoaligner" role="doc-biblioref">Shen et al. 2024</a>; <a href="#ref-sheng2025hybridflow" role="doc-biblioref">Sheng, Zhang, et al. 2025</a>; <a href="#ref-hu2025openrlhf" role="doc-biblioref">Hu et al. 2025</a>)</span> all adopt synchronous architectures, where the trainer always waits for all the trajectories to finish before updating the weights with these data. However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasingly heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically &lt;30% in practice).</p>
-<p>Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly updating the weights with these data, instead of waiting for all the trajectories to finish, and then continuing the rollouts with the new model weights.</p>
-<p>In asynchronous RL systems with an experience buffer, it is troublesome to manage multiple versions of model weights within the rollout engine.</p>
-<p>AReaL proposes to always only maintain the latest model weights across all the instances. Once a new version of model weights is produced by the trainer, all the rollouts of the stale policy are aborted and then continued with the latest policy.</p>
-<p>This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the need to manage the requests across each instance.</p>
+<p>Partial Rollout is motivated by its efficiency and simplicity, which we elaborate below.</p>
+<p>The earliest LLM RL systems <span class="citation" data-cites="yao2023dschat shen2024nemoaligner sheng2025hybridflow hu2025openrlhf">(<a href="#ref-yao2023dschat" role="doc-biblioref">Yao et al. 2023</a>; <a href="#ref-shen2024nemoaligner" role="doc-biblioref">Shen et al. 2024</a>; <a href="#ref-sheng2025hybridflow" role="doc-biblioref">Sheng, Zhang, et al. 2025</a>; <a href="#ref-hu2025openrlhf" role="doc-biblioref">Hu et al. 2025</a>)</span> all adopt synchronous architectures, where the trainer waits for all trajectories to finish before updating the weights with the collected data. However, as the context length of LLMs scales up, the trajectory length distribution becomes increasingly skewed. If all trajectories must complete in the same rollout stage, only a few long-tail requests may remain in the system, causing severe under-utilization (typically &lt;30% in practice).</p>
+<p>Kimi k1.5 addresses this by aborting all ongoing rollouts once enough training samples are collected, directly updating the weights instead of waiting for all trajectories to finish, and then continuing the rollouts with the new model weights.</p>
+<p>In asynchronous RL systems with an experience buffer, managing multiple versions of model weights within the rollout engine is cumbersome.</p>
+<p>AReaL proposes to maintain only the latest model weights across all instances. Once a new version of weights is produced by the trainer, all rollouts of the stale policy are aborted and then continued with the latest policy.</p>
+<p>This is simply implemented by loading the latest weights into all inference engine instances, avoiding the need to route requests across different instances.</p>
 <p>However, PR comes with a critical system cost: <strong>re-prefill</strong>. When a trajectory is aborted and resumed with a newer policy, the new policy must re-process the entire existing context (prompt + previously generated tokens) to rebuild its KV cache before it can continue generation. We analyze this overhead in detail in <a href="#sec-system" class="quarto-xref">Section&nbsp;2</a>.</p>
-<p>Beyond system cost, there have been worries about mixing multiple policies within a single trajectory from the algorithmic perspective, since most previous works formulate IS with a single consistent behavior policy <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> while such formulation is rather under-explored. We defer a more detailed discussion about this to <a href="#sec-is" class="quarto-xref">Section&nbsp;3</a>.</p>
+<p>Beyond the system cost, there are algorithmic concerns about mixing multiple policies within a single trajectory, since most prior works formulate IS with a single consistent behavior policy <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> and the mixed-policy formulation remains relatively under-explored. We defer a more detailed discussion to <a href="#sec-is" class="quarto-xref">Section&nbsp;3</a>.</p>
 </section>
 <section id="partial-rollout-with-stale-kv-pr-skv" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="partial-rollout-with-stale-kv-pr-skv"><span class="header-section-number">1.2</span> Partial Rollout with Stale KV (PR-SKV)</h2>
@@ -616,9 +615,9 @@ window.Quarto = {
 <section id="consistent-rollout-cr" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="consistent-rollout-cr"><span class="header-section-number">1.3</span> Consistent Rollout (CR)</h2>
 <p>In a Consistent Rollout system, each trajectory is sampled entirely with a single stale policy <span class="math inline">\(\pi_{\theta_{n}}\)</span>, though different trajectories in the same batch may come from different policy versions (i.e., different <span class="math inline">\(n\)</span>).</p>
-<p>The consistency of policy within a trajectory makes the formulation simpler, which is widely used in traditional distributed RL systems like IMPALA <span class="citation" data-cites="espeholt2018impala">(<a href="#ref-espeholt2018impala" role="doc-biblioref">Espeholt et al. 2018</a>)</span>.</p>
-<p>In contrast, Consistent Rollout is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.</p>
-<p><span class="citation" data-cites="sheng2025laminar">Sheng, Tong, et al. (<a href="#ref-sheng2025laminar" role="doc-biblioref">2025</a>)</span> implement an LLM RL system that achieves Consistent Rollout with full utilization of the hardware resources.</p>
+<p>This within-trajectory policy consistency simplifies the IS formulation. Consistent Rollout is widely used in traditional distributed RL systems like IMPALA <span class="citation" data-cites="espeholt2018impala">(<a href="#ref-espeholt2018impala" role="doc-biblioref">Espeholt et al. 2018</a>)</span>.</p>
+<p>However, implementing Consistent Rollout efficiently while avoiding long-tail bubbles in LLM RL systems is more challenging, as it requires managing multiple versions of model weights simultaneously within the rollout engine and dynamically routing requests of varying lengths.</p>
+<p><span class="citation" data-cites="sheng2025laminar">Sheng, Tong, et al. (<a href="#ref-sheng2025laminar" role="doc-biblioref">2025</a>)</span> implement an LLM RL system that achieves Consistent Rollout with full hardware utilization.</p>
 <p>The key advantages of CR are:</p>
 <ul>
 <li><strong>No re-prefill overhead</strong>: each trajectory runs to completion with a single policy, so no KV cache invalidation occurs.</li>
@@ -648,13 +647,13 @@ window.Quarto = {
 <li>The <strong>quadratic</strong> attention complexity <span class="math inline">\(O(L^2)\)</span> per re-prefill.</li>
 <li>The <strong>linear</strong> growth <span class="math inline">\(O(L/K)\)</span> in the number of re-prefills.</li>
 </ol>
-<p>Frontier models nowadays are increasing their context length from 100k+ to 1M+ tokens, and the overhead of re-prefill becomes prohibitive.</p>
+<p>As frontier models scale their context lengths from 100K+ to 1M+ tokens, this re-prefill overhead becomes increasingly prohibitive.</p>
 </section>
 </section>
 <section id="sec-is" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Algorithm Perspective: Importance Sampling</h1>
 <p><a href="https://en.wikipedia.org/wiki/Importance_sampling">Importance Sampling (IS)</a> has been widely used in LLM RL systems.</p>
-<p>It is useful for estimating the expectation of some random function, typically the gradient of the return with respect to the policy parameters, on the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</p>
+<p>IS is useful for estimating the expectation of a function of random variables — typically the gradient of the return with respect to the policy parameters — under the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</p>
 <p><span id="eq-is-batch"><span class="math display">\[
 \begin{aligned}
 \hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau})) =&amp; \frac{1}{N} \sum_{i=1}^{N} \frac{p_{\theta}(\boldsymbol{\tau}_i)}{q_{\mu}(\boldsymbol{\tau}_i)}f(\boldsymbol{\tau}_i) \\
@@ -669,31 +668,31 @@ window.Quarto = {
 <li><span class="math inline">\(p_{\theta}(\cdot)\)</span> is the probability density function of the trajectory distribution induced by the target policy <span class="math inline">\(\pi_{\theta}\)</span> parameterized by <span class="math inline">\(\theta\)</span> and the environment state transition distribution <span class="math inline">\(p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})\)</span>,</li>
 <li><span class="math inline">\(q_{\mu}(\cdot)\)</span> is the probability density function of the trajectory distribution induced by the behavior policy <span class="math inline">\(\mu\)</span> and <span class="math inline">\(p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})\)</span>.</li>
 </ul>
-<p>One important property of <a href="#eq-is-batch" class="quarto-xref">Equation&nbsp;1</a> is that it is unbiased, i.e.,</p>
+<p>A key property of <a href="#eq-is-batch" class="quarto-xref">Equation&nbsp;1</a> is that it is unbiased, i.e.,</p>
 <p><span id="eq-is-unbiased"><span class="math display">\[
 \mathbb{E}_{\boldsymbol{\tau} \sim q_{\mu}}[\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau}))] = \mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}[f(\boldsymbol{\tau})]
 \tag{2}\]</span></span></p>
-<p>Of the components mentioned above, the only one that is ambiguous for calculation is the behavior policy <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span>.</p>
-<p>However, the correct calculation of <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> with the off-policy data in fully-utilized LLM RL systems mentioned above is not straightforward.</p>
+<p>Among the components above, the behavior policy <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> is the only one whose computation is ambiguous.</p>
+<p>However, correctly computing <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> for the off-policy data produced by the fully-utilized LLM RL systems described above is not straightforward.</p>
 <section id="sec-intractable-global-behav-policy" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="sec-intractable-global-behav-policy"><span class="header-section-number">3.1</span> Simple but Intractable: Global Behavior Policy <span class="math inline">\(\mu^{*}(\cdot \mid \boldsymbol{s})\)</span></h2>
 <p>Since there is always an actual distribution we are sampling from, we can always formulate the IS estimate with a global behavior policy <span class="math inline">\(\mu^{*}(\cdot \mid \boldsymbol{s})\)</span>.</p>
-<p>The most direct thought is to use <span class="math inline">\(\mu^{*}(\cdot \mid \boldsymbol{s})\)</span> for IS in practice. But this requires us to calculate the probabilities under it.</p>
-<p><span class="citation" data-cites="fu2025areal">Fu et al. (<a href="#ref-fu2025areal" role="doc-biblioref">2025</a>)</span> Proposition 1 resorts to constructing a behavior policy <span class="math inline">\(\mu(\boldsymbol{a} \mid \boldsymbol{s})\)</span> that satisfies <span class="math inline">\(\mu^{*}(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})\)</span> for each <span class="math inline">\((s_{t}, a_{t})\)</span> pair in the trajectory samples. This sounds reasonable for LLM RL since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.</p>
-<p>However, it might be confusing when we also notice that, the same state <span class="math inline">\(s\)</span> might appear in two different trajectory samples <span class="math inline">\(\tau_{i}\)</span> and <span class="math inline">\(\tau_{j}\)</span>, especially for the initial states <span class="math inline">\(s_{0}\)</span>, i.e., the prompts, and the same action <span class="math inline">\(a\)</span> might be sampled from different policies <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> and <span class="math inline">\(\pi_{\theta_{n+l}}\)</span> (<span class="math inline">\(l \neq m\)</span>) respectively. It is very likely that <span class="math inline">\(\pi_{\theta_{n+m}}(a \mid s) \neq \pi_{\theta_{n+l}}(a \mid s)\)</span>, making it infeasible to simply construct the same behavior policy for both trajectory samples, i.e., <span class="math inline">\(\mu^{*}(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)\)</span> contradicts <span class="math inline">\(\mu(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)\)</span>.</p>
-<p>So where is the problem in the construction for <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> mentioned above?</p>
-<p>The problem hidden here is that, <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> does not consider the probability distribution of which LLM policy <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> is used. Furthermore, this distribution is actually intractable since it depends on the system dynamics.</p>
+<p>The most natural approach is to use <span class="math inline">\(\mu^{*}(\cdot \mid \boldsymbol{s})\)</span> directly for IS. But this requires computing the probabilities under it.</p>
+<p><span class="citation" data-cites="fu2025areal">Fu et al. (<a href="#ref-fu2025areal" role="doc-biblioref">2025</a>)</span> Proposition 1 constructs a behavior policy <span class="math inline">\(\mu(\boldsymbol{a} \mid \boldsymbol{s})\)</span> satisfying <span class="math inline">\(\mu^{*}(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})\)</span> for each <span class="math inline">\((s_{t}, a_{t})\)</span> pair in the trajectory samples. This seems reasonable for LLM RL, since autoregressive generation never revisits a past state within the same trajectory.</p>
+<p>However, a complication arises: the same state <span class="math inline">\(s\)</span> may appear in two different trajectory samples <span class="math inline">\(\tau_{i}\)</span> and <span class="math inline">\(\tau_{j}\)</span> (this is especially common for the initial state <span class="math inline">\(s_{0}\)</span>, i.e., the prompt), with the same action <span class="math inline">\(a\)</span> sampled under different policies <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> and <span class="math inline">\(\pi_{\theta_{n+l}}\)</span> (<span class="math inline">\(l \neq m\)</span>) in each. In general, <span class="math inline">\(\pi_{\theta_{n+m}}(a \mid s) \neq \pi_{\theta_{n+l}}(a \mid s)\)</span>, making it infeasible to construct a single behavior policy for both trajectory samples: <span class="math inline">\(\mu^{*}(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)\)</span> contradicts <span class="math inline">\(\mu^{*}(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)\)</span>.</p>
+<p>Where, then, is the flaw in this construction?</p>
+<p>The underlying issue is that <span class="math inline">\(\mu(\cdot \mid \boldsymbol{s})\)</span> does not account for the probability distribution over which policy <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> is used. Moreover, this distribution is intractable, as it depends on the system dynamics.</p>
 </section>
 <section id="sec-is-consistent" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="sec-is-consistent"><span class="header-section-number">3.2</span> IS with Consistent Rollout Data</h2>
-<p>IS with consistent rollout data is simpler to formulate since each trajectory is sampled with a consistent stale policy <span class="math inline">\(\pi_{\theta_{n}}\)</span>, and we only need to correctly formulate the policy used by each trajectory.</p>
+<p>IS with consistent rollout data is simpler to formulate, since each trajectory is sampled from a single policy <span class="math inline">\(\pi_{\theta_{n}}\)</span>, and we need only correctly identify which policy generated each trajectory.</p>
 <section id="mixture-importance-sampling" class="level3" data-number="3.2.1">
 <h3 data-number="3.2.1" class="anchored" data-anchor-id="mixture-importance-sampling"><span class="header-section-number">3.2.1</span> Mixture Importance Sampling</h3>
 <p>In some simple cases, the distribution of which policy is used, i.e., the hyper-policy distribution, is known, where we can formulate the IS estimate as <em>Mixture Importance Sampling</em> <span class="citation" data-cites="owen2013mcbook">(<a href="#ref-owen2013mcbook" role="doc-biblioref">Owen 2013</a>)</span>.</p>
 </section>
 <section id="multiple-importance-sampling" class="level3" data-number="3.2.2">
 <h3 data-number="3.2.2" class="anchored" data-anchor-id="multiple-importance-sampling"><span class="header-section-number">3.2.2</span> Multiple Importance Sampling</h3>
-<p>However, in more general cases, we can only know ad hoc that the number of trajectories sampled from each policy <span class="math inline">\(\pi_{\theta_{j}}\)</span> is <span class="math inline">\(n_{j}\)</span>, where <span class="math inline">\(N = \sum_{j} n_{j}\)</span>. For such cases, we can formulate the IS estimate as <em>Multiple Importance Sampling</em> <span class="citation" data-cites="owen2013mcbook">(<a href="#ref-owen2013mcbook" role="doc-biblioref">Owen 2013</a>)</span>:</p>
+<p>However, in more general cases, we only know post hoc that <span class="math inline">\(n_{j}\)</span> trajectories were sampled from each policy <span class="math inline">\(\pi_{\theta_{j}}\)</span>, where <span class="math inline">\(N = \sum_{j} n_{j}\)</span>. For such cases, we can formulate the IS estimate as <em>Multiple Importance Sampling</em> <span class="citation" data-cites="owen2013mcbook">(<a href="#ref-owen2013mcbook" role="doc-biblioref">Owen 2013</a>)</span>:</p>
 <blockquote class="blockquote">
 <p>Suppose that <span class="math inline">\(\boldsymbol{X}_{i j} \sim q_j\)</span> for <span class="math inline">\(i=1, \ldots, n_j\)</span> and <span class="math inline">\(j=1, \ldots, J\)</span> and that <span class="math inline">\(\omega_j\)</span> are a partition of unity. The multiple importance sampling estimate is</p>
 <p><span class="math display">\[\widetilde{\mu}_\omega=\sum_{j=1}^J \frac{1}{n_j} \sum_{i=1}^{n_j} \omega_j\left(\boldsymbol{X}_{i j}\right) \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{q_j\left(\boldsymbol{X}_{i j}\right)} .\]</span></p>
@@ -702,7 +701,7 @@ window.Quarto = {
 </section>
 <section id="balance-heuristic" class="level3" data-number="3.2.3">
 <h3 data-number="3.2.3" class="anchored" data-anchor-id="balance-heuristic"><span class="header-section-number">3.2.3</span> Balance Heuristic</h3>
-<p>The natural problem following is how to choose the partition of unity <span class="math inline">\(\omega_j\)</span>:</p>
+<p>The natural follow-up question is how to choose the partition of unity <span class="math inline">\(\omega_j\)</span>:</p>
 <blockquote class="blockquote">
 <p>Among the proposals for functions <span class="math inline">\(\omega_j(\boldsymbol{x})\)</span>, the most studied one is the balance heuristic with <span class="math inline">\(\omega_j(\boldsymbol{x}) \propto n_j q_j(\boldsymbol{x})\)</span>, that is</p>
 <p><span class="math display">\[\omega_j(\boldsymbol{x})=\omega_j^{\mathrm{BH}}(\boldsymbol{x}) \equiv \frac{n_j q_j(\boldsymbol{x})}{\sum_{k=1}^J n_k q_k(\boldsymbol{x})} .\]</span></p>
@@ -712,37 +711,37 @@ window.Quarto = {
 <p><span class="math display">\[\operatorname{Var}\left(\widetilde{\mu}_{\omega^{\mathrm{BH}}}\right) \leqslant \operatorname{Var}\left(\widetilde{\mu}_\omega\right)+\left(\frac{1}{\min _j n_j}-\frac{1}{\sum_j n_j}\right) \mu^2 .\]</span></p>
 <p><span class="citation" data-cites="owen2013mcbook">(<a href="#ref-owen2013mcbook" role="doc-biblioref">Owen 2013</a>)</span></p>
 </blockquote>
-<p>The heuristic behind the balance heuristic to make <span class="math inline">\(\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})\)</span> can be also understood as the more samples we have from a policy, the more information we have about it, thus the more weight it should have.</p>
+<p>The intuition behind the balance heuristic (<span class="math inline">\(\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})\)</span>) can also be understood as: the more samples we have from a policy, the more information we have about it, and thus the more weight it should receive.</p>
 </section>
 </section>
 <section id="is-with-partial-rollout-data" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="is-with-partial-rollout-data"><span class="header-section-number">3.3</span> IS with Partial Rollout Data</h2>
-<p>The IS with partial rollout data (applicable to both PR and PR-SKV) is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is absent in previous works including <span class="citation" data-cites="espeholt2020seedrl">Espeholt et al. (<a href="#ref-espeholt2020seedrl" role="doc-biblioref">2020</a>)</span> that first proposed Partial Rollout.</p>
-<p>In this section, we try to discuss the formulation and some properties of IS with partial rollout data that might be useful in practice.</p>
+<p>IS with partial rollout data (applicable to both PR and PR-SKV) is more difficult to formulate, since we must also account for the policy composition within each trajectory. To the best of our knowledge, this discussion is absent from previous works, including <span class="citation" data-cites="espeholt2020seedrl">Espeholt et al. (<a href="#ref-espeholt2020seedrl" role="doc-biblioref">2020</a>)</span>, which first proposed Partial Rollout.</p>
+<p>In this section, we discuss the formulation and some properties of IS with partial rollout data that may be useful in practice.</p>
 <p>Note that for PR-SKV, the actual sampling distribution at each timestep is affected by the stale KV cache and is not exactly any single policy <span class="math inline">\(\pi_{\theta_{n+m}}\)</span>. The formulation below assumes we can identify the policy used at each timestep, which holds exactly for PR but only approximately for PR-SKV (with the approximation quality depending on how much the policy has changed).</p>
 <section id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols" class="level3" data-number="3.3.1">
 <h3 data-number="3.3.1" class="anchored" data-anchor-id="trajectory-dependent-behavior-policy-mu_icdot-mid-boldsymbols"><span class="header-section-number">3.3.1</span> Trajectory-dependent Behavior Policy <span class="math inline">\(\mu_{i}(\cdot \mid \boldsymbol{s})\)</span></h3>
-<p>A general but trivial formulation for IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use <span class="math inline">\(\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})\)</span> for each trajectory <span class="math inline">\(\tau_{i}\)</span>.</p>
+<p>A general but straightforward formulation for an IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use <span class="math inline">\(\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})\)</span> for each trajectory <span class="math inline">\(\tau_{i}\)</span>.</p>
 <p>Now for the counter-example mentioned in <a href="#sec-intractable-global-behav-policy" class="quarto-xref">Section&nbsp;3.1</a>, <span class="math inline">\(\mu_i(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)\)</span> and <span class="math inline">\(\mu_j(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)\)</span> are obviously compatible.</p>
-<p>With a batch of <span class="math inline">\(N\)</span> trajectory samples sampled from each own behavior policy <span class="math inline">\(\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}\)</span>, we can only use the special case of the batch estimate <a href="#eq-is-batch" class="quarto-xref">Equation&nbsp;1</a> with <span class="math inline">\(N=1\)</span>, i.e., the single-sample estimate</p>
+<p>With a batch of <span class="math inline">\(N\)</span> trajectory samples, each sampled from its own behavior policy <span class="math inline">\(\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}\)</span>, we can only use the special case of the batch estimate <a href="#eq-is-batch" class="quarto-xref">Equation&nbsp;1</a> with <span class="math inline">\(N=1\)</span>, i.e., the single-sample estimate</p>
 <p><span id="eq-is-single-sample"><span class="math display">\[
-\hat{\mathbb{E}}_{\mu_i}(\boldsymbol{\tau}_i) = \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
+\hat{\mathbb{E}}_{\mu_i}(\boldsymbol{\tau}_i) = \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
 \tag{3}\]</span></span></p>
 <p>Note that the single-sample estimate is also unbiased, i.e., the unbiasedness of <a href="#eq-is-batch" class="quarto-xref">Equation&nbsp;1</a> does not depend on the sample size <span class="math inline">\(N\)</span>.</p>
-<p>The common practice to combine them into an estimate with the batch of samples is to average the single-sample estimates <a href="#eq-is-single-sample" class="quarto-xref">Equation&nbsp;3</a>, i.e.,</p>
+<p>The standard approach to combine them into a batch estimate is to average the single-sample estimates from <a href="#eq-is-single-sample" class="quarto-xref">Equation&nbsp;3</a>:</p>
 <p><span id="eq-is-single-sample-avg"><span class="math display">\[
-\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i} = \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
+\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i} = \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)
 \tag{4}\]</span></span></p>
-<p>With the linearity of expectation, it is obvious to see the unbiasedness of the average estimate <span class="math inline">\(\hat{\mathbb{E}}_{\text{avg}}\)</span>.</p>
-<p>Now let’s take a look at the variance. Let the variance of each single-sample estimate be <span class="math inline">\(\sigma^2_{\mu_i}\)</span>, since the samples are independent, the variance of <span class="math inline">\(\hat{\mathbb{E}}_{\text{avg}}\)</span> is:</p>
+<p>By the linearity of expectation, the average estimate <span class="math inline">\(\hat{\mathbb{E}}_{\text{avg}}\)</span> is also unbiased.</p>
+<p>Now consider the variance. Let the variance of each single-sample estimate be <span class="math inline">\(\sigma^2_{\mu_i}\)</span>. Since the samples are independent, the variance of <span class="math inline">\(\hat{\mathbb{E}}_{\text{avg}}\)</span> is:</p>
 <p><span id="eq-is-single-sample-avg-var"><span class="math display">\[
 \sigma^2_{\text{avg}} = \frac{1}{N^2} \sum_{i=1}^{N} \sigma^2_{\mu_i}
 \tag{5}\]</span></span></p>
-<p>Given the batch variance is determined by composing the variances of the single-sample estimates, we can first try to analyze the variance of the single-sample estimate.</p>
+<p>Since the batch variance decomposes into individual single-sample variances, we focus on analyzing the variance of each single-sample estimate.</p>
 </section>
 <section id="variance-of-single-sample-estimate-consistent-vs.-partial-rollout" class="level3" data-number="3.3.2">
 <h3 data-number="3.3.2" class="anchored" data-anchor-id="variance-of-single-sample-estimate-consistent-vs.-partial-rollout"><span class="header-section-number">3.3.2</span> Variance of Single-Sample Estimate – Consistent vs.&nbsp;Partial Rollout</h3>
-<p>Consistent Rollout and Partial Rollout just form two different cases of the single-sample estimate. We might wonder that, given a trajectory <span class="math inline">\(\boldsymbol{\tau}_{i}\)</span>, which of</p>
+<p>Consistent Rollout and Partial Rollout simply correspond to two different cases of the single-sample estimate. A natural question is: given a trajectory <span class="math inline">\(\boldsymbol{\tau}_{i}\)</span>, which of</p>
 <ol type="1">
 <li>the consistent old policy <span class="math inline">\(\pi_{\theta_{n+m}}\)</span> (Consistent Rollout) and</li>
 <li>the sliding latest policy <span class="math inline">\(\mu_{\theta_{n},M}\)</span> using <span class="math inline">\(\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}\)</span> successively (Partial Rollout)</li>
@@ -766,15 +765,15 @@ window.Quarto = {
 <p>This result generalizes Lemma 4.1 of Metelli et al.&nbsp;(2018), that can be recovered by setting <span class="math inline">\(\alpha=1\)</span> under the condition that <span class="math inline">\(\|f\|_{\infty}&lt;+\infty\)</span> :</p>
 <p><span class="math display">\[\operatorname{Var}_{\mathbf{x} \sim Q}\left[\widehat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2 d_2(P \| Q) .\]</span></p>
 </blockquote>
-<p>When <span class="math inline">\(\alpha = 1\)</span>, the Rényi divergence is the <a href="https://en.wikipedia.org/wiki/Kullback-Leibler_divergence">Kullback-Leibler divergence</a> widely used in RL analysis.</p>
+<p>When <span class="math inline">\(\alpha = 1\)</span>, the Rényi divergence reduces to the <a href="https://en.wikipedia.org/wiki/Kullback-Leibler_divergence">Kullback-Leibler divergence</a>, which is widely used in RL analysis.</p>
 <blockquote class="blockquote">
 <p>When <span class="math inline">\(P=Q\)</span> almost everywhere, we get <span class="math inline">\(\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{Q / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2\)</span>, a well-known upper bound to the variance of a Monte Carlo estimator. Recalling the definition of ESS (Equation 7) we can rewrite the previous bound as:</p>
 <p><span class="math display">\[\underset{\mathbf{x} \sim Q}{\operatorname{Var}}\left[\hat{\mu}_{P / Q}\right] \leqslant \frac{\|f\|_{\infty}^2}{\operatorname{ESS}(P \| Q)} .\]</span></p>
 <p>Thus, the variance scales with ESS instead of <span class="math inline">\(N\)</span>, justifying the definition of ESS.</p>
 </blockquote>
 <p>In our context, <span class="math inline">\(P\)</span> is the target distribution <span class="math inline">\(p_{\theta}\)</span> and <span class="math inline">\(Q\)</span> is <span class="math inline">\(\mu_{\theta_{n},M}\)</span> or <span class="math inline">\(\pi_{\theta_{n}}\)</span>.</p>
-<p>It is possible that <span class="math inline">\(d_{2 \alpha}(p_{\theta} \| q_{\theta_{n},M}) &lt; d_{2 \alpha}(p_{\theta} \| p_{\theta_{n}})\)</span>, since the newer the policy is, the more similar its induced distribution is to <span class="math inline">\(p_{\theta}\)</span>. Then as long as the <span class="math inline">\(\|f\|_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}\)</span> is not much larger than <span class="math inline">\(\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}\)</span>, the estimate using <span class="math inline">\(\mu_{\theta_{n},M}\)</span> has better guarantee than the estimate using <span class="math inline">\(\pi_{\theta_{n}}\)</span>.</p>
-<p>In practice, the final effectiveness of the IS estimate usually relies on empirical diagnostic metrics like <a href="https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section">Effective Sample Size (ESS)</a>. For example, <span class="citation" data-cites="piché2025pipelinerl">Piché et al. (<a href="#ref-piché2025pipelinerl" role="doc-biblioref">2025</a>)</span> measured the ESS of different sampling policies they used.</p>
+<p>It is possible that <span class="math inline">\(d_{2 \alpha}(p_{\theta} \| q_{\theta_{n},M}) &lt; d_{2 \alpha}(p_{\theta} \| p_{\theta_{n}})\)</span>, since the newer the policy, the more similar its induced distribution is to <span class="math inline">\(p_{\theta}\)</span>. Then, as long as <span class="math inline">\(\|f\|_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}\)</span> is not much larger than <span class="math inline">\(\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}\)</span>, the estimate using <span class="math inline">\(\mu_{\theta_{n},M}\)</span> has a better variance bound than that using <span class="math inline">\(\pi_{\theta_{n}}\)</span>.</p>
+<p>In practice, the effectiveness of IS estimates is often assessed via empirical diagnostic metrics such as the <a href="https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section">Effective Sample Size (ESS)</a>. For example, <span class="citation" data-cites="piché2025pipelinerl">Piché et al. (<a href="#ref-piché2025pipelinerl" role="doc-biblioref">2025</a>)</span> measured the ESS of different sampling policies they used.</p>
 </section>
 </section>
 <section id="sec-is-comparison" class="level2" data-number="3.4">
@@ -791,11 +790,11 @@ window.Quarto = {
 <h2 data-number="3.5" class="anchored" data-anchor-id="discussions"><span class="header-section-number">3.5</span> Discussions</h2>
 <section id="distribution-shift-from-reusing-stale-kv-cache" class="level3" data-number="3.5.1">
 <h3 data-number="3.5.1" class="anchored" data-anchor-id="distribution-shift-from-reusing-stale-kv-cache"><span class="header-section-number">3.5.1</span> Distribution Shift from Reusing Stale KV Cache</h3>
-<p>The distribution shift introduced by reusing stale KV cache is an important practical concern that deserves further investigation. When the stale KV cache is reused with a new policy, the effective sampling distribution at each timestep depends on the entire history of policy switches and the accumulated staleness of the cached representations. Quantifying this shift and its impact on the IS estimate quality remains an open question.</p>
+<p>The distribution shift from reusing stale KV cache is an important practical concern that warrants further investigation. When the stale KV cache is reused with a new policy, the effective sampling distribution at each timestep depends on the entire history of policy switches and the accumulated staleness of the cached representations. Quantifying this shift and its impact on IS estimate quality remains an open question.</p>
 </section>
 <section id="minimizing-variance-by-optimizing-the-weighting" class="level3" data-number="3.5.2">
 <h3 data-number="3.5.2" class="anchored" data-anchor-id="minimizing-variance-by-optimizing-the-weighting"><span class="header-section-number">3.5.2</span> Minimizing Variance by Optimizing the Weighting</h3>
-<p>Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In <a href="#eq-is-single-sample-avg" class="quarto-xref">Equation&nbsp;4</a>, we use the simplest average weight <span class="math inline">\(\frac{1}{N}\)</span> for each single-sample estimate. But we can actually use any other weight functions <span class="math inline">\(\omega_i(\boldsymbol{x})\)</span> to combine them, as long as they form a <em>partition of unity</em>, i.e., a collection of <span class="math inline">\(J \geqslant 1\)</span> weight functions <span class="math inline">\(\omega_j(\boldsymbol{x}) \geqslant 0\)</span> which satisfy <span class="math inline">\(\sum_{j=1}^J \omega_j(\boldsymbol{x})=1\)</span> for all <span class="math inline">\(\boldsymbol{x}\)</span>. Different partitions of unity will lead to estimates that are all unbiased but with different variances.</p>
+<p>In <a href="#eq-is-single-sample-avg" class="quarto-xref">Equation&nbsp;4</a>, we use the simple uniform weight <span class="math inline">\(\frac{1}{N}\)</span>. Actually, we can use any weight functions <span class="math inline">\(\omega_i(\boldsymbol{x})\)</span> that form a <em>partition of unity</em>, i.e., <span class="math inline">\(\omega_j(\boldsymbol{x}) \geqslant 0\)</span> with <span class="math inline">\(\sum_{j=1}^J \omega_j(\boldsymbol{x})=1\)</span> for all <span class="math inline">\(\boldsymbol{x}\)</span>, while keeping unbiasedness. Different partitions of unity yield estimates that are all unbiased but may differ in variance. Balance heuristic is a special case of this in the Multiple Importance Sampling formulation, where <span class="math inline">\(\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})\)</span>. However, the optimal weighting is still an open question.</p>
 </section>
 </section>
 </section>
@@ -804,7 +803,7 @@ window.Quarto = {
 
 <div id="quarto-appendix" class="default"><section id="acknowledgments" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Acknowledgments</h2><div class="quarto-appendix-contents">
 
-<p>Thanks for helpful discussion with Wang Zhang.</p>
+<p>Thanks to Wang Zhang for helpful discussions.</p>
 </div></section><section id="citation" class="level1 appendix unnumbered"><h2 class="anchored quarto-appendix-heading">Citation</h2><div class="quarto-appendix-contents">
 
 <p>BibTeX:</p>
@@ -1383,11 +1382,11 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
 <span id="cb2-19"><a href="#cb2-19"></a><span class="co">  - Large Language Model</span></span>
 <span id="cb2-20"><a href="#cb2-20"></a><span class="an">abstract:</span><span class="co"> |</span></span>
 <span id="cb2-21"><a href="#cb2-21"></a></span>
-<span id="cb2-22"><a href="#cb2-22"></a><span class="co">  Large Language Model (LLM) Reinforcement Learning (RL) systems nowadays usually achieves high utilization of rollout by introducing off-policy data, which is typically used for Importance Sampling (IS).</span></span>
+<span id="cb2-22"><a href="#cb2-22"></a><span class="co">  Large Language Model (LLM) Reinforcement Learning (RL) systems nowadays usually achieve high rollout utilization by introducing off-policy data, which is typically used for Importance Sampling (IS).</span></span>
 <span id="cb2-23"><a href="#cb2-23"></a></span>
-<span id="cb2-24"><a href="#cb2-24"></a><span class="co">  Three dominant rollout strategies have emerged: 1) **Partial Rollout (PR)**, which, once a newer policy is available, aborts and resumes the trajectory with the latest policy, producing trajectories with mixed policy compositions, at the cost of (repeated) re-prefill; 2) **Partial Rollout with Stale KV (PR-SKV)**, which is similar to PR, but keeps the stale KV cache to avoid re-prefill, at the cost of introducing distribution shift; 3) **Consistent Rollout (CR)**, which completes each trajectory with a single stale policy, avoiding re-prefill and distribution shift, at the cost of more off-policiness.</span></span>
+<span id="cb2-24"><a href="#cb2-24"></a><span class="co">  Three dominant rollout strategies have emerged: 1) **Partial Rollout (PR)**, which, once a newer policy is available, aborts and resumes the trajectory with the latest policy, producing trajectories with mixed policy compositions, at the cost of (repeated) re-prefill; 2) **Partial Rollout with Stale KV (PR-SKV)**, which is similar to PR but keeps the stale KV cache to avoid re-prefill, at the cost of introducing distribution shift; 3) **Consistent Rollout (CR)**, which completes each trajectory with a single stale policy, avoiding re-prefill and distribution shift, at the cost of more off-policiness.</span></span>
 <span id="cb2-25"><a href="#cb2-25"></a></span>
-<span id="cb2-26"><a href="#cb2-26"></a><span class="co">  This post compares the three strategies from both algorithm and system perspectives, drawing the following main conclusions: 1) The overhead of re-prefill in PR scales **cubically** with the context length, with the dot-product attention complexity scaling quadratically and the re-prefill frequency scaling linearly, which is prohibitive for long-context tasks. 2) As data for IS, both PR(-SKV) and CR can produce **unbiased** estimates, while their **variance comparison is nuanced**: while PR(-SKV) can be less off-policy by always using the latest policy once available, CR can fit into the Multiple Importance Sampling formulation and exploit tricks like balance heuristic to reduce variance.</span></span>
+<span id="cb2-26"><a href="#cb2-26"></a><span class="co">  This post compares the three strategies from both algorithmic and system perspectives, drawing the following main conclusions: 1) The re-prefill overhead in PR scales **cubically** with the context length — the dot-product attention complexity scales quadratically and the re-prefill frequency scales linearly — making it prohibitive for long-context tasks. 2) As data for IS, both PR(-SKV) and CR can produce **unbiased** estimates, while their **variance comparison is nuanced**: PR(-SKV) can be less off-policy by always using the latest policy once available, but CR fits naturally into the Multiple Importance Sampling formulation and can exploit techniques like the balance heuristic to reduce variance.</span></span>
 <span id="cb2-27"><a href="#cb2-27"></a></span>
 <span id="cb2-28"><a href="#cb2-28"></a><span class="co">  Experiments are still in progress.</span></span>
 <span id="cb2-29"><a href="#cb2-29"></a></span>
@@ -1470,314 +1469,312 @@ Yao, Zhewei, Reza Yazdani Aminabadi, Olatunji Ruwase, Samyam Rajbhandari, Xiaoxi
 <span id="cb2-106"><a href="#cb2-106"></a></span>
 <span id="cb2-107"><a href="#cb2-107"></a>In a Partial Rollout system, the latest policy $\pi_{\theta_{t}}$ available at each moment is always used to sample actions. This means a single trajectory can span multiple policy versions.</span>
 <span id="cb2-108"><a href="#cb2-108"></a></span>
-<span id="cb2-109"><a href="#cb2-109"></a>Formally, a partial rollout trajectory can be defined as $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from the policy $\pi_{\theta_{n+m}}$ that is the latest policy available in the system when sampling. So for $l &gt; m$, $\pi_{\theta_{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.</span>
+<span id="cb2-109"><a href="#cb2-109"></a>Formally, a partial rollout trajectory can be defined as $\tau = (s_{0}, a_{0,\pi_{\theta_{n}}}, \ldots, s_{t}, a_{t,\pi_{\theta_{n+m}}}, \ldots, s_{T}, a_{T,\pi_{\theta_{n+M}}})$, where $s_{t}$ is the state at timestep $t$ and $a_{t,\pi_{\theta_{n+m}}}$ is the action sampled from $\pi_{\theta_{n+m}}$, the latest policy available in the system at that timestep. Hence, for $l &gt; m$, $\pi_{\theta_{n+l}}$ is usually more on-policy than $\pi_{\theta_{n+m}}$.</span>
 <span id="cb2-110"><a href="#cb2-110"></a></span>
 <span id="cb2-111"><a href="#cb2-111"></a>Partial rollout trajectories in a batch usually have different policy compositions, depending on the system dynamics.</span>
 <span id="cb2-112"><a href="#cb2-112"></a></span>
-<span id="cb2-113"><a href="#cb2-113"></a>Partial Rollout is a popular design choice in LLM RL systems nowadays, adopted by Kimi k1.5 <span class="co">[</span><span class="ot">@kimi2025k15</span><span class="co">]</span>, AReaL <span class="co">[</span><span class="ot">@fu2025areal</span><span class="co">]</span>, etc., which can date back to a traditional distributed RL system called SEED RL <span class="co">[</span><span class="ot">@espeholt2020seedrl</span><span class="co">]</span>:</span>
+<span id="cb2-113"><a href="#cb2-113"></a>Partial Rollout is a popular design choice in LLM RL systems, adopted by Kimi k1.5 <span class="co">[</span><span class="ot">@kimi2025k15</span><span class="co">]</span>, AReaL <span class="co">[</span><span class="ot">@fu2025areal</span><span class="co">]</span>, etc., dating back to SEED RL <span class="co">[</span><span class="ot">@espeholt2020seedrl</span><span class="co">]</span> in traditional distributed RL. In these systems, the ongoing trajectory rollouts are</span>
 <span id="cb2-114"><a href="#cb2-114"></a></span>
-<span id="cb2-115"><a href="#cb2-115"></a>The ongoing trajectory rollouts are</span>
-<span id="cb2-116"><a href="#cb2-116"></a></span>
-<span id="cb2-117"><a href="#cb2-117"></a>1) aborted when</span>
-<span id="cb2-118"><a href="#cb2-118"></a><span class="ss">    - </span>either, in synchronous systems like Kimi k1.5, there are enough samples collected for training, releasing the resources for the training engine to update the model weights,</span>
-<span id="cb2-119"><a href="#cb2-119"></a><span class="ss">    - </span>or, in asynchronous systems like AReaL and PipelineRL, a new version of model weights is produced by the trainer;</span>
-<span id="cb2-120"><a href="#cb2-120"></a>2) continued with the latest version of model weights.</span>
+<span id="cb2-115"><a href="#cb2-115"></a>1) aborted when</span>
+<span id="cb2-116"><a href="#cb2-116"></a><span class="ss">    - </span>either, in synchronous systems like Kimi k1.5, there are enough samples collected for training, releasing the resources for the training engine to update the model weights,</span>
+<span id="cb2-117"><a href="#cb2-117"></a><span class="ss">    - </span>or, in asynchronous systems like AReaL and PipelineRL, a new version of model weights is produced by the trainer;</span>
+<span id="cb2-118"><a href="#cb2-118"></a>2) continued with the latest version of model weights.</span>
+<span id="cb2-119"><a href="#cb2-119"></a></span>
+<span id="cb2-120"><a href="#cb2-120"></a>Partial Rollout is motivated by its efficiency and simplicity, which we elaborate below.</span>
 <span id="cb2-121"><a href="#cb2-121"></a></span>
-<span id="cb2-122"><a href="#cb2-122"></a>Partial Rollout is motivated by its efficiency and simplicity. Let me explain in detail.</span>
+<span id="cb2-122"><a href="#cb2-122"></a>The earliest LLM RL systems <span class="co">[</span><span class="ot">@yao2023dschat; @shen2024nemoaligner; @sheng2025hybridflow; @hu2025openrlhf</span><span class="co">]</span> all adopt synchronous architectures, where the trainer waits for all trajectories to finish before updating the weights with the collected data. However, as the context length of LLMs scales up, the trajectory length distribution becomes increasingly skewed. If all trajectories must complete in the same rollout stage, only a few long-tail requests may remain in the system, causing severe under-utilization (typically &lt;30% in practice).</span>
 <span id="cb2-123"><a href="#cb2-123"></a></span>
-<span id="cb2-124"><a href="#cb2-124"></a>The earliest LLM RL systems <span class="co">[</span><span class="ot">@yao2023dschat; @shen2024nemoaligner; @sheng2025hybridflow; @hu2025openrlhf</span><span class="co">]</span> all adopt synchronous architectures, where the trainer always waits for all the trajectories to finish before updating the weights with these data. However, as the context length of LLMs scales up, the skewness of the trajectory length distribution becomes increasingly heavy. If the distribution is very skewed but all the trajectories are required to finish in the same rollout stage, there can be only a few long-tail requests remaining in the system, causing severe under-utilization (typically &lt;30% in practice).</span>
+<span id="cb2-124"><a href="#cb2-124"></a>Kimi k1.5 addresses this by aborting all ongoing rollouts once enough training samples are collected, directly updating the weights instead of waiting for all trajectories to finish, and then continuing the rollouts with the new model weights.</span>
 <span id="cb2-125"><a href="#cb2-125"></a></span>
-<span id="cb2-126"><a href="#cb2-126"></a>Kimi k1.5 proposes to fix this issue by aborting all the ongoing rollouts once enough training samples are collected and directly updating the weights with these data, instead of waiting for all the trajectories to finish, and then continuing the rollouts with the new model weights.</span>
+<span id="cb2-126"><a href="#cb2-126"></a>In asynchronous RL systems with an experience buffer, managing multiple versions of model weights within the rollout engine is cumbersome.</span>
 <span id="cb2-127"><a href="#cb2-127"></a></span>
-<span id="cb2-128"><a href="#cb2-128"></a>In asynchronous RL systems with an experience buffer, it is troublesome to manage multiple versions of model weights within the rollout engine.</span>
+<span id="cb2-128"><a href="#cb2-128"></a>AReaL proposes to maintain only the latest model weights across all instances. Once a new version of weights is produced by the trainer, all rollouts of the stale policy are aborted and then continued with the latest policy.</span>
 <span id="cb2-129"><a href="#cb2-129"></a></span>
-<span id="cb2-130"><a href="#cb2-130"></a>AReaL proposes to always only maintain the latest model weights across all the instances. Once a new version of model weights is produced by the trainer, all the rollouts of the stale policy are aborted and then continued with the latest policy.</span>
+<span id="cb2-130"><a href="#cb2-130"></a>This is simply implemented by loading the latest weights into all inference engine instances, avoiding the need to route requests across different instances.</span>
 <span id="cb2-131"><a href="#cb2-131"></a></span>
-<span id="cb2-132"><a href="#cb2-132"></a>This can be simply implemented by always loading the latest weights into all the inference engine instances, avoiding the need to manage the requests across each instance.</span>
+<span id="cb2-132"><a href="#cb2-132"></a>However, PR comes with a critical system cost: **re-prefill**. When a trajectory is aborted and resumed with a newer policy, the new policy must re-process the entire existing context (prompt + previously generated tokens) to rebuild its KV cache before it can continue generation. We analyze this overhead in detail in @sec-system.</span>
 <span id="cb2-133"><a href="#cb2-133"></a></span>
-<span id="cb2-134"><a href="#cb2-134"></a>However, PR comes with a critical system cost: **re-prefill**. When a trajectory is aborted and resumed with a newer policy, the new policy must re-process the entire existing context (prompt + previously generated tokens) to rebuild its KV cache before it can continue generation. We analyze this overhead in detail in @sec-system.</span>
+<span id="cb2-134"><a href="#cb2-134"></a>Beyond the system cost, there are algorithmic concerns about mixing multiple policies within a single trajectory, since most prior works formulate IS with a single consistent behavior policy $\mu(\cdot \mid \boldsymbol{s})$ and the mixed-policy formulation remains relatively under-explored. We defer a more detailed discussion to @sec-is.</span>
 <span id="cb2-135"><a href="#cb2-135"></a></span>
-<span id="cb2-136"><a href="#cb2-136"></a>Beyond system cost, there have been worries about mixing multiple policies within a single trajectory from the algorithmic perspective, since most previous works formulate IS with a single consistent behavior policy $\mu(\cdot \mid \boldsymbol{s})$ while such formulation is rather under-explored. We defer a more detailed discussion about this to @sec-is.</span>
+<span id="cb2-136"><a href="#cb2-136"></a><span class="fu">## Partial Rollout with Stale KV (PR-SKV)</span></span>
 <span id="cb2-137"><a href="#cb2-137"></a></span>
-<span id="cb2-138"><a href="#cb2-138"></a><span class="fu">## Partial Rollout with Stale KV (PR-SKV)</span></span>
+<span id="cb2-138"><a href="#cb2-138"></a>PR-SKV is a variant of PR designed to avoid the re-prefill overhead, proposed by PipelineRL <span class="co">[</span><span class="ot">@piché2025pipelinerl</span><span class="co">]</span>. Like PR, it aborts the ongoing trajectory and switches to the latest policy $\pi_{\theta_{n+1}}$ once available. However, instead of re-computing the KV cache from scratch, PR-SKV **retains and reuses the stale KV cache** that was computed under the old policy $\pi_{\theta_{n}}$. </span>
 <span id="cb2-139"><a href="#cb2-139"></a></span>
-<span id="cb2-140"><a href="#cb2-140"></a>PR-SKV is a variant of PR designed to avoid the re-prefill overhead, proposed by PipelineRL <span class="co">[</span><span class="ot">@piché2025pipelinerl</span><span class="co">]</span>. Like PR, it aborts the ongoing trajectory and switches to the latest policy $\pi_{\theta_{n+1}}$ once available. However, instead of re-computing the KV cache from scratch, PR-SKV **retains and reuses the stale KV cache** that was computed under the old policy $\pi_{\theta_{n}}$. </span>
+<span id="cb2-140"><a href="#cb2-140"></a>In standard autoregressive transformer inference, the KV cache stores the key and value projections of all past tokens:</span>
 <span id="cb2-141"><a href="#cb2-141"></a></span>
-<span id="cb2-142"><a href="#cb2-142"></a>In standard autoregressive transformer inference, the KV cache stores the key and value projections of all past tokens:</span>
-<span id="cb2-143"><a href="#cb2-143"></a></span>
+<span id="cb2-142"><a href="#cb2-142"></a>$$</span>
+<span id="cb2-143"><a href="#cb2-143"></a>\boldsymbol{K}_{0:t} = \boldsymbol{W}_K^{(n)} \boldsymbol{X}_{0:t}, \quad \boldsymbol{V}_{0:t} = \boldsymbol{W}_V^{(n)} \boldsymbol{X}_{0:t},</span>
 <span id="cb2-144"><a href="#cb2-144"></a>$$</span>
-<span id="cb2-145"><a href="#cb2-145"></a>\boldsymbol{K}_{0:t} = \boldsymbol{W}_K^{(n)} \boldsymbol{X}_{0:t}, \quad \boldsymbol{V}_{0:t} = \boldsymbol{W}_V^{(n)} \boldsymbol{X}_{0:t},</span>
-<span id="cb2-146"><a href="#cb2-146"></a>$$</span>
+<span id="cb2-145"><a href="#cb2-145"></a></span>
+<span id="cb2-146"><a href="#cb2-146"></a>where $\boldsymbol{W}_K^{(n)}, \boldsymbol{W}_V^{(n)}$ are the key and value projection matrices of policy $\pi_{\theta_n}$, and $\boldsymbol{X}_{0:t}$ denotes the hidden representations of the tokens generated so far.</span>
 <span id="cb2-147"><a href="#cb2-147"></a></span>
-<span id="cb2-148"><a href="#cb2-148"></a>where $\boldsymbol{W}_K^{(n)}, \boldsymbol{W}_V^{(n)}$ are the key and value projection matrices of policy $\pi_{\theta_n}$, and $\boldsymbol{X}_{0:t}$ denotes the hidden representations of the tokens generated so far.</span>
+<span id="cb2-148"><a href="#cb2-148"></a>When the policy switches from $\pi_{\theta_n}$ to $\pi_{\theta_{n+1}}$, PR-SKV continues using the KV cache computed under $\pi_{\theta_n}$ while applying $\pi_{\theta_{n+1}}$'s weights for subsequent token generation. This means the query projections for new tokens are computed with $\boldsymbol{W}_Q^{(n+1)}$, but they attend to keys and values still computed with $\boldsymbol{W}_K^{(n)}, \boldsymbol{W}_V^{(n)}$. This inconsistency between the query and key-value projections introduces a **distribution shift**: the resulting token distribution is neither exactly $\pi_{\theta_n}$ nor $\pi_{\theta_{n+1}}$, but some hybrid that is difficult to characterize analytically.</span>
 <span id="cb2-149"><a href="#cb2-149"></a></span>
-<span id="cb2-150"><a href="#cb2-150"></a>When the policy switches from $\pi_{\theta_n}$ to $\pi_{\theta_{n+1}}$, PR-SKV continues using the KV cache computed under $\pi_{\theta_n}$ while applying $\pi_{\theta_{n+1}}$'s weights for subsequent token generation. This means the query projections for new tokens are computed with $\boldsymbol{W}_Q^{(n+1)}$, but they attend to keys and values still computed with $\boldsymbol{W}_K^{(n)}, \boldsymbol{W}_V^{(n)}$. This inconsistency between the query and key-value projections introduces a **distribution shift**: the resulting token distribution is neither exactly $\pi_{\theta_n}$ nor $\pi_{\theta_{n+1}}$, but some hybrid that is difficult to characterize analytically.</span>
+<span id="cb2-150"><a href="#cb2-150"></a>The trade-off is clear:</span>
 <span id="cb2-151"><a href="#cb2-151"></a></span>
-<span id="cb2-152"><a href="#cb2-152"></a>The trade-off is clear:</span>
-<span id="cb2-153"><a href="#cb2-153"></a></span>
-<span id="cb2-154"><a href="#cb2-154"></a><span class="ss">- </span>**Advantage**: eliminates the re-prefill overhead entirely (@sec-system), matching the system efficiency of CR.</span>
-<span id="cb2-155"><a href="#cb2-155"></a><span class="ss">- </span>**Disadvantage**: the distribution shift makes the actual sampling distribution hard to specify, complicating the importance sampling formulation. In contrast, standard PR and CR both sample from well-defined policy distributions at each timestep.</span>
+<span id="cb2-152"><a href="#cb2-152"></a><span class="ss">- </span>**Advantage**: eliminates the re-prefill overhead entirely (@sec-system), matching the system efficiency of CR.</span>
+<span id="cb2-153"><a href="#cb2-153"></a><span class="ss">- </span>**Disadvantage**: the distribution shift makes the actual sampling distribution hard to specify, complicating the importance sampling formulation. In contrast, standard PR and CR both sample from well-defined policy distributions at each timestep.</span>
+<span id="cb2-154"><a href="#cb2-154"></a></span>
+<span id="cb2-155"><a href="#cb2-155"></a>In practice, if the policy update is small (e.g., the parameter change $<span class="sc">\|</span>\theta_{n+1} - \theta_n<span class="sc">\|</span>$ is small), the distribution shift introduced by the stale KV cache may be negligible. But for larger updates or long contexts where many layers of stale KV accumulate, the shift can become significant.</span>
 <span id="cb2-156"><a href="#cb2-156"></a></span>
-<span id="cb2-157"><a href="#cb2-157"></a>In practice, if the policy update is small (e.g., the parameter change $<span class="sc">\|</span>\theta_{n+1} - \theta_n<span class="sc">\|</span>$ is small), the distribution shift introduced by the stale KV cache may be negligible. But for larger updates or long contexts where many layers of stale KV accumulate, the shift can become significant.</span>
+<span id="cb2-157"><a href="#cb2-157"></a><span class="fu">## Consistent Rollout (CR)</span></span>
 <span id="cb2-158"><a href="#cb2-158"></a></span>
-<span id="cb2-159"><a href="#cb2-159"></a><span class="fu">## Consistent Rollout (CR)</span></span>
+<span id="cb2-159"><a href="#cb2-159"></a>In a Consistent Rollout system, each trajectory is sampled entirely with a single stale policy $\pi_{\theta_{n}}$, though different trajectories in the same batch may come from different policy versions (i.e., different $n$).</span>
 <span id="cb2-160"><a href="#cb2-160"></a></span>
-<span id="cb2-161"><a href="#cb2-161"></a>In a Consistent Rollout system, each trajectory is sampled entirely with a single stale policy $\pi_{\theta_{n}}$, though different trajectories in the same batch may come from different policy versions (i.e., different $n$).</span>
+<span id="cb2-161"><a href="#cb2-161"></a>This within-trajectory policy consistency simplifies the IS formulation. Consistent Rollout is widely used in traditional distributed RL systems like IMPALA <span class="co">[</span><span class="ot">@espeholt2018impala</span><span class="co">]</span>.</span>
 <span id="cb2-162"><a href="#cb2-162"></a></span>
-<span id="cb2-163"><a href="#cb2-163"></a>The consistency of policy within a trajectory makes the formulation simpler, which is widely used in traditional distributed RL systems like IMPALA <span class="co">[</span><span class="ot">@espeholt2018impala</span><span class="co">]</span>.</span>
+<span id="cb2-163"><a href="#cb2-163"></a>However, implementing Consistent Rollout efficiently while avoiding long-tail bubbles in LLM RL systems is more challenging, as it requires managing multiple versions of model weights simultaneously within the rollout engine and dynamically routing requests of varying lengths.</span>
 <span id="cb2-164"><a href="#cb2-164"></a></span>
-<span id="cb2-165"><a href="#cb2-165"></a>In contrast, Consistent Rollout is more difficult to implement efficiently against long-tail bubbles in LLM RL systems, because this requires managing multiple versions of model weights at the same time within the rollout engine and dynamically transferring the requests of various lengths.</span>
+<span id="cb2-165"><a href="#cb2-165"></a>@sheng2025laminar implement an LLM RL system that achieves Consistent Rollout with full hardware utilization.</span>
 <span id="cb2-166"><a href="#cb2-166"></a></span>
-<span id="cb2-167"><a href="#cb2-167"></a>@sheng2025laminar implement an LLM RL system that achieves Consistent Rollout with full utilization of the hardware resources.</span>
+<span id="cb2-167"><a href="#cb2-167"></a>The key advantages of CR are:</span>
 <span id="cb2-168"><a href="#cb2-168"></a></span>
-<span id="cb2-169"><a href="#cb2-169"></a>The key advantages of CR are:</span>
-<span id="cb2-170"><a href="#cb2-170"></a></span>
-<span id="cb2-171"><a href="#cb2-171"></a><span class="ss">- </span>**No re-prefill overhead**: each trajectory runs to completion with a single policy, so no KV cache invalidation occurs.</span>
-<span id="cb2-172"><a href="#cb2-172"></a><span class="ss">- </span>**No distribution shift**: unlike PR-SKV, the KV cache is always consistent with the generating policy.</span>
-<span id="cb2-173"><a href="#cb2-173"></a><span class="ss">- </span>**Clean IS formulation**: each trajectory has a well-defined, single behavior policy, fitting naturally into Multiple Importance Sampling (@sec-is-consistent).</span>
+<span id="cb2-169"><a href="#cb2-169"></a><span class="ss">- </span>**No re-prefill overhead**: each trajectory runs to completion with a single policy, so no KV cache invalidation occurs.</span>
+<span id="cb2-170"><a href="#cb2-170"></a><span class="ss">- </span>**No distribution shift**: unlike PR-SKV, the KV cache is always consistent with the generating policy.</span>
+<span id="cb2-171"><a href="#cb2-171"></a><span class="ss">- </span>**Clean IS formulation**: each trajectory has a well-defined, single behavior policy, fitting naturally into Multiple Importance Sampling (@sec-is-consistent).</span>
+<span id="cb2-172"><a href="#cb2-172"></a></span>
+<span id="cb2-173"><a href="#cb2-173"></a>The main cost is **more off-policiness**: by the time a trajectory finishes (especially a long one), the trainer may have produced several newer policy versions, making the completing policy more stale compared to what PR would use.</span>
 <span id="cb2-174"><a href="#cb2-174"></a></span>
-<span id="cb2-175"><a href="#cb2-175"></a>The main cost is **more off-policiness**: by the time a trajectory finishes (especially a long one), the trainer may have produced several newer policy versions, making the completing policy more stale compared to what PR would use.</span>
+<span id="cb2-175"><a href="#cb2-175"></a><span class="fu"># System Perspective: Cubic Overhead of Full Re-Prefill {#sec-system}</span></span>
 <span id="cb2-176"><a href="#cb2-176"></a></span>
-<span id="cb2-177"><a href="#cb2-177"></a><span class="fu"># System Perspective: Cubic Overhead of Full Re-Prefill {#sec-system}</span></span>
+<span id="cb2-177"><a href="#cb2-177"></a>A key system-level distinction between PR and the other two strategies (PR-SKV and CR) is the **re-prefill overhead**. When PR aborts a trajectory and resumes with a newer policy, the new policy must re-process the entire existing context to rebuild its KV cache. We show that this overhead scales **cubically** with the context length, making it prohibitive for long-context tasks, which are increasingly significant in LLM applications.</span>
 <span id="cb2-178"><a href="#cb2-178"></a></span>
-<span id="cb2-179"><a href="#cb2-179"></a>A key system-level distinction between PR and the other two strategies (PR-SKV and CR) is the **re-prefill overhead**. When PR aborts a trajectory and resumes with a newer policy, the new policy must re-process the entire existing context to rebuild its KV cache. We show that this overhead scales **cubically** with the context length, making it prohibitive for long-context tasks, which are increasingly significant in LLM applications.</span>
+<span id="cb2-179"><a href="#cb2-179"></a><span class="fu">## Re-Prefill Frequency Scales Linearly with Context Length</span></span>
 <span id="cb2-180"><a href="#cb2-180"></a></span>
-<span id="cb2-181"><a href="#cb2-181"></a><span class="fu">## Re-Prefill Frequency Scales Linearly with Context Length</span></span>
+<span id="cb2-181"><a href="#cb2-181"></a>Consider a trajectory of total length $L$ tokens (including the prompt). Suppose the policy is updated approximately every $K$ tokens of generation (this interval is determined by the training frequency and system throughput).</span>
 <span id="cb2-182"><a href="#cb2-182"></a></span>
-<span id="cb2-183"><a href="#cb2-183"></a>Consider a trajectory of total length $L$ tokens (including the prompt). Suppose the policy is updated approximately every $K$ tokens of generation (this interval is determined by the training frequency and system throughput).</span>
+<span id="cb2-183"><a href="#cb2-183"></a>The number of re-prefill events during this trajectory is approximately $L / K$, which grows **linearly** with $L$. Longer sequences take more time to generate, during which more policy updates occur, triggering more re-prefills.</span>
 <span id="cb2-184"><a href="#cb2-184"></a></span>
-<span id="cb2-185"><a href="#cb2-185"></a>The number of re-prefill events during this trajectory is approximately $L / K$, which grows **linearly** with $L$. Longer sequences take more time to generate, during which more policy updates occur, triggering more re-prefills.</span>
+<span id="cb2-185"><a href="#cb2-185"></a><span class="fu">## Each Re-Prefill Scales Quadratically with Context Length</span></span>
 <span id="cb2-186"><a href="#cb2-186"></a></span>
-<span id="cb2-187"><a href="#cb2-187"></a><span class="fu">## Each Re-Prefill Scales Quadratically with Context Length</span></span>
+<span id="cb2-187"><a href="#cb2-187"></a>Each re-prefill requires the new policy to process all previously generated tokens with dot-product attention. For a context of length $l$, the attention computation costs $O(l^2)$ (ignoring the linear terms from feed-forward layers).</span>
 <span id="cb2-188"><a href="#cb2-188"></a></span>
-<span id="cb2-189"><a href="#cb2-189"></a>Each re-prefill requires the new policy to process all previously generated tokens with dot-product attention. For a context of length $l$, the attention computation costs $O(l^2)$ (ignoring the linear terms from feed-forward layers).</span>
+<span id="cb2-189"><a href="#cb2-189"></a>Moreover, each successive re-prefill processes a longer context than the previous one: the $m$-th re-prefill (at approximately $mK$ tokens of generation) must process a context of length $\sim mK$.</span>
 <span id="cb2-190"><a href="#cb2-190"></a></span>
-<span id="cb2-191"><a href="#cb2-191"></a>Moreover, each successive re-prefill processes a longer context than the previous one: the $m$-th re-prefill (at approximately $mK$ tokens of generation) must process a context of length $\sim mK$.</span>
+<span id="cb2-191"><a href="#cb2-191"></a><span class="fu">## Total Re-Prefill Overhead Scales Cubically</span></span>
 <span id="cb2-192"><a href="#cb2-192"></a></span>
-<span id="cb2-193"><a href="#cb2-193"></a><span class="fu">## Total Re-Prefill Overhead Scales Cubically</span></span>
+<span id="cb2-193"><a href="#cb2-193"></a>The total **cubic scaling** $O(L^3/K)$ is the product of two factors:</span>
 <span id="cb2-194"><a href="#cb2-194"></a></span>
-<span id="cb2-195"><a href="#cb2-195"></a>The total **cubic scaling** $O(L^3/K)$ is the product of two factors:</span>
-<span id="cb2-196"><a href="#cb2-196"></a></span>
-<span id="cb2-197"><a href="#cb2-197"></a><span class="ss">1. </span>The **quadratic** attention complexity $O(L^2)$ per re-prefill.</span>
-<span id="cb2-198"><a href="#cb2-198"></a><span class="ss">2. </span>The **linear** growth $O(L/K)$ in the number of re-prefills.</span>
+<span id="cb2-195"><a href="#cb2-195"></a><span class="ss">1. </span>The **quadratic** attention complexity $O(L^2)$ per re-prefill.</span>
+<span id="cb2-196"><a href="#cb2-196"></a><span class="ss">2. </span>The **linear** growth $O(L/K)$ in the number of re-prefills.</span>
+<span id="cb2-197"><a href="#cb2-197"></a></span>
+<span id="cb2-198"><a href="#cb2-198"></a>As frontier models scale their context lengths from 100K+ to 1M+ tokens, this re-prefill overhead becomes increasingly prohibitive.</span>
 <span id="cb2-199"><a href="#cb2-199"></a></span>
-<span id="cb2-200"><a href="#cb2-200"></a>Frontier models nowadays are increasing their context length from 100k+ to 1M+ tokens, and the overhead of re-prefill becomes prohibitive.</span>
+<span id="cb2-200"><a href="#cb2-200"></a><span class="fu"># Algorithm Perspective: Importance Sampling {#sec-is}</span></span>
 <span id="cb2-201"><a href="#cb2-201"></a></span>
-<span id="cb2-202"><a href="#cb2-202"></a><span class="fu"># Algorithm Perspective: Importance Sampling {#sec-is}</span></span>
+<span id="cb2-202"><a href="#cb2-202"></a><span class="co">[</span><span class="ot">Importance Sampling (IS)</span><span class="co">](https://en.wikipedia.org/wiki/Importance_sampling)</span> has been widely used in LLM RL systems.</span>
 <span id="cb2-203"><a href="#cb2-203"></a></span>
-<span id="cb2-204"><a href="#cb2-204"></a><span class="co">[</span><span class="ot">Importance Sampling (IS)</span><span class="co">](https://en.wikipedia.org/wiki/Importance_sampling)</span> has been widely used in LLM RL systems.</span>
+<span id="cb2-204"><a href="#cb2-204"></a>IS is useful for estimating the expectation of a function of random variables — typically the gradient of the return with respect to the policy parameters — under the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</span>
 <span id="cb2-205"><a href="#cb2-205"></a></span>
-<span id="cb2-206"><a href="#cb2-206"></a>It is useful for estimating the expectation of some random function, typically the gradient of the return with respect to the policy parameters, on the target policy distribution. In practice, with a batch of trajectory samples, the IS estimate is often formulated as:</span>
-<span id="cb2-207"><a href="#cb2-207"></a></span>
-<span id="cb2-208"><a href="#cb2-208"></a>$$</span>
-<span id="cb2-209"><a href="#cb2-209"></a>\begin{aligned}</span>
-<span id="cb2-210"><a href="#cb2-210"></a>\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau})) =&amp; \frac{1}{N} \sum_{i=1}^{N} \frac{p_{\theta}(\boldsymbol{\tau}_i)}{q_{\mu}(\boldsymbol{\tau}_i)}f(\boldsymbol{\tau}_i) <span class="sc">\\</span></span>
-<span id="cb2-211"><a href="#cb2-211"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \frac{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}f(\boldsymbol{\tau}_i) <span class="sc">\\</span></span>
-<span id="cb2-212"><a href="#cb2-212"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
-<span id="cb2-213"><a href="#cb2-213"></a>\end{aligned}</span>
-<span id="cb2-214"><a href="#cb2-214"></a>$$ {#eq-is-batch}</span>
+<span id="cb2-206"><a href="#cb2-206"></a>$$</span>
+<span id="cb2-207"><a href="#cb2-207"></a>\begin{aligned}</span>
+<span id="cb2-208"><a href="#cb2-208"></a>\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau})) =&amp; \frac{1}{N} \sum_{i=1}^{N} \frac{p_{\theta}(\boldsymbol{\tau}_i)}{q_{\mu}(\boldsymbol{\tau}_i)}f(\boldsymbol{\tau}_i) <span class="sc">\\</span></span>
+<span id="cb2-209"><a href="#cb2-209"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \frac{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}{p(\boldsymbol{s}_{0}) \prod_{t=0}^{T-1} \mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})p(\boldsymbol{s}_{t+1} \mid \boldsymbol{s}_{t}, \boldsymbol{a}_{t})}f(\boldsymbol{\tau}_i) <span class="sc">\\</span></span>
+<span id="cb2-210"><a href="#cb2-210"></a>=&amp; \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
+<span id="cb2-211"><a href="#cb2-211"></a>\end{aligned}</span>
+<span id="cb2-212"><a href="#cb2-212"></a>$$ {#eq-is-batch}</span>
+<span id="cb2-213"><a href="#cb2-213"></a></span>
+<span id="cb2-214"><a href="#cb2-214"></a>where </span>
 <span id="cb2-215"><a href="#cb2-215"></a></span>
-<span id="cb2-216"><a href="#cb2-216"></a>where </span>
-<span id="cb2-217"><a href="#cb2-217"></a></span>
-<span id="cb2-218"><a href="#cb2-218"></a><span class="ss">- </span>$N$ is the batch size,</span>
-<span id="cb2-219"><a href="#cb2-219"></a><span class="ss">- </span>$f(\cdot)$ can be any function of the trajectory sample $\boldsymbol{\tau}$, of which the most important one is the gradient function of the optimization objective $\mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}<span class="co">[</span><span class="ot">J(\cdot)</span><span class="co">]</span>$ relative to the policy parameters $\theta$,</span>
-<span id="cb2-220"><a href="#cb2-220"></a><span class="ss">- </span>$p_{\theta}(\cdot)$ is the probability density function of the trajectory distribution induced by the target policy $\pi_{\theta}$ parameterized by $\theta$ and the environment state transition distribution $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$,</span>
-<span id="cb2-221"><a href="#cb2-221"></a><span class="ss">- </span>$q_{\mu}(\cdot)$ is the probability density function of the trajectory distribution induced by the behavior policy $\mu$ and $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$.</span>
+<span id="cb2-216"><a href="#cb2-216"></a><span class="ss">- </span>$N$ is the batch size,</span>
+<span id="cb2-217"><a href="#cb2-217"></a><span class="ss">- </span>$f(\cdot)$ can be any function of the trajectory sample $\boldsymbol{\tau}$, of which the most important one is the gradient function of the optimization objective $\mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}<span class="co">[</span><span class="ot">J(\cdot)</span><span class="co">]</span>$ relative to the policy parameters $\theta$,</span>
+<span id="cb2-218"><a href="#cb2-218"></a><span class="ss">- </span>$p_{\theta}(\cdot)$ is the probability density function of the trajectory distribution induced by the target policy $\pi_{\theta}$ parameterized by $\theta$ and the environment state transition distribution $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$,</span>
+<span id="cb2-219"><a href="#cb2-219"></a><span class="ss">- </span>$q_{\mu}(\cdot)$ is the probability density function of the trajectory distribution induced by the behavior policy $\mu$ and $p(\cdot \mid \boldsymbol{s}, \boldsymbol{a})$.</span>
+<span id="cb2-220"><a href="#cb2-220"></a></span>
+<span id="cb2-221"><a href="#cb2-221"></a>A key property of @eq-is-batch is that it is unbiased, i.e.,</span>
 <span id="cb2-222"><a href="#cb2-222"></a></span>
-<span id="cb2-223"><a href="#cb2-223"></a>One important property of @eq-is-batch is that it is unbiased, i.e.,</span>
-<span id="cb2-224"><a href="#cb2-224"></a></span>
-<span id="cb2-225"><a href="#cb2-225"></a>$$</span>
-<span id="cb2-226"><a href="#cb2-226"></a>\mathbb{E}_{\boldsymbol{\tau} \sim q_{\mu}}[\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau}))] = \mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}<span class="co">[</span><span class="ot">f(\boldsymbol{\tau})</span><span class="co">]</span></span>
-<span id="cb2-227"><a href="#cb2-227"></a>$$ {#eq-is-unbiased}</span>
+<span id="cb2-223"><a href="#cb2-223"></a>$$</span>
+<span id="cb2-224"><a href="#cb2-224"></a>\mathbb{E}_{\boldsymbol{\tau} \sim q_{\mu}}[\hat{\mathbb{E}}_{\mu}(f(\boldsymbol{\tau}))] = \mathbb{E}_{\boldsymbol{\tau} \sim p_{\theta}}<span class="co">[</span><span class="ot">f(\boldsymbol{\tau})</span><span class="co">]</span></span>
+<span id="cb2-225"><a href="#cb2-225"></a>$$ {#eq-is-unbiased}</span>
+<span id="cb2-226"><a href="#cb2-226"></a></span>
+<span id="cb2-227"><a href="#cb2-227"></a>Among the components above, the behavior policy $\mu(\cdot \mid \boldsymbol{s})$ is the only one whose computation is ambiguous.</span>
 <span id="cb2-228"><a href="#cb2-228"></a></span>
-<span id="cb2-229"><a href="#cb2-229"></a>Of the components mentioned above, the only one that is ambiguous for calculation is the behavior policy $\mu(\cdot \mid \boldsymbol{s})$.</span>
+<span id="cb2-229"><a href="#cb2-229"></a>However, correctly computing $\mu(\cdot \mid \boldsymbol{s})$ for the off-policy data produced by the fully-utilized LLM RL systems described above is not straightforward.</span>
 <span id="cb2-230"><a href="#cb2-230"></a></span>
-<span id="cb2-231"><a href="#cb2-231"></a>However, the correct calculation of $\mu(\cdot \mid \boldsymbol{s})$ with the off-policy data in fully-utilized LLM RL systems mentioned above is not straightforward.</span>
+<span id="cb2-231"><a href="#cb2-231"></a><span class="fu">## Simple but Intractable: Global Behavior Policy $\mu^{*}(\cdot \mid \boldsymbol{s})$ {#sec-intractable-global-behav-policy}</span></span>
 <span id="cb2-232"><a href="#cb2-232"></a></span>
-<span id="cb2-233"><a href="#cb2-233"></a><span class="fu">## Simple but Intractable: Global Behavior Policy $\mu^{*}(\cdot \mid \boldsymbol{s})$ {#sec-intractable-global-behav-policy}</span></span>
+<span id="cb2-233"><a href="#cb2-233"></a>Since there is always an actual distribution we are sampling from, we can always formulate the IS estimate with a global behavior policy $\mu^{*}(\cdot \mid \boldsymbol{s})$.</span>
 <span id="cb2-234"><a href="#cb2-234"></a></span>
-<span id="cb2-235"><a href="#cb2-235"></a>Since there is always an actual distribution we are sampling from, we can always formulate the IS estimate with a global behavior policy $\mu^{*}(\cdot \mid \boldsymbol{s})$.</span>
+<span id="cb2-235"><a href="#cb2-235"></a>The most natural approach is to use $\mu^{*}(\cdot \mid \boldsymbol{s})$ directly for IS. But this requires computing the probabilities under it.</span>
 <span id="cb2-236"><a href="#cb2-236"></a></span>
-<span id="cb2-237"><a href="#cb2-237"></a>The most direct thought is to use $\mu^{*}(\cdot \mid \boldsymbol{s})$ for IS in practice. But this requires us to calculate the probabilities under it.</span>
+<span id="cb2-237"><a href="#cb2-237"></a>@fu2025areal Proposition 1 constructs a behavior policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ satisfying $\mu^{*}(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ for each $(s_{t}, a_{t})$ pair in the trajectory samples. This seems reasonable for LLM RL, since autoregressive generation never revisits a past state within the same trajectory.</span>
 <span id="cb2-238"><a href="#cb2-238"></a></span>
-<span id="cb2-239"><a href="#cb2-239"></a>@fu2025areal Proposition 1 resorts to constructing a behavior policy $\mu(\boldsymbol{a} \mid \boldsymbol{s})$ that satisfies $\mu^{*}(a_{t} \mid s_{t}) = \pi_{\theta_{n+m}}(a_{t} \mid s_{t})$ for each $(s_{t}, a_{t})$ pair in the trajectory samples. This sounds reasonable for LLM RL since the LLM is usually auto-regressive and thus never revisits a past state within the same trajectory.</span>
+<span id="cb2-239"><a href="#cb2-239"></a>However, a complication arises: the same state $s$ may appear in two different trajectory samples $\tau_{i}$ and $\tau_{j}$ (this is especially common for the initial state $s_{0}$, i.e., the prompt), with the same action $a$ sampled under different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) in each. In general, $\pi_{\theta_{n+m}}(a \mid s) \neq \pi_{\theta_{n+l}}(a \mid s)$, making it infeasible to construct a single behavior policy for both trajectory samples: $\mu^{*}(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ contradicts $\mu^{*}(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$.</span>
 <span id="cb2-240"><a href="#cb2-240"></a></span>
-<span id="cb2-241"><a href="#cb2-241"></a>However, it might be confusing when we also notice that, the same state $s$ might appear in two different trajectory samples $\tau_{i}$ and $\tau_{j}$, especially for the initial states $s_{0}$, i.e., the prompts, and the same action $a$ might be sampled from different policies $\pi_{\theta_{n+m}}$ and $\pi_{\theta_{n+l}}$ ($l \neq m$) respectively. It is very likely that $\pi_{\theta_{n+m}}(a \mid s) \neq \pi_{\theta_{n+l}}(a \mid s)$, making it infeasible to simply construct the same behavior policy for both trajectory samples, i.e., $\mu^{*}(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ contradicts $\mu(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$.</span>
+<span id="cb2-241"><a href="#cb2-241"></a>Where, then, is the flaw in this construction?</span>
 <span id="cb2-242"><a href="#cb2-242"></a></span>
-<span id="cb2-243"><a href="#cb2-243"></a>So where is the problem in the construction for $\mu(\cdot \mid \boldsymbol{s})$ mentioned above?</span>
+<span id="cb2-243"><a href="#cb2-243"></a>The underlying issue is that $\mu(\cdot \mid \boldsymbol{s})$ does not account for the probability distribution over which policy $\pi_{\theta_{n+m}}$ is used. Moreover, this distribution is intractable, as it depends on the system dynamics.</span>
 <span id="cb2-244"><a href="#cb2-244"></a></span>
-<span id="cb2-245"><a href="#cb2-245"></a>The problem hidden here is that, $\mu(\cdot \mid \boldsymbol{s})$ does not consider the probability distribution of which LLM policy $\pi_{\theta_{n+m}}$ is used. Furthermore, this distribution is actually intractable since it depends on the system dynamics.</span>
+<span id="cb2-245"><a href="#cb2-245"></a><span class="fu">## IS with Consistent Rollout Data {#sec-is-consistent}</span></span>
 <span id="cb2-246"><a href="#cb2-246"></a></span>
-<span id="cb2-247"><a href="#cb2-247"></a><span class="fu">## IS with Consistent Rollout Data {#sec-is-consistent}</span></span>
+<span id="cb2-247"><a href="#cb2-247"></a>IS with consistent rollout data is simpler to formulate, since each trajectory is sampled from a single policy $\pi_{\theta_{n}}$, and we need only correctly identify which policy generated each trajectory.</span>
 <span id="cb2-248"><a href="#cb2-248"></a></span>
-<span id="cb2-249"><a href="#cb2-249"></a>IS with consistent rollout data is simpler to formulate since each trajectory is sampled with a consistent stale policy $\pi_{\theta_{n}}$, and we only need to correctly formulate the policy used by each trajectory.</span>
+<span id="cb2-249"><a href="#cb2-249"></a><span class="fu">### Mixture Importance Sampling</span></span>
 <span id="cb2-250"><a href="#cb2-250"></a></span>
-<span id="cb2-251"><a href="#cb2-251"></a><span class="fu">### Mixture Importance Sampling</span></span>
+<span id="cb2-251"><a href="#cb2-251"></a>In some simple cases, the distribution of which policy is used, i.e., the hyper-policy distribution, is known, where we can formulate the IS estimate as *Mixture Importance Sampling* <span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span>.</span>
 <span id="cb2-252"><a href="#cb2-252"></a></span>
-<span id="cb2-253"><a href="#cb2-253"></a>In some simple cases, the distribution of which policy is used, i.e., the hyper-policy distribution, is known, where we can formulate the IS estimate as *Mixture Importance Sampling* <span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span>.</span>
+<span id="cb2-253"><a href="#cb2-253"></a><span class="fu">### Multiple Importance Sampling</span></span>
 <span id="cb2-254"><a href="#cb2-254"></a></span>
-<span id="cb2-255"><a href="#cb2-255"></a><span class="fu">### Multiple Importance Sampling</span></span>
+<span id="cb2-255"><a href="#cb2-255"></a>However, in more general cases, we only know post hoc that $n_{j}$ trajectories were sampled from each policy $\pi_{\theta_{j}}$, where $N = \sum_{j} n_{j}$. For such cases, we can formulate the IS estimate as *Multiple Importance Sampling* <span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span>:</span>
 <span id="cb2-256"><a href="#cb2-256"></a></span>
-<span id="cb2-257"><a href="#cb2-257"></a>However, in more general cases, we can only know ad hoc that the number of trajectories sampled from each policy $\pi_{\theta_{j}}$ is $n_{j}$, where $N = \sum_{j} n_{j}$. For such cases, we can formulate the IS estimate as *Multiple Importance Sampling* <span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span>:</span>
-<span id="cb2-258"><a href="#cb2-258"></a></span>
-<span id="cb2-259"><a href="#cb2-259"></a><span class="at">&gt; Suppose that $\boldsymbol{X}_{i j} \sim q_j$ for $i=1, \ldots, n_j$ and $j=1, \ldots, J$ and that $\omega_j$ are a partition of unity. The multiple importance sampling estimate is</span></span>
+<span id="cb2-257"><a href="#cb2-257"></a><span class="at">&gt; Suppose that $\boldsymbol{X}_{i j} \sim q_j$ for $i=1, \ldots, n_j$ and $j=1, \ldots, J$ and that $\omega_j$ are a partition of unity. The multiple importance sampling estimate is</span></span>
+<span id="cb2-258"><a href="#cb2-258"></a><span class="at">&gt;</span></span>
+<span id="cb2-259"><a href="#cb2-259"></a><span class="at">&gt; $$\widetilde{\mu}_\omega=\sum_{j=1}^J \frac{1}{n_j} \sum_{i=1}^{n_j} \omega_j\left(\boldsymbol{X}_{i j}\right) \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{q_j\left(\boldsymbol{X}_{i j}\right)} .$$</span></span>
 <span id="cb2-260"><a href="#cb2-260"></a><span class="at">&gt;</span></span>
-<span id="cb2-261"><a href="#cb2-261"></a><span class="at">&gt; $$\widetilde{\mu}_\omega=\sum_{j=1}^J \frac{1}{n_j} \sum_{i=1}^{n_j} \omega_j\left(\boldsymbol{X}_{i j}\right) \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{q_j\left(\boldsymbol{X}_{i j}\right)} .$$</span></span>
-<span id="cb2-262"><a href="#cb2-262"></a><span class="at">&gt;</span></span>
-<span id="cb2-263"><a href="#cb2-263"></a><span class="at">&gt; Now assume that $q_j(\boldsymbol{x})&gt;0$ whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then multiple importance sampling is unbiased, because</span></span>
-<span id="cb2-264"><a href="#cb2-264"></a><span class="at">&gt; $$\mathbb{E}\left(\widetilde{\mu}_\omega\right)=\sum_{j=1}^J \mathbb{E}_{q_j}\left(\omega_j(\boldsymbol{X}) \frac{f(\boldsymbol{X}) p(\boldsymbol{X})}{q_j(\boldsymbol{X})}\right)=\sum_{j=1}^J \int \omega_j(\boldsymbol{x}) f(\boldsymbol{x}) p(\boldsymbol{x}) \mathrm{d} \boldsymbol{x}=\mu .$$</span></span>
+<span id="cb2-261"><a href="#cb2-261"></a><span class="at">&gt; Now assume that $q_j(\boldsymbol{x})&gt;0$ whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then multiple importance sampling is unbiased, because</span></span>
+<span id="cb2-262"><a href="#cb2-262"></a><span class="at">&gt; $$\mathbb{E}\left(\widetilde{\mu}_\omega\right)=\sum_{j=1}^J \mathbb{E}_{q_j}\left(\omega_j(\boldsymbol{X}) \frac{f(\boldsymbol{X}) p(\boldsymbol{X})}{q_j(\boldsymbol{X})}\right)=\sum_{j=1}^J \int \omega_j(\boldsymbol{x}) f(\boldsymbol{x}) p(\boldsymbol{x}) \mathrm{d} \boldsymbol{x}=\mu .$$</span></span>
+<span id="cb2-263"><a href="#cb2-263"></a></span>
+<span id="cb2-264"><a href="#cb2-264"></a><span class="fu">### Balance Heuristic</span></span>
 <span id="cb2-265"><a href="#cb2-265"></a></span>
-<span id="cb2-266"><a href="#cb2-266"></a><span class="fu">### Balance Heuristic</span></span>
+<span id="cb2-266"><a href="#cb2-266"></a>The natural follow-up question is how to choose the partition of unity $\omega_j$:</span>
 <span id="cb2-267"><a href="#cb2-267"></a></span>
-<span id="cb2-268"><a href="#cb2-268"></a>The natural problem following is how to choose the partition of unity $\omega_j$:</span>
-<span id="cb2-269"><a href="#cb2-269"></a></span>
-<span id="cb2-270"><a href="#cb2-270"></a><span class="at">&gt; Among the proposals for functions $\omega_j(\boldsymbol{x})$, the most studied one is the balance heuristic with $\omega_j(\boldsymbol{x}) \propto n_j q_j(\boldsymbol{x})$, that is</span></span>
-<span id="cb2-271"><a href="#cb2-271"></a><span class="at">&gt; </span></span>
-<span id="cb2-272"><a href="#cb2-272"></a><span class="at">&gt;$$\omega_j(\boldsymbol{x})=\omega_j^{\mathrm{BH}}(\boldsymbol{x}) \equiv \frac{n_j q_j(\boldsymbol{x})}{\sum_{k=1}^J n_k q_k(\boldsymbol{x})} .$$</span></span>
-<span id="cb2-273"><a href="#cb2-273"></a><span class="at">&gt;</span></span>
-<span id="cb2-274"><a href="#cb2-274"></a><span class="at">&gt; By construction $q_j(\boldsymbol{x})&gt;0$ holds whenever $\left(\omega_j^{\mathrm{BH}} p f\right)(\boldsymbol{x}) \neq 0$. Let $n=\sum_{j=1}^J n_j$ and define $\alpha_j=n_j / n$. Then using the balance heuristic, $\widetilde{\mu}_{\omega^{\text {ВН }}}$ simplifies to</span></span>
-<span id="cb2-275"><a href="#cb2-275"></a><span class="at">&gt; $$\widetilde{\mu}_\alpha=\frac{1}{n} \sum_{j=1}^J \sum_{i=1}^{n_j} \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{\sum_{j=1}^J \alpha_j q_j\left(\boldsymbol{X}_{i j}\right)} .$$</span></span>
+<span id="cb2-268"><a href="#cb2-268"></a><span class="at">&gt; Among the proposals for functions $\omega_j(\boldsymbol{x})$, the most studied one is the balance heuristic with $\omega_j(\boldsymbol{x}) \propto n_j q_j(\boldsymbol{x})$, that is</span></span>
+<span id="cb2-269"><a href="#cb2-269"></a><span class="at">&gt; </span></span>
+<span id="cb2-270"><a href="#cb2-270"></a><span class="at">&gt;$$\omega_j(\boldsymbol{x})=\omega_j^{\mathrm{BH}}(\boldsymbol{x}) \equiv \frac{n_j q_j(\boldsymbol{x})}{\sum_{k=1}^J n_k q_k(\boldsymbol{x})} .$$</span></span>
+<span id="cb2-271"><a href="#cb2-271"></a><span class="at">&gt;</span></span>
+<span id="cb2-272"><a href="#cb2-272"></a><span class="at">&gt; By construction $q_j(\boldsymbol{x})&gt;0$ holds whenever $\left(\omega_j^{\mathrm{BH}} p f\right)(\boldsymbol{x}) \neq 0$. Let $n=\sum_{j=1}^J n_j$ and define $\alpha_j=n_j / n$. Then using the balance heuristic, $\widetilde{\mu}_{\omega^{\text {ВН }}}$ simplifies to</span></span>
+<span id="cb2-273"><a href="#cb2-273"></a><span class="at">&gt; $$\widetilde{\mu}_\alpha=\frac{1}{n} \sum_{j=1}^J \sum_{i=1}^{n_j} \frac{f\left(\boldsymbol{X}_{i j}\right) p\left(\boldsymbol{X}_{i j}\right)}{\sum_{j=1}^J \alpha_j q_j\left(\boldsymbol{X}_{i j}\right)} .$$</span></span>
+<span id="cb2-274"><a href="#cb2-274"></a><span class="at">&gt;</span></span>
+<span id="cb2-275"><a href="#cb2-275"></a><span class="at">&gt; In other words, multiple importance sampling, with weights from the balance heuristic reduces to the same estimator we would use in mixture importance sampling with mixture weights $\alpha_j=n_j / n$. Once again, the weight on a given sampled value $\boldsymbol{X}_{i j}$ does not depend on which mixture component it came from. The balance heuristic is nearly optimal in the following sense:</span></span>
 <span id="cb2-276"><a href="#cb2-276"></a><span class="at">&gt;</span></span>
-<span id="cb2-277"><a href="#cb2-277"></a><span class="at">&gt; In other words, multiple importance sampling, with weights from the balance heuristic reduces to the same estimator we would use in mixture importance sampling with mixture weights $\alpha_j=n_j / n$. Once again, the weight on a given sampled value $\boldsymbol{X}_{i j}$ does not depend on which mixture component it came from. The balance heuristic is nearly optimal in the following sense:</span></span>
-<span id="cb2-278"><a href="#cb2-278"></a><span class="at">&gt;</span></span>
-<span id="cb2-279"><a href="#cb2-279"></a><span class="at">&gt; Theorem 9.8. Let $n_j \geqslant 1$ be positive integers for $j=1, \ldots, J$. Let $\omega_1, \ldots, \omega_J$ be a partition of unity and let $\omega^{\mathrm{BH}}$ be the balance heuristic. Suppose that $q_j(\boldsymbol{x})&gt;$ 0 whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then</span></span>
-<span id="cb2-280"><a href="#cb2-280"></a><span class="at">&gt; </span></span>
-<span id="cb2-281"><a href="#cb2-281"></a><span class="at">&gt; $$\operatorname{Var}\left(\widetilde{\mu}_{\omega^{\mathrm{BH}}}\right) \leqslant \operatorname{Var}\left(\widetilde{\mu}_\omega\right)+\left(\frac{1}{\min _j n_j}-\frac{1}{\sum_j n_j}\right) \mu^2 .$$</span></span>
-<span id="cb2-282"><a href="#cb2-282"></a><span class="at">&gt;</span></span>
-<span id="cb2-283"><a href="#cb2-283"></a><span class="at">&gt; </span><span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span></span>
+<span id="cb2-277"><a href="#cb2-277"></a><span class="at">&gt; Theorem 9.8. Let $n_j \geqslant 1$ be positive integers for $j=1, \ldots, J$. Let $\omega_1, \ldots, \omega_J$ be a partition of unity and let $\omega^{\mathrm{BH}}$ be the balance heuristic. Suppose that $q_j(\boldsymbol{x})&gt;$ 0 whenever $\omega_j(\boldsymbol{x}) p(\boldsymbol{x}) f(\boldsymbol{x}) \neq 0$. Then</span></span>
+<span id="cb2-278"><a href="#cb2-278"></a><span class="at">&gt; </span></span>
+<span id="cb2-279"><a href="#cb2-279"></a><span class="at">&gt; $$\operatorname{Var}\left(\widetilde{\mu}_{\omega^{\mathrm{BH}}}\right) \leqslant \operatorname{Var}\left(\widetilde{\mu}_\omega\right)+\left(\frac{1}{\min _j n_j}-\frac{1}{\sum_j n_j}\right) \mu^2 .$$</span></span>
+<span id="cb2-280"><a href="#cb2-280"></a><span class="at">&gt;</span></span>
+<span id="cb2-281"><a href="#cb2-281"></a><span class="at">&gt; </span><span class="co">[</span><span class="ot">@owen2013mcbook</span><span class="co">]</span></span>
+<span id="cb2-282"><a href="#cb2-282"></a></span>
+<span id="cb2-283"><a href="#cb2-283"></a>The intuition behind the balance heuristic ($\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})$) can also be understood as: the more samples we have from a policy, the more information we have about it, and thus the more weight it should receive.</span>
 <span id="cb2-284"><a href="#cb2-284"></a></span>
-<span id="cb2-285"><a href="#cb2-285"></a>The heuristic behind the balance heuristic to make $\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})$ can be also understood as the more samples we have from a policy, the more information we have about it, thus the more weight it should have.</span>
+<span id="cb2-285"><a href="#cb2-285"></a><span class="fu">## IS with Partial Rollout Data</span></span>
 <span id="cb2-286"><a href="#cb2-286"></a></span>
-<span id="cb2-287"><a href="#cb2-287"></a><span class="fu">## IS with Partial Rollout Data</span></span>
+<span id="cb2-287"><a href="#cb2-287"></a>IS with partial rollout data (applicable to both PR and PR-SKV) is more difficult to formulate, since we must also account for the policy composition within each trajectory. To the best of our knowledge, this discussion is absent from previous works, including @espeholt2020seedrl, which first proposed Partial Rollout.</span>
 <span id="cb2-288"><a href="#cb2-288"></a></span>
-<span id="cb2-289"><a href="#cb2-289"></a>The IS with partial rollout data (applicable to both PR and PR-SKV) is more difficult to formulate since we need to also consider the policy composition within a trajectory. As far as we know, the related discussion is absent in previous works including @espeholt2020seedrl that first proposed Partial Rollout.</span>
+<span id="cb2-289"><a href="#cb2-289"></a>In this section, we discuss the formulation and some properties of IS with partial rollout data that may be useful in practice.</span>
 <span id="cb2-290"><a href="#cb2-290"></a></span>
-<span id="cb2-291"><a href="#cb2-291"></a>In this section, we try to discuss the formulation and some properties of IS with partial rollout data that might be useful in practice.</span>
+<span id="cb2-291"><a href="#cb2-291"></a>Note that for PR-SKV, the actual sampling distribution at each timestep is affected by the stale KV cache and is not exactly any single policy $\pi_{\theta_{n+m}}$. The formulation below assumes we can identify the policy used at each timestep, which holds exactly for PR but only approximately for PR-SKV (with the approximation quality depending on how much the policy has changed).</span>
 <span id="cb2-292"><a href="#cb2-292"></a></span>
-<span id="cb2-293"><a href="#cb2-293"></a>Note that for PR-SKV, the actual sampling distribution at each timestep is affected by the stale KV cache and is not exactly any single policy $\pi_{\theta_{n+m}}$. The formulation below assumes we can identify the policy used at each timestep, which holds exactly for PR but only approximately for PR-SKV (with the approximation quality depending on how much the policy has changed).</span>
+<span id="cb2-293"><a href="#cb2-293"></a><span class="fu">### Trajectory-dependent Behavior Policy $\mu_{i}(\cdot \mid \boldsymbol{s})$</span></span>
 <span id="cb2-294"><a href="#cb2-294"></a></span>
-<span id="cb2-295"><a href="#cb2-295"></a><span class="fu">### Trajectory-dependent Behavior Policy $\mu_{i}(\cdot \mid \boldsymbol{s})$</span></span>
+<span id="cb2-295"><a href="#cb2-295"></a>A general but straightforward formulation for an IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use $\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})$ for each trajectory $\tau_{i}$.</span>
 <span id="cb2-296"><a href="#cb2-296"></a></span>
-<span id="cb2-297"><a href="#cb2-297"></a>A general but trivial formulation for IS estimate with a batch of trajectory samples is to make the behavior policy trajectory-dependent, i.e., use $\mu_{i}(\boldsymbol{a} \mid \boldsymbol{s})$ for each trajectory $\tau_{i}$.</span>
+<span id="cb2-297"><a href="#cb2-297"></a>Now for the counter-example mentioned in @sec-intractable-global-behav-policy, $\mu_i(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ and $\mu_j(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$ are obviously compatible.</span>
 <span id="cb2-298"><a href="#cb2-298"></a></span>
-<span id="cb2-299"><a href="#cb2-299"></a>Now for the counter-example mentioned in @sec-intractable-global-behav-policy, $\mu_i(a \mid s)=\pi_{\theta_{n+m}}(a \mid s)$ and $\mu_j(a \mid s)=\pi_{\theta_{n+l}}(a \mid s)$ are obviously compatible.</span>
+<span id="cb2-299"><a href="#cb2-299"></a>With a batch of $N$ trajectory samples, each sampled from its own behavior policy $\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}$, we can only use the special case of the batch estimate @eq-is-batch with $N=1$, i.e., the single-sample estimate</span>
 <span id="cb2-300"><a href="#cb2-300"></a></span>
-<span id="cb2-301"><a href="#cb2-301"></a>With a batch of $N$ trajectory samples sampled from each own behavior policy $\boldsymbol{\tau}_1 \sim q_{\mu_1}, \ldots, \boldsymbol{\tau}_N \sim q_{\mu_N}$, we can only use the special case of the batch estimate @eq-is-batch with $N=1$, i.e., the single-sample estimate</span>
-<span id="cb2-302"><a href="#cb2-302"></a></span>
-<span id="cb2-303"><a href="#cb2-303"></a>$$</span>
-<span id="cb2-304"><a href="#cb2-304"></a>\hat{\mathbb{E}}_{\mu_i}(\boldsymbol{\tau}_i) = \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
-<span id="cb2-305"><a href="#cb2-305"></a>$$ {#eq-is-single-sample}</span>
+<span id="cb2-301"><a href="#cb2-301"></a>$$</span>
+<span id="cb2-302"><a href="#cb2-302"></a>\hat{\mathbb{E}}_{\mu_i}(\boldsymbol{\tau}_i) = \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
+<span id="cb2-303"><a href="#cb2-303"></a>$$ {#eq-is-single-sample}</span>
+<span id="cb2-304"><a href="#cb2-304"></a></span>
+<span id="cb2-305"><a href="#cb2-305"></a>Note that the single-sample estimate is also unbiased, i.e., the unbiasedness of @eq-is-batch does not depend on the sample size $N$.</span>
 <span id="cb2-306"><a href="#cb2-306"></a></span>
-<span id="cb2-307"><a href="#cb2-307"></a>Note that the single-sample estimate is also unbiased, i.e., the unbiasedness of @eq-is-batch does not depend on the sample size $N$.</span>
+<span id="cb2-307"><a href="#cb2-307"></a>The standard approach to combine them into a batch estimate is to average the single-sample estimates from @eq-is-single-sample:</span>
 <span id="cb2-308"><a href="#cb2-308"></a></span>
-<span id="cb2-309"><a href="#cb2-309"></a>The common practice to combine them into an estimate with the batch of samples is to average the single-sample estimates @eq-is-single-sample, i.e., </span>
-<span id="cb2-310"><a href="#cb2-310"></a></span>
-<span id="cb2-311"><a href="#cb2-311"></a>$$</span>
-<span id="cb2-312"><a href="#cb2-312"></a>\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i} = \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta_{n+m}}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
-<span id="cb2-313"><a href="#cb2-313"></a>$$ {#eq-is-single-sample-avg}</span>
+<span id="cb2-309"><a href="#cb2-309"></a>$$</span>
+<span id="cb2-310"><a href="#cb2-310"></a>\hat{\mathbb{E}}_{\text{avg}} = \frac{1}{N} \sum_{i=1}^{N} \hat{\mathbb{E}}_{\mu_i} = \frac{1}{N} \sum_{i=1}^{N} \prod_{t=0}^{T-1} \frac{\pi_{\theta}(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}{\mu_i(\boldsymbol{a}_{t} \mid \boldsymbol{s}_{t})}f(\boldsymbol{\tau}_i)</span>
+<span id="cb2-311"><a href="#cb2-311"></a>$$ {#eq-is-single-sample-avg}</span>
+<span id="cb2-312"><a href="#cb2-312"></a></span>
+<span id="cb2-313"><a href="#cb2-313"></a>By the linearity of expectation, the average estimate $\hat{\mathbb{E}}_{\text{avg}}$ is also unbiased.</span>
 <span id="cb2-314"><a href="#cb2-314"></a></span>
-<span id="cb2-315"><a href="#cb2-315"></a>With the linearity of expectation, it is obvious to see the unbiasedness of the average estimate $\hat{\mathbb{E}}_{\text{avg}}$.</span>
+<span id="cb2-315"><a href="#cb2-315"></a>Now consider the variance. Let the variance of each single-sample estimate be $\sigma^2_{\mu_i}$. Since the samples are independent, the variance of $\hat{\mathbb{E}}_{\text{avg}}$ is:</span>
 <span id="cb2-316"><a href="#cb2-316"></a></span>
-<span id="cb2-317"><a href="#cb2-317"></a>Now let's take a look at the variance. Let the variance of each single-sample estimate be $\sigma^2_{\mu_i}$, since the samples are independent, the variance of $\hat{\mathbb{E}}_{\text{avg}}$ is:</span>
-<span id="cb2-318"><a href="#cb2-318"></a></span>
-<span id="cb2-319"><a href="#cb2-319"></a>$$</span>
-<span id="cb2-320"><a href="#cb2-320"></a>\sigma^2_{\text{avg}} = \frac{1}{N^2} \sum_{i=1}^{N} \sigma^2_{\mu_i}</span>
-<span id="cb2-321"><a href="#cb2-321"></a>$$ {#eq-is-single-sample-avg-var}</span>
+<span id="cb2-317"><a href="#cb2-317"></a>$$</span>
+<span id="cb2-318"><a href="#cb2-318"></a>\sigma^2_{\text{avg}} = \frac{1}{N^2} \sum_{i=1}^{N} \sigma^2_{\mu_i}</span>
+<span id="cb2-319"><a href="#cb2-319"></a>$$ {#eq-is-single-sample-avg-var}</span>
+<span id="cb2-320"><a href="#cb2-320"></a></span>
+<span id="cb2-321"><a href="#cb2-321"></a>Since the batch variance decomposes into individual single-sample variances, we focus on analyzing the variance of each single-sample estimate.</span>
 <span id="cb2-322"><a href="#cb2-322"></a></span>
-<span id="cb2-323"><a href="#cb2-323"></a>Given the batch variance is determined by composing the variances of the single-sample estimates, we can first try to analyze the variance of the single-sample estimate.</span>
+<span id="cb2-323"><a href="#cb2-323"></a><span class="fu">### Variance of Single-Sample Estimate -- Consistent vs. Partial Rollout</span></span>
 <span id="cb2-324"><a href="#cb2-324"></a></span>
-<span id="cb2-325"><a href="#cb2-325"></a><span class="fu">### Variance of Single-Sample Estimate -- Consistent vs. Partial Rollout</span></span>
+<span id="cb2-325"><a href="#cb2-325"></a>Consistent Rollout and Partial Rollout simply correspond to two different cases of the single-sample estimate. A natural question is: given a trajectory $\boldsymbol{\tau}_{i}$, which of</span>
 <span id="cb2-326"><a href="#cb2-326"></a></span>
-<span id="cb2-327"><a href="#cb2-327"></a>Consistent Rollout and Partial Rollout just form two different cases of the single-sample estimate. We might wonder that, given a trajectory $\boldsymbol{\tau}_{i}$, which of</span>
-<span id="cb2-328"><a href="#cb2-328"></a></span>
-<span id="cb2-329"><a href="#cb2-329"></a>1) the consistent old policy $\pi_{\theta_{n+m}}$ (Consistent Rollout) and</span>
-<span id="cb2-330"><a href="#cb2-330"></a>2) the sliding latest policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$ successively (Partial Rollout)</span>
+<span id="cb2-327"><a href="#cb2-327"></a>1) the consistent old policy $\pi_{\theta_{n+m}}$ (Consistent Rollout) and</span>
+<span id="cb2-328"><a href="#cb2-328"></a>2) the sliding latest policy $\mu_{\theta_{n},M}$ using $\pi_{\theta_{n}},\ldots,\pi_{\theta_{n+M}}$ successively (Partial Rollout)</span>
+<span id="cb2-329"><a href="#cb2-329"></a></span>
+<span id="cb2-330"><a href="#cb2-330"></a>is better for the unbiased single-sample IS estimate @eq-is-single-sample, i.e., leads to a lower variance?</span>
 <span id="cb2-331"><a href="#cb2-331"></a></span>
-<span id="cb2-332"><a href="#cb2-332"></a>is better for the unbiased single-sample IS estimate @eq-is-single-sample, i.e., leads to a lower variance?</span>
+<span id="cb2-332"><a href="#cb2-332"></a>@metelli2020pois provided a family of bounds of the variance of IS estimate in terms of the <span class="co">[</span><span class="ot">Rényi divergence</span><span class="co">](https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence)</span>:</span>
 <span id="cb2-333"><a href="#cb2-333"></a></span>
-<span id="cb2-334"><a href="#cb2-334"></a>@metelli2020pois provided a family of bounds of the variance of IS estimate in terms of the <span class="co">[</span><span class="ot">Rényi divergence</span><span class="co">](https://en.wikipedia.org/wiki/R%C3%A9nyi_entropy?oldformat=true#R%C3%A9nyi_divergence)</span>:</span>
-<span id="cb2-335"><a href="#cb2-335"></a></span>
-<span id="cb2-336"><a href="#cb2-336"></a><span class="at">&gt; Intuitively, the magnitude of the importance weights provides an indication of how much the probability measures $P$ and $Q$ are dissimilar. This notion can be formalized by the Rényi divergence (Rényi, 1961; Van Erven and Harremos, 2014), an information-theoretic dissimilarity index between probability measures.</span></span>
+<span id="cb2-334"><a href="#cb2-334"></a><span class="at">&gt; Intuitively, the magnitude of the importance weights provides an indication of how much the probability measures $P$ and $Q$ are dissimilar. This notion can be formalized by the Rényi divergence (Rényi, 1961; Van Erven and Harremos, 2014), an information-theoretic dissimilarity index between probability measures.</span></span>
+<span id="cb2-335"><a href="#cb2-335"></a><span class="at">&gt;</span></span>
+<span id="cb2-336"><a href="#cb2-336"></a><span class="at">&gt; Remark 1 (Rényi divergence) Let $P$ and $Q$ be two probability measures on a measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q(P$ is absolutely continuous w.r.t. $Q)$ and $Q$ is $\sigma$-finite. Let $P$ and $Q$ admit $p$ and $q$ as Lebesgue probability density functions (p.d.f.), respectively. The $\alpha$-Rényi divergence between $P$ and $Q$ is defined as:</span></span>
 <span id="cb2-337"><a href="#cb2-337"></a><span class="at">&gt;</span></span>
-<span id="cb2-338"><a href="#cb2-338"></a><span class="at">&gt; Remark 1 (Rényi divergence) Let $P$ and $Q$ be two probability measures on a measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q(P$ is absolutely continuous w.r.t. $Q)$ and $Q$ is $\sigma$-finite. Let $P$ and $Q$ admit $p$ and $q$ as Lebesgue probability density functions (p.d.f.), respectively. The $\alpha$-Rényi divergence between $P$ and $Q$ is defined as:</span></span>
+<span id="cb2-338"><a href="#cb2-338"></a><span class="at">&gt; $$D_\alpha(P \| Q)=\frac{1}{\alpha-1} \log \int_{\mathcal{X}}\left(\frac{\mathrm{d} P}{\mathrm{~d} Q}\right)^\alpha \mathrm{d} Q=\frac{1}{\alpha-1} \log \int_{\mathcal{X}} q(x)\left(\frac{p(x)}{q(x)}\right)^\alpha \mathrm{d} x,$$</span></span>
 <span id="cb2-339"><a href="#cb2-339"></a><span class="at">&gt;</span></span>
-<span id="cb2-340"><a href="#cb2-340"></a><span class="at">&gt; $$D_\alpha(P \| Q)=\frac{1}{\alpha-1} \log \int_{\mathcal{X}}\left(\frac{\mathrm{d} P}{\mathrm{~d} Q}\right)^\alpha \mathrm{d} Q=\frac{1}{\alpha-1} \log \int_{\mathcal{X}} q(x)\left(\frac{p(x)}{q(x)}\right)^\alpha \mathrm{d} x,$$</span></span>
+<span id="cb2-340"><a href="#cb2-340"></a><span class="at">&gt; where $\mathrm{d} P / \mathrm{d} Q$ is the Radon-Nikodym derivative of $P$ w.r.t. $Q$ and $\alpha \in</span><span class="co">[</span><span class="ot">0, \infty</span><span class="co">]</span><span class="at">$. Some remarkable cases, defined as limits, are: $\alpha=1$ when $D_1(P \| Q)=D_{\mathrm{KL}}(P \| Q)$ and $\alpha=\infty$ yielding $D_{\infty}(P \| Q)=\log \operatorname{ess} \sup _{\mathcal{X}}\left\{\frac{\mathrm{d} P}{\mathrm{~d} Q}\right\} .$ ($\operatorname{ess} \sup$ is the essential supremum of a measurable function $f$, i.e., the smallest $M$ such that $f(x) \leqslant M$ *almost everywhere*.) Importing the notation from Cortes et al. (2010), we denote the exponentiated $\alpha$-Rényi divergence as $d_\alpha(P \| Q)=\exp \left\{D_\alpha(P \| Q)\right\}$. With little abuse of notation, we will replace $D_\alpha(P \| Q)$ with $D_\alpha(p </span><span class="sc">\|</span><span class="at"> q)$ whenever possible within the context. When $P$ and $Q$ are (multivariate) Gaussian distributions, i.e., $P \sim \mathcal{N}\left(\boldsymbol{\mu}_P, \boldsymbol{\Sigma}_P\right)$ and $Q \sim \mathcal{N}\left(\boldsymbol{\mu}_Q, \boldsymbol{\Sigma}_Q\right)$, the Rényi divergence admits a closed-form for $\alpha \in[0, \infty)$ (Burbea, 1984):</span></span>
 <span id="cb2-341"><a href="#cb2-341"></a><span class="at">&gt;</span></span>
-<span id="cb2-342"><a href="#cb2-342"></a><span class="at">&gt; where $\mathrm{d} P / \mathrm{d} Q$ is the Radon-Nikodym derivative of $P$ w.r.t. $Q$ and $\alpha \in</span><span class="co">[</span><span class="ot">0, \infty</span><span class="co">]</span><span class="at">$. Some remarkable cases, defined as limits, are: $\alpha=1$ when $D_1(P \| Q)=D_{\mathrm{KL}}(P \| Q)$ and $\alpha=\infty$ yielding $D_{\infty}(P \| Q)=\log \operatorname{ess} \sup _{\mathcal{X}}\left\{\frac{\mathrm{d} P}{\mathrm{~d} Q}\right\} .$ ($\operatorname{ess} \sup$ is the essential supremum of a measurable function $f$, i.e., the smallest $M$ such that $f(x) \leqslant M$ *almost everywhere*.) Importing the notation from Cortes et al. (2010), we denote the exponentiated $\alpha$-Rényi divergence as $d_\alpha(P \| Q)=\exp \left\{D_\alpha(P \| Q)\right\}$. With little abuse of notation, we will replace $D_\alpha(P \| Q)$ with $D_\alpha(p </span><span class="sc">\|</span><span class="at"> q)$ whenever possible within the context. When $P$ and $Q$ are (multivariate) Gaussian distributions, i.e., $P \sim \mathcal{N}\left(\boldsymbol{\mu}_P, \boldsymbol{\Sigma}_P\right)$ and $Q \sim \mathcal{N}\left(\boldsymbol{\mu}_Q, \boldsymbol{\Sigma}_Q\right)$, the Rényi divergence admits a closed-form for $\alpha \in[0, \infty)$ (Burbea, 1984):</span></span>
-<span id="cb2-343"><a href="#cb2-343"></a><span class="at">&gt;</span></span>
-<span id="cb2-344"><a href="#cb2-344"></a><span class="at">&gt; $$D_\alpha(P \| Q)=\frac{\alpha}{2}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)^T \boldsymbol{\Sigma}_\alpha^{-1}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)-\frac{1}{2(\alpha-1)} \log \frac{\operatorname{det}\left(\boldsymbol{\Sigma}_\alpha\right)}{\operatorname{det}\left(\boldsymbol{\Sigma}_P\right)^{1-\alpha} \operatorname{det}\left(\boldsymbol{\Sigma}_Q\right)^\alpha},$$</span></span>
-<span id="cb2-345"><a href="#cb2-345"></a><span class="at">&gt; </span></span>
-<span id="cb2-346"><a href="#cb2-346"></a><span class="at">&gt; where $\boldsymbol{\Sigma}_\alpha=\alpha \boldsymbol{\Sigma}_Q+(1-\alpha) \boldsymbol{\Sigma}_P$ under the assumption that $\boldsymbol{\Sigma}_\alpha$ is positive-definite. The Rényi divergence can be computed in closed form also for several widely used distributions (Gil et al., 2013).</span></span>
+<span id="cb2-342"><a href="#cb2-342"></a><span class="at">&gt; $$D_\alpha(P \| Q)=\frac{\alpha}{2}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)^T \boldsymbol{\Sigma}_\alpha^{-1}\left(\boldsymbol{\mu}_P-\boldsymbol{\mu}_Q\right)-\frac{1}{2(\alpha-1)} \log \frac{\operatorname{det}\left(\boldsymbol{\Sigma}_\alpha\right)}{\operatorname{det}\left(\boldsymbol{\Sigma}_P\right)^{1-\alpha} \operatorname{det}\left(\boldsymbol{\Sigma}_Q\right)^\alpha},$$</span></span>
+<span id="cb2-343"><a href="#cb2-343"></a><span class="at">&gt; </span></span>
+<span id="cb2-344"><a href="#cb2-344"></a><span class="at">&gt; where $\boldsymbol{\Sigma}_\alpha=\alpha \boldsymbol{\Sigma}_Q+(1-\alpha) \boldsymbol{\Sigma}_P$ under the assumption that $\boldsymbol{\Sigma}_\alpha$ is positive-definite. The Rényi divergence can be computed in closed form also for several widely used distributions (Gil et al., 2013).</span></span>
+<span id="cb2-345"><a href="#cb2-345"></a><span class="at">&gt;</span></span>
+<span id="cb2-346"><a href="#cb2-346"></a><span class="at">&gt; The Rényi divergence provides a convenient expression for the moments of the importance weights: $\mathbb{E}_{x \sim Q}\left[w_{P / Q}(x)^\alpha\right]=d_\alpha(P </span><span class="sc">\|</span><span class="at"> Q)^{\alpha-1}$. Moreover, we can relate the Rényi divergence with the variance and the essential supremum of the importance weights (Cortes et al., 2010):</span></span>
 <span id="cb2-347"><a href="#cb2-347"></a><span class="at">&gt;</span></span>
-<span id="cb2-348"><a href="#cb2-348"></a><span class="at">&gt; The Rényi divergence provides a convenient expression for the moments of the importance weights: $\mathbb{E}_{x \sim Q}\left[w_{P / Q}(x)^\alpha\right]=d_\alpha(P </span><span class="sc">\|</span><span class="at"> Q)^{\alpha-1}$. Moreover, we can relate the Rényi divergence with the variance and the essential supremum of the importance weights (Cortes et al., 2010):</span></span>
-<span id="cb2-349"><a href="#cb2-349"></a><span class="at">&gt;</span></span>
-<span id="cb2-350"><a href="#cb2-350"></a><span class="at">&gt;$$\begin{aligned}&amp; \underset{x \sim Q}{\operatorname{Var}}\left</span><span class="co">[</span><span class="ot">w_{P / Q}(x)\right</span><span class="co">]</span><span class="at">=d_2(P \| Q)-1 \\ &amp; \underset{x \sim Q}{\operatorname{ess} \sup }\left\{w_{P / Q}(x)\right\}=d_{\infty}(P </span><span class="sc">\|</span><span class="at"> Q) .\end{aligned}$$</span></span>
-<span id="cb2-351"><a href="#cb2-351"></a></span>
-<span id="cb2-352"><a href="#cb2-352"></a><span class="at">&gt; Lemma 1. Let $P$ and $Q$ be two probability measures on the measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q$. Let $\alpha \in</span><span class="co">[</span><span class="ot">1,+\infty</span><span class="co">]</span><span class="at">, \mathbf{x}=\left(x_1, x_2, \ldots, x_N\right)^T$ be i.i.d. random variables sampled from $Q$ and $f: \mathcal{X} \rightarrow \mathbb{R}$ be a function with bounded $\frac{2 \alpha}{\alpha-1}$-moment under $Q\left(\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}&lt;+\infty\right)$. Then, for any $N&gt;0$, the variance of the IS estimator $\widehat{\mu}_{P / Q}$ can be upper bounded as:</span></span>
+<span id="cb2-348"><a href="#cb2-348"></a><span class="at">&gt;$$\begin{aligned}&amp; \underset{x \sim Q}{\operatorname{Var}}\left</span><span class="co">[</span><span class="ot">w_{P / Q}(x)\right</span><span class="co">]</span><span class="at">=d_2(P \| Q)-1 \\ &amp; \underset{x \sim Q}{\operatorname{ess} \sup }\left\{w_{P / Q}(x)\right\}=d_{\infty}(P </span><span class="sc">\|</span><span class="at"> Q) .\end{aligned}$$</span></span>
+<span id="cb2-349"><a href="#cb2-349"></a></span>
+<span id="cb2-350"><a href="#cb2-350"></a><span class="at">&gt; Lemma 1. Let $P$ and $Q$ be two probability measures on the measurable space $(\mathcal{X}, \mathscr{F})$ such that $P \ll Q$. Let $\alpha \in</span><span class="co">[</span><span class="ot">1,+\infty</span><span class="co">]</span><span class="at">, \mathbf{x}=\left(x_1, x_2, \ldots, x_N\right)^T$ be i.i.d. random variables sampled from $Q$ and $f: \mathcal{X} \rightarrow \mathbb{R}$ be a function with bounded $\frac{2 \alpha}{\alpha-1}$-moment under $Q\left(\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}&lt;+\infty\right)$. Then, for any $N&gt;0$, the variance of the IS estimator $\widehat{\mu}_{P / Q}$ can be upper bounded as:</span></span>
+<span id="cb2-351"><a href="#cb2-351"></a><span class="at">&gt;</span></span>
+<span id="cb2-352"><a href="#cb2-352"></a><span class="at">&gt; $$\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}^2 d_{2 \alpha}(P </span><span class="sc">\|</span><span class="at"> Q)^{2-\frac{1}{\alpha}},$$</span></span>
 <span id="cb2-353"><a href="#cb2-353"></a><span class="at">&gt;</span></span>
-<span id="cb2-354"><a href="#cb2-354"></a><span class="at">&gt; $$\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{Q, \frac{2 \alpha}{\alpha-1}}^2 d_{2 \alpha}(P </span><span class="sc">\|</span><span class="at"> Q)^{2-\frac{1}{\alpha}},$$</span></span>
+<span id="cb2-354"><a href="#cb2-354"></a><span class="at">&gt; where we used the abbreviation $\mathbf{x} \sim Q$ for denoting $x_i \sim Q$ for all $i=1,2, \ldots, N$ all independent.</span></span>
 <span id="cb2-355"><a href="#cb2-355"></a><span class="at">&gt;</span></span>
-<span id="cb2-356"><a href="#cb2-356"></a><span class="at">&gt; where we used the abbreviation $\mathbf{x} \sim Q$ for denoting $x_i \sim Q$ for all $i=1,2, \ldots, N$ all independent.</span></span>
+<span id="cb2-356"><a href="#cb2-356"></a><span class="at">&gt; This result generalizes Lemma 4.1 of Metelli et al. (2018), that can be recovered by setting $\alpha=1$ under the condition that $</span><span class="sc">\|</span><span class="at">f</span><span class="sc">\|</span><span class="at">_{\infty}&lt;+\infty$ :</span></span>
 <span id="cb2-357"><a href="#cb2-357"></a><span class="at">&gt;</span></span>
-<span id="cb2-358"><a href="#cb2-358"></a><span class="at">&gt; This result generalizes Lemma 4.1 of Metelli et al. (2018), that can be recovered by setting $\alpha=1$ under the condition that $</span><span class="sc">\|</span><span class="at">f</span><span class="sc">\|</span><span class="at">_{\infty}&lt;+\infty$ :</span></span>
-<span id="cb2-359"><a href="#cb2-359"></a><span class="at">&gt;</span></span>
-<span id="cb2-360"><a href="#cb2-360"></a><span class="at">&gt; $$\operatorname{Var}_{\mathbf{x} \sim Q}\left[\widehat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2 d_2(P </span><span class="sc">\|</span><span class="at"> Q) .$$</span></span>
+<span id="cb2-358"><a href="#cb2-358"></a><span class="at">&gt; $$\operatorname{Var}_{\mathbf{x} \sim Q}\left[\widehat{\mu}_{P / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2 d_2(P </span><span class="sc">\|</span><span class="at"> Q) .$$</span></span>
+<span id="cb2-359"><a href="#cb2-359"></a></span>
+<span id="cb2-360"><a href="#cb2-360"></a>When $\alpha = 1$, the Rényi divergence reduces to the <span class="co">[</span><span class="ot">Kullback-Leibler divergence</span><span class="co">](https://en.wikipedia.org/wiki/Kullback-Leibler_divergence)</span>, which is widely used in RL analysis.</span>
 <span id="cb2-361"><a href="#cb2-361"></a></span>
-<span id="cb2-362"><a href="#cb2-362"></a>When $\alpha = 1$, the Rényi divergence is the <span class="co">[</span><span class="ot">Kullback-Leibler divergence</span><span class="co">](https://en.wikipedia.org/wiki/Kullback-Leibler_divergence)</span> widely used in RL analysis.</span>
-<span id="cb2-363"><a href="#cb2-363"></a></span>
-<span id="cb2-364"><a href="#cb2-364"></a></span>
-<span id="cb2-365"><a href="#cb2-365"></a><span class="at">&gt; When $P=Q$ almost everywhere, we get $\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{Q / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2$, a well-known upper bound to the variance of a Monte Carlo estimator. Recalling the definition of ESS (Equation 7) we can rewrite the previous bound as:</span></span>
+<span id="cb2-362"><a href="#cb2-362"></a></span>
+<span id="cb2-363"><a href="#cb2-363"></a><span class="at">&gt; When $P=Q$ almost everywhere, we get $\operatorname{Var}_{\mathbf{x} \sim Q}\left[\hat{\mu}_{Q / Q}\right] \leqslant \frac{1}{N}\|f\|_{\infty}^2$, a well-known upper bound to the variance of a Monte Carlo estimator. Recalling the definition of ESS (Equation 7) we can rewrite the previous bound as:</span></span>
+<span id="cb2-364"><a href="#cb2-364"></a><span class="at">&gt;</span></span>
+<span id="cb2-365"><a href="#cb2-365"></a><span class="at">&gt; $$\underset{\mathbf{x} \sim Q}{\operatorname{Var}}\left</span><span class="co">[</span><span class="ot">\hat{\mu}_{P / Q}\right</span><span class="co">]</span><span class="at"> \leqslant \frac{</span><span class="sc">\|</span><span class="at">f</span><span class="sc">\|</span><span class="at">_{\infty}^2}{\operatorname{ESS}(P </span><span class="sc">\|</span><span class="at"> Q)} .$$</span></span>
 <span id="cb2-366"><a href="#cb2-366"></a><span class="at">&gt;</span></span>
-<span id="cb2-367"><a href="#cb2-367"></a><span class="at">&gt; $$\underset{\mathbf{x} \sim Q}{\operatorname{Var}}\left</span><span class="co">[</span><span class="ot">\hat{\mu}_{P / Q}\right</span><span class="co">]</span><span class="at"> \leqslant \frac{</span><span class="sc">\|</span><span class="at">f</span><span class="sc">\|</span><span class="at">_{\infty}^2}{\operatorname{ESS}(P </span><span class="sc">\|</span><span class="at"> Q)} .$$</span></span>
-<span id="cb2-368"><a href="#cb2-368"></a><span class="at">&gt;</span></span>
-<span id="cb2-369"><a href="#cb2-369"></a><span class="at">&gt; Thus, the variance scales with ESS instead of $N$, justifying the definition of ESS.</span></span>
+<span id="cb2-367"><a href="#cb2-367"></a><span class="at">&gt; Thus, the variance scales with ESS instead of $N$, justifying the definition of ESS.</span></span>
+<span id="cb2-368"><a href="#cb2-368"></a></span>
+<span id="cb2-369"><a href="#cb2-369"></a>In our context, $P$ is the target distribution $p_{\theta}$ and $Q$ is $\mu_{\theta_{n},M}$ or $\pi_{\theta_{n}}$.</span>
 <span id="cb2-370"><a href="#cb2-370"></a></span>
-<span id="cb2-371"><a href="#cb2-371"></a>In our context, $P$ is the target distribution $p_{\theta}$ and $Q$ is $\mu_{\theta_{n},M}$ or $\pi_{\theta_{n}}$.</span>
+<span id="cb2-371"><a href="#cb2-371"></a>It is possible that $d_{2 \alpha}(p_{\theta} <span class="sc">\|</span> q_{\theta_{n},M}) &lt; d_{2 \alpha}(p_{\theta} <span class="sc">\|</span> p_{\theta_{n}})$, since the newer the policy, the more similar its induced distribution is to $p_{\theta}$. Then, as long as $<span class="sc">\|</span>f<span class="sc">\|</span>_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}$ is not much larger than $\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}$, the estimate using $\mu_{\theta_{n},M}$ has a better variance bound than that using $\pi_{\theta_{n}}$.</span>
 <span id="cb2-372"><a href="#cb2-372"></a></span>
-<span id="cb2-373"><a href="#cb2-373"></a>It is possible that $d_{2 \alpha}(p_{\theta} <span class="sc">\|</span> q_{\theta_{n},M}) &lt; d_{2 \alpha}(p_{\theta} <span class="sc">\|</span> p_{\theta_{n}})$, since the newer the policy is, the more similar its induced distribution is to $p_{\theta}$. Then as long as the $<span class="sc">\|</span>f<span class="sc">\|</span>_{q_{\theta_{n},M}, \frac{2 \alpha}{\alpha-1}}$ is not much larger than $\|f\|_{p_{\theta_{n}}, \frac{2 \alpha}{\alpha-1}}$, the estimate using $\mu_{\theta_{n},M}$ has better guarantee than the estimate using $\pi_{\theta_{n}}$.</span>
+<span id="cb2-373"><a href="#cb2-373"></a>In practice, the effectiveness of IS estimates is often assessed via empirical diagnostic metrics such as the <span class="co">[</span><span class="ot">Effective Sample Size (ESS)</span><span class="co">](https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section)</span>. For example, @piché2025pipelinerl measured the ESS of different sampling policies they used.</span>
 <span id="cb2-374"><a href="#cb2-374"></a></span>
-<span id="cb2-375"><a href="#cb2-375"></a>In practice, the final effectiveness of the IS estimate usually relies on empirical diagnostic metrics like <span class="co">[</span><span class="ot">Effective Sample Size (ESS)</span><span class="co">](https://mc-stan.org/docs/reference-manual/analysis.html#effective-sample-size.section)</span>. For example, @piché2025pipelinerl measured the ESS of different sampling policies they used.</span>
+<span id="cb2-375"><a href="#cb2-375"></a><span class="fu">## Comparing PR(-SKV) and CR for Importance Sampling {#sec-is-comparison}</span></span>
 <span id="cb2-376"><a href="#cb2-376"></a></span>
-<span id="cb2-377"><a href="#cb2-377"></a><span class="fu">## Comparing PR(-SKV) and CR for Importance Sampling {#sec-is-comparison}</span></span>
+<span id="cb2-377"><a href="#cb2-377"></a>We can now summarize the comparison between the three strategies from the IS perspective.</span>
 <span id="cb2-378"><a href="#cb2-378"></a></span>
-<span id="cb2-379"><a href="#cb2-379"></a>We can now summarize the comparison between the three strategies from the IS perspective.</span>
+<span id="cb2-379"><a href="#cb2-379"></a>**Bias.** Both PR(-SKV) and CR can produce **unbiased** IS estimates, as shown above. For CR, each trajectory has a single well-defined behavior policy, and the unbiasedness follows directly from @eq-is-unbiased. For PR, the trajectory-dependent behavior policy formulation (@eq-is-single-sample) preserves unbiasedness, and averaging over the batch (@eq-is-single-sample-avg) inherits it by linearity of expectation. For PR-SKV, the unbiasedness holds approximately under the assumption that the stale KV cache introduces negligible distribution shift.</span>
 <span id="cb2-380"><a href="#cb2-380"></a></span>
-<span id="cb2-381"><a href="#cb2-381"></a>**Bias.** Both PR(-SKV) and CR can produce **unbiased** IS estimates, as shown above. For CR, each trajectory has a single well-defined behavior policy, and the unbiasedness follows directly from @eq-is-unbiased. For PR, the trajectory-dependent behavior policy formulation (@eq-is-single-sample) preserves unbiasedness, and averaging over the batch (@eq-is-single-sample-avg) inherits it by linearity of expectation. For PR-SKV, the unbiasedness holds approximately under the assumption that the stale KV cache introduces negligible distribution shift.</span>
+<span id="cb2-381"><a href="#cb2-381"></a>**Variance.** The variance comparison between PR(-SKV) and CR is more nuanced, and it is hard to declare a clear winner:</span>
 <span id="cb2-382"><a href="#cb2-382"></a></span>
-<span id="cb2-383"><a href="#cb2-383"></a>**Variance.** The variance comparison between PR(-SKV) and CR is more nuanced, and it is hard to declare a clear winner:</span>
+<span id="cb2-383"><a href="#cb2-383"></a><span class="ss">- </span>**PR(-SKV) can be less off-policy.** By always switching to the latest policy once available, PR(-SKV) ensures that the latter portion of each trajectory is generated by a more recent (less stale) policy. This can lead to importance weights closer to 1, reducing variance through smaller Rényi divergence $d_{2\alpha}(p_{\theta} \| q_{\mu})$.</span>
 <span id="cb2-384"><a href="#cb2-384"></a></span>
-<span id="cb2-385"><a href="#cb2-385"></a><span class="ss">- </span>**PR(-SKV) can be less off-policy.** By always switching to the latest policy once available, PR(-SKV) ensures that the latter portion of each trajectory is generated by a more recent (less stale) policy. This can lead to importance weights closer to 1, reducing variance through smaller Rényi divergence $d_{2\alpha}(p_{\theta} \| q_{\mu})$.</span>
+<span id="cb2-385"><a href="#cb2-385"></a><span class="ss">- </span>**CR can exploit Multiple Importance Sampling.** Because each trajectory is sampled from a single consistent policy, CR naturally fits the Multiple Importance Sampling formulation (@sec-is-consistent). This opens the door to variance reduction techniques like the **balance heuristic**, which provides near-optimal weighting across samples from different policies (Theorem 9.8 in @owen2013mcbook). PR data, with its mixed-policy trajectories, cannot directly leverage this formulation without additional approximations.</span>
 <span id="cb2-386"><a href="#cb2-386"></a></span>
-<span id="cb2-387"><a href="#cb2-387"></a><span class="ss">- </span>**CR can exploit Multiple Importance Sampling.** Because each trajectory is sampled from a single consistent policy, CR naturally fits the Multiple Importance Sampling formulation (@sec-is-consistent). This opens the door to variance reduction techniques like the **balance heuristic**, which provides near-optimal weighting across samples from different policies (Theorem 9.8 in @owen2013mcbook). PR data, with its mixed-policy trajectories, cannot directly leverage this formulation without additional approximations.</span>
+<span id="cb2-387"><a href="#cb2-387"></a><span class="fu">## Discussions</span></span>
 <span id="cb2-388"><a href="#cb2-388"></a></span>
-<span id="cb2-389"><a href="#cb2-389"></a><span class="fu">## Discussions</span></span>
+<span id="cb2-389"><a href="#cb2-389"></a><span class="fu">### Distribution Shift from Reusing Stale KV Cache</span></span>
 <span id="cb2-390"><a href="#cb2-390"></a></span>
-<span id="cb2-391"><a href="#cb2-391"></a><span class="fu">### Distribution Shift from Reusing Stale KV Cache</span></span>
+<span id="cb2-391"><a href="#cb2-391"></a>The distribution shift from reusing stale KV cache is an important practical concern that warrants further investigation. When the stale KV cache is reused with a new policy, the effective sampling distribution at each timestep depends on the entire history of policy switches and the accumulated staleness of the cached representations. Quantifying this shift and its impact on IS estimate quality remains an open question.</span>
 <span id="cb2-392"><a href="#cb2-392"></a></span>
-<span id="cb2-393"><a href="#cb2-393"></a>The distribution shift introduced by reusing stale KV cache is an important practical concern that deserves further investigation. When the stale KV cache is reused with a new policy, the effective sampling distribution at each timestep depends on the entire history of policy switches and the accumulated staleness of the cached representations. Quantifying this shift and its impact on the IS estimate quality remains an open question.</span>
+<span id="cb2-393"><a href="#cb2-393"></a><span class="fu">### Minimizing Variance by Optimizing the Weighting</span></span>
 <span id="cb2-394"><a href="#cb2-394"></a></span>
-<span id="cb2-395"><a href="#cb2-395"></a><span class="fu">### Minimizing Variance by Optimizing the Weighting</span></span>
+<span id="cb2-395"><a href="#cb2-395"></a>In @eq-is-single-sample-avg, we use the simple uniform weight $\frac{1}{N}$. Actually, we can use any weight functions $\omega_i(\boldsymbol{x})$ that form a *partition of unity*, i.e., $\omega_j(\boldsymbol{x}) \geqslant 0$ with $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$, while keeping unbiasedness. Different partitions of unity yield estimates that are all unbiased but may differ in variance. Balance heuristic is a special case of this in the Multiple Importance Sampling formulation, where $\omega_j^{\mathrm{BH}} \propto n_{j}q_j(\boldsymbol{x})$. However, the optimal weighting is still an open question.</span>
 <span id="cb2-396"><a href="#cb2-396"></a></span>
-<span id="cb2-397"><a href="#cb2-397"></a>Beyond the comparison on each single-sample estimate, we can also consider the optimal weighting of them. In @eq-is-single-sample-avg, we use the simplest average weight $\frac{1}{N}$ for each single-sample estimate. But we can actually use any other weight functions $\omega_i(\boldsymbol{x})$ to combine them, as long as they form a *partition of unity*, i.e., a collection of $J \geqslant 1$ weight functions $\omega_j(\boldsymbol{x}) \geqslant 0$ which satisfy $\sum_{j=1}^J \omega_j(\boldsymbol{x})=1$ for all $\boldsymbol{x}$. Different partitions of unity will lead to estimates that are all unbiased but with different variances.</span>
+<span id="cb2-397"><a href="#cb2-397"></a><span class="fu"># Acknowledgments {.appendix .unnumbered}</span></span>
 <span id="cb2-398"><a href="#cb2-398"></a></span>
-<span id="cb2-399"><a href="#cb2-399"></a><span class="fu"># Acknowledgments {.appendix .unnumbered}</span></span>
+<span id="cb2-399"><a href="#cb2-399"></a>Thanks to Wang Zhang for helpful discussions.</span>
 <span id="cb2-400"><a href="#cb2-400"></a></span>
-<span id="cb2-401"><a href="#cb2-401"></a>Thanks for helpful discussion with Wang Zhang.</span>
+<span id="cb2-401"><a href="#cb2-401"></a><span class="fu"># Citation {.appendix .unnumbered}</span></span>
 <span id="cb2-402"><a href="#cb2-402"></a></span>
-<span id="cb2-403"><a href="#cb2-403"></a><span class="fu"># Citation {.appendix .unnumbered}</span></span>
+<span id="cb2-403"><a href="#cb2-403"></a>BibTeX:</span>
 <span id="cb2-404"><a href="#cb2-404"></a></span>
-<span id="cb2-405"><a href="#cb2-405"></a>BibTeX:</span>
-<span id="cb2-406"><a href="#cb2-406"></a></span>
-<span id="cb2-407"><a href="#cb2-407"></a><span class="in">```BibTeX</span></span>
-<span id="cb2-408"><a href="#cb2-408"></a><span class="in">@article{tong2026partialvsconsistent,</span></span>
-<span id="cb2-409"><a href="#cb2-409"></a><span class="in">  author = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span></span>
-<span id="cb2-410"><a href="#cb2-410"></a><span class="in">  title = {{Partial Rollout vs Consistent Rollout in LLM RL}},</span></span>
-<span id="cb2-411"><a href="#cb2-411"></a><span class="in">  journal = {Blog},</span></span>
-<span id="cb2-412"><a href="#cb2-412"></a><span class="in">  date = {2026-01-07},</span></span>
-<span id="cb2-413"><a href="#cb2-413"></a><span class="in">  url = {https://tongyx361.github.io/posts/pr-vs-cr},</span></span>
-<span id="cb2-414"><a href="#cb2-414"></a><span class="in">  language = {English},</span></span>
-<span id="cb2-415"><a href="#cb2-415"></a><span class="in">}</span></span>
-<span id="cb2-416"><a href="#cb2-416"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb2-405"><a href="#cb2-405"></a><span class="in">```BibTeX</span></span>
+<span id="cb2-406"><a href="#cb2-406"></a><span class="in">@article{tong2026partialvsconsistent,</span></span>
+<span id="cb2-407"><a href="#cb2-407"></a><span class="in">  author = {Yuxuan Tong and Yingru Li and Guangming Sheng},</span></span>
+<span id="cb2-408"><a href="#cb2-408"></a><span class="in">  title = {{Partial Rollout vs Consistent Rollout in LLM RL}},</span></span>
+<span id="cb2-409"><a href="#cb2-409"></a><span class="in">  journal = {Blog},</span></span>
+<span id="cb2-410"><a href="#cb2-410"></a><span class="in">  date = {2026-01-07},</span></span>
+<span id="cb2-411"><a href="#cb2-411"></a><span class="in">  url = {https://tongyx361.github.io/posts/pr-vs-cr},</span></span>
+<span id="cb2-412"><a href="#cb2-412"></a><span class="in">  language = {English},</span></span>
+<span id="cb2-413"><a href="#cb2-413"></a><span class="in">}</span></span>
+<span id="cb2-414"><a href="#cb2-414"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
